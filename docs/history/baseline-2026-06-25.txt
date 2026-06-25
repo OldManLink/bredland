@@ -1,0 +1,106 @@
+23:57 $ ping bredland
+PING bredland.arcanel.local (192.168.88.5): 56 data bytes
+64 bytes from 192.168.88.5: icmp_seq=0 ttl=64 time=251.645 ms
+64 bytes from 192.168.88.5: icmp_seq=1 ttl=64 time=2.191 ms
+64 bytes from 192.168.88.5: icmp_seq=2 ttl=64 time=2.304 ms
+64 bytes from 192.168.88.5: icmp_seq=3 ttl=64 time=2.200 ms
+64 bytes from 192.168.88.5: icmp_seq=4 ttl=64 time=2.116 ms
+^C
+--- bredland.arcanel.local ping statistics ---
+5 packets transmitted, 5 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 2.116/52.091/251.645/99.777 ms
+✔ ~
+13:41 $ ssh peter@bredland
+Linux bredland 6.18.34+rpt-rpi-v8 #1 SMP PREEMPT Debian 1:6.18.34-1+rpt1 (2026-06-09) aarch64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Tue Jun 23 13:37:49 2026 from 192.168.88.20
+peter@bredland:~ $ hostnamectl
+ Static hostname: bredland
+       Icon name: computer
+      Machine ID: 47e5dd8ec00b4746982b4e0c78145cfc
+         Boot ID: 210e7ee7a05a4c118dc4a9168a3ca463
+Operating System: Debian GNU/Linux 13 (trixie)
+          Kernel: Linux 6.18.34+rpt-rpi-v8
+    Architecture: arm64
+peter@bredland:~ $ cat /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.5
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+peter@bredland:~ $ cat /proc/cpuinfo | grep -E 'Model|Revision'
+Revision	: c03112
+Model		: Raspberry Pi 4 Model B Rev 1.2
+peter@bredland:~ $ uname -a
+Linux bredland 6.18.34+rpt-rpi-v8 #1 SMP PREEMPT Debian 1:6.18.34-1+rpt1 (2026-06-09) aarch64 GNU/Linux
+peter@bredland:~ $ lsblk -f
+NAME FSTYPE FSVER LABEL  UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+loop0
+     swap   1
+mmcblk0
+│
+├─mmcblk0p1
+│    vfat   FAT32 bootfs B2F0-82D2                             429.6M    15% /boot/firmware
+└─mmcblk0p2
+     ext4   1.0   rootfs 15f4c6be-1102-4331-9904-f78e78afd1fd   54.2G     7% /
+zram0
+     swap   1     zram0  83c4ced3-e3bd-4df4-95b0-81757d0afc65                [SWAP]
+peter@bredland:~ $ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            1.6G     0  1.6G   0% /dev
+tmpfs           760M  9.0M  751M   2% /run
+/dev/mmcblk0p2   61G  4.3G   55G   8% /
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           5.0M   16K  5.0M   1% /run/lock
+tmpfs           1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+tmpfs           1.9G     0  1.9G   0% /tmp
+/dev/mmcblk0p1  505M   75M  430M  15% /boot/firmware
+tmpfs           1.0M     0  1.0M   0% /run/credentials/getty@tty1.service
+tmpfs           380M  8.0K  380M   1% /run/user/1000
+peter@bredland:~ $ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       172Mi       3.5Gi       8.9Mi       155Mi       3.5Gi
+Swap:          2.0Gi          0B       2.0Gi
+peter@bredland:~ $ mount
+sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+proc on /proc type proc (rw,relatime)
+udev on /dev type devtmpfs (rw,nosuid,relatime,size=1672304k,nr_inodes=418076,mode=755)
+devpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=600,ptmxmode=000)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,noexec,relatime,size=777380k,mode=755)
+/dev/mmcblk0p2 on / type ext4 (rw,noatime)
+securityfs on /sys/kernel/security type securityfs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot)
+none on /sys/fs/pstore type pstore (rw,nosuid,nodev,noexec,relatime)
+bpf on /sys/fs/bpf type bpf (rw,nosuid,nodev,noexec,relatime,mode=700)
+systemd-1 on /proc/sys/fs/binfmt_misc type autofs (rw,relatime,fd=37,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=5270)
+mqueue on /dev/mqueue type mqueue (rw,nosuid,nodev,noexec,relatime)
+debugfs on /sys/kernel/debug type debugfs (rw,nosuid,nodev,noexec,relatime)
+tracefs on /sys/kernel/tracing type tracefs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /run/lock type tmpfs (rw,nosuid,nodev,noexec,relatime,size=5120k)
+tmpfs on /run/credentials/systemd-journald.service type tmpfs (ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap)
+configfs on /sys/kernel/config type configfs (rw,nosuid,nodev,noexec,relatime)
+fusectl on /sys/fs/fuse/connections type fusectl (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /tmp type tmpfs (rw,nosuid,nodev,size=1943452k,nr_inodes=1048576)
+/dev/mmcblk0p1 on /boot/firmware type vfat (rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,errors=remount-ro)
+binfmt_misc on /proc/sys/fs/binfmt_misc type binfmt_misc (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /run/credentials/getty@tty1.service type tmpfs (ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap)
+tmpfs on /run/user/1000 type tmpfs (rw,nosuid,nodev,relatime,size=388688k,nr_inodes=97172,mode=700,uid=1000,gid=1000)
+peter@bredland:~ $ systemctl --failed
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+peter@bredland:~ $ journalctl --disk-usage
+Archived and active journals take up 8M in the file system.
+peter@bredland:~ $

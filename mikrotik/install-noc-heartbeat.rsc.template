@@ -1,0 +1,33 @@
+# BRD-001: Install MikroTik NOC heartbeat
+#
+# This file is a template.
+# Deployment-specific values are injected outside version control.
+
+:local scriptName "__MIKROTIK_NOC_SCRIPT_NAME__"
+:local schedulerName "__MIKROTIK_NOC_SCHEDULER_NAME__"
+:local interval "__MIKROTIK_NOC_INTERVAL__"
+
+:if ([:len [/system script find name=$scriptName]] > 0) do={
+    /system script remove [find name=$scriptName]
+}
+
+/system script add name=$scriptName policy=read,write,test source={
+    :local endpoint "__MIKROTIK_NOC_ENDPOINT__"
+    :local token "__MIKROTIK_NOC_TOKEN__"
+    :local host "__MIKROTIK_NOC_HOST__"
+
+    :local uptime [/system resource get uptime]
+    :local cpuLoad [/system resource get cpu-load]
+    :local freeMemory [/system resource get free-memory]
+    :local totalMemory [/system resource get total-memory]
+
+    :local payload ("token=$token&host=$host&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
+
+    /tool fetch url=$endpoint http-method=post http-data=$payload output=none
+}
+
+:if ([:len [/system scheduler find name=$schedulerName]] > 0) do={
+    /system scheduler remove [find name=$schedulerName]
+}
+
+/system scheduler add name=$schedulerName interval=$interval on-event=$scriptName start-time=startup

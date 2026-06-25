@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+*.tmp
+
+# Local environment / secrets
+.env
+*.env
+config/*.env
+!config/*.example.env
+
+# Logs
+*.log
+
+# Generated files
+*.img
+*.img.gz
+*.img.xz
+*.sha256
+
+# Local scratch space
+tmp/
+scratch/
