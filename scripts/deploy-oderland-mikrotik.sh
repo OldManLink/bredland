@@ -20,10 +20,10 @@ endpoint_local="$tmpdir/mikrotik.php"
 config_local="$tmpdir/mikrotik.config.php"
 
 echo "Rendering Oderland MikroTik endpoint..."
-scripts/render-template.sh oderland/mikrotik.endpoint.template.php "$endpoint_local"
+scripts/render-template.sh templates/oderland/mikrotik.endpoint.template.php "$endpoint_local"
 
 echo "Rendering Oderland MikroTik private config..."
-scripts/render-template.sh oderland/mikrotik.config.template.php "$config_local"
+scripts/render-template.sh templates/oderland/mikrotik.config.template.php "$config_local"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 

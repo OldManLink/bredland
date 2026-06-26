@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+NOC_DATA_DIR="__NOC_DATA_DIR__"
+
+if [[ ! -d "$NOC_DATA_DIR" ]]; then
+    echo "Error: NOC data directory not found: $NOC_DATA_DIR" >&2
+    exit 1
+fi
+
+today="${NOC_ROTATION_DATE:-$(date -u +%F)}"
+
+shopt -s nullglob
+
+for jsonl in "$NOC_DATA_DIR"/*.jsonl; do
+    filename="$(basename "$jsonl")"
+
+    # Skip today's active log.
+    if [[ "$filename" == *-"$today".jsonl ]]; then
+        continue
+    fi
+
+    # Skip if already compressed.
+    if [[ -f "${jsonl}.gz" ]]; then
+        continue
+    fi
+
+    gzip -n "$jsonl"
+done
