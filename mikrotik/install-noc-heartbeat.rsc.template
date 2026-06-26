@@ -16,12 +16,14 @@
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local host "__MIKROTIK_NOC_HOST__"
 
+    :local version [/system resource get version]
+    :local model [/system resource get board-name]
     :local uptime [/system resource get uptime]
     :local cpuLoad [/system resource get cpu-load]
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
 
-    :local payload ("token=$token&host=$host&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
+    :local payload ("token=$token&host=$host&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }
