@@ -55,6 +55,10 @@ gzip -t "$data_dir/mikrotik-2026-06-24.jsonl.gz"
 gzip -t "$data_dir/mikrotik-2026-06-25.jsonl.gz"
 gzip -t "$data_dir/bredland-2026-06-25.jsonl.gz"
 
+diff -u <(printf '%s\n' '{"host":"mikrotik","ts":"2026-06-24T12:00:00Z"}') <(gzip -dc "$data_dir/mikrotik-2026-06-24.jsonl.gz")
+diff -u <(printf '%s\n' '{"host":"mikrotik","ts":"2026-06-25T12:00:00Z"}') <(gzip -dc "$data_dir/mikrotik-2026-06-25.jsonl.gz")
+diff -u <(printf '%s\n' '{"host":"bredland","ts":"2026-06-25T12:00:00Z"}') <(gzip -dc "$data_dir/bredland-2026-06-25.jsonl.gz")
+
 before="$(find "$data_dir" -type f | sort | xargs ls -l)"
 
 NOC_ROTATION_DATE=2026-06-26 "$rendered"

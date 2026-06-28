@@ -21,7 +21,7 @@ for jsonl in "$NOC_DATA_DIR"/*.jsonl; do
         continue
     fi
 
-    # Skip if already compressed.
+    # Skip if a compressed copy already exists.
     if [[ -f "${jsonl}.gz" ]]; then
         continue
     fi

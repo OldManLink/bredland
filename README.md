@@ -25,6 +25,18 @@ A guiding principle of this repository is that it should be possible to make it 
 
 Accordingly, this repository contains **no secrets, credentials, deployment endpoints or deployment-specific configuration**. Those are injected at deployment time from sources outside version control.
 
+### Path conventions
+
+Deployment paths are assumed to be shell-safe.
+
+Specifically:
+
+* Paths must not contain spaces.
+* Paths must not contain shell metacharacters.
+* Scripts may quote paths but are not expected to escape arbitrary shell input.
+
+This is a deliberate project convention that keeps deployment scripts small, readable and easy to audit.
+
 ## Repository Structure
 
 ```text

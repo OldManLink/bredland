@@ -32,6 +32,9 @@ scripts/render-template.sh \
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
 echo "Uploading script..."
+env -u LC_CTYPE -u LC_ALL -u LANG \
+  ssh "${oderland_user}@${oderland_host}" \
+  "mkdir -p '$noc_bin_dir'"
 scp "$local_script" "${oderland_user}@${oderland_host}:${remote_script}"
 
 echo -n "Making script executable... "
@@ -58,7 +61,9 @@ echo "OK"
 echo -n "Verifying cron entry... "
 env -u LC_CTYPE -u LC_ALL -u LANG \
   ssh "${oderland_user}@${oderland_host}" \
-  "crontab -l | grep -q '^${cron_begin}$'"
+  "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
+   crontab -l | grep -Fx '${cron_line}' >/dev/null &&
+   crontab -l | grep -Fx '${cron_end}' >/dev/null"
 echo "OK"
 
 echo "Oderland NOC log rotation deployed."
