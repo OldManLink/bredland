@@ -1,0 +1,19 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  shell-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run renderer tests
+        run: ./tests/render-template.test.sh
+
+      - name: Run log compression tests
+        run: ./tests/compress-noc-logs.test.sh

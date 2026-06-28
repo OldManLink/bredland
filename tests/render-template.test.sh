@@ -13,7 +13,7 @@ MIKROTIK_NOC_INTERVAL=5m
 MIKROTIK_NOC_SCRIPT_NAME=noc-heartbeat
 MIKROTIK_NOC_SCHEDULER_NAME=noc-heartbeat
 MIKROTIK_CONFIG_FILE=/private/mikrotik.config.php
-MIKROTIK_DATA_DIR=/private/data/
+NOC_DATA_DIR=/private/data/
 EOF
 
 run_render() {
@@ -41,8 +41,9 @@ run_render() {
     fi
 }
 
-run_render mikrotik/install-noc-heartbeat.rsc.template "$tmpdir/noc-heartbeat.rsc"
-run_render oderland/mikrotik.endpoint.template.php "$tmpdir/mikrotik.php"
-run_render oderland/mikrotik.config.template.php "$tmpdir/mikrotik.config.php"
+run_render templates/mikrotik/install-noc-heartbeat.rsc.template "$tmpdir/noc-heartbeat.rsc"
+run_render templates/oderland/mikrotik.endpoint.template.php "$tmpdir/mikrotik.php"
+run_render templates/oderland/mikrotik.config.template.php "$tmpdir/mikrotik.config.php"
+run_render templates/oderland/compress-noc-logs.sh.template "$tmpdir/compress-noc-logs.sh"
 
 echo "render-template tests passed"

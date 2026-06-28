@@ -6,7 +6,7 @@ source "$(dirname "$0")/lib/bredland.sh"
 
 load_bredland_secrets
 
-template="mikrotik/install-noc-heartbeat.rsc.template"
+template="templates/mikrotik/install-noc-heartbeat.rsc.template"
 rendered="/tmp/install-noc-heartbeat.rsc"
 remote_file="install-noc-heartbeat.rsc"
 

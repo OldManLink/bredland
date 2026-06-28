@@ -5,4 +5,4 @@
 // Do not commit rendered files.
 
 $EXPECTED_TOKEN = '__MIKROTIK_NOC_TOKEN__';
-$DATA_DIR = '__MIKROTIK_DATA_DIR__';
+$DATA_DIR = '__NOC_DATA_DIR__';
