@@ -17,7 +17,7 @@ In the event of an SD card failure:
 1. Write the latest archived disk image to a replacement microSD card.
 2. Install the card in the Raspberry Pi.
 3. Boot the system.
-4. Verify normal operation.
+4. Verify normal operation (for example, heartbeat, SSH access and telemetry).
 5. If required, restore any deployment-specific secrets that are intentionally excluded from this repository.
 
 ## Repository vs Disk Image
@@ -28,7 +28,7 @@ This repository contains:
 * documentation;
 * templates;
 * system configuration;
-* deployment tools.
+* ddeployment automation.
 
 The disk image contains:
 
@@ -42,4 +42,4 @@ The two complement one another.
 
 ## Future Work
 
-Future versions may support complete reconstruction of Bredland directly from this repository, reducing reliance on archived disk images.
+Future restore images should be reproducible from the golden image by applying the documented image changes in `docs/image/`.
