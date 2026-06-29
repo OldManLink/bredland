@@ -12,6 +12,8 @@ This repository must be publishable at any time without auditing or rewriting it
 
 Deployment-specific information such as credentials, authentication tokens, internal endpoints and environment-specific configuration must never be committed.
 
+Deployed remote filenames and paths are treated as deployment-specific and kept out of the repository. Template filenames may be descriptive and public.
+
 Instead, deployment-specific configuration is injected at deployment time from files outside version control.
 
 ### Rationale

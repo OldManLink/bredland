@@ -3,16 +3,16 @@
 # This file is a template.
 # Deployment-specific values are injected outside version control.
 
-:local scriptName "__MIKROTIK_NOC_SCRIPT_NAME__"
-:local schedulerName "__MIKROTIK_NOC_SCHEDULER_NAME__"
-:local interval "__MIKROTIK_NOC_INTERVAL__"
+:local scriptName "__MIKROTIK_HEARTBEAT_SCRIPT_NAME__"
+:local schedulerName "__MIKROTIK_HEARTBEAT_SCHEDULER_NAME__"
+:local interval "__MIKROTIK_HEARTBEAT_INTERVAL__"
 
 :if ([:len [/system script find name=$scriptName]] > 0) do={
     /system script remove [find name=$scriptName]
 }
 
 /system script add name=$scriptName policy=read,write,test source={
-    :local endpoint "__MIKROTIK_NOC_ENDPOINT__"
+    :local endpoint "__TELEMETRY_ENDPOINT__"
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local host "__MIKROTIK_NOC_HOST__"
 

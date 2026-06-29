@@ -16,9 +16,10 @@ trap 'rm -rf "$tmpdir"' EXIT
 oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
 oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
 noc_bin_dir="${NOC_BIN_DIR:?Missing NOC_BIN_DIR}"
+rotate_script_name="${NOC_ROTATE_SCRIPT_FILE:?Missing NOC_ROTATE_SCRIPT_FILE}"
 
-local_script="$tmpdir/compress-noc-logs.sh"
-remote_script="$noc_bin_dir/compress-noc-logs.sh"
+local_script="$tmpdir/$rotate_script_name"
+remote_script="$noc_bin_dir/$rotate_script_name"
 
 cron_begin="# BEGIN BREDLAND BRD-002"
 cron_end="# END BREDLAND BRD-002"
@@ -26,7 +27,7 @@ cron_line="10 2 * * * $remote_script"
 
 echo "Rendering NOC log compression script..."
 scripts/render-template.sh \
-  templates/oderland/compress-noc-logs.sh.template \
+  templates/oderland/rotate-logs.sh.template \
   "$local_script"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."

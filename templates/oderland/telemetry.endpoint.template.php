@@ -1,11 +1,11 @@
 <?php
-// BRD-001: MikroTik NOC heartbeat endpoint.
+// BRD-003: Generic NOC telemetry endpoint.
 //
 // PHP 5.5 compatible.
 // This file is a template.
 // Deployment-specific values are injected outside version control.
 
-require '__MIKROTIK_CONFIG_FILE__';
+require '__TELEMETRY_CONFIG_FILE__';
 
 function respond($status, $message)
 {

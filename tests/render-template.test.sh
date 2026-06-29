@@ -5,23 +5,12 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-cat > "$tmpdir/secrets.env" <<'EOF'
-MIKROTIK_NOC_ENDPOINT=https://example.invalid/mikrotik
-MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
-MIKROTIK_NOC_HOST=mikrotik-test
-MIKROTIK_NOC_INTERVAL=5m
-MIKROTIK_NOC_SCRIPT_NAME=noc-heartbeat
-MIKROTIK_NOC_SCHEDULER_NAME=noc-heartbeat
-MIKROTIK_CONFIG_FILE=/private/mikrotik.config.php
-NOC_DATA_DIR=/private/data/
-EOF
-
 run_render() {
     local template="$1"
     local output="$2"
+    local secrets_file="$3"
 
-    BREDLAND_SECRETS_FILE="$tmpdir/secrets.env" \
-        scripts/render-template.sh "$template" "$output"
+    BREDLAND_SECRETS_FILE="$secrets_file" scripts/render-template.sh "$template" "$output"
 
     [[ -s "$output" ]]
 
@@ -41,9 +30,49 @@ run_render() {
     fi
 }
 
-run_render templates/mikrotik/install-noc-heartbeat.rsc.template "$tmpdir/noc-heartbeat.rsc"
-run_render templates/oderland/mikrotik.endpoint.template.php "$tmpdir/mikrotik.php"
-run_render templates/oderland/mikrotik.config.template.php "$tmpdir/mikrotik.config.php"
-run_render templates/oderland/compress-noc-logs.sh.template "$tmpdir/compress-noc-logs.sh"
+# Test MikroTik install-noc-heartbeat.rsc.template
+cat > "$tmpdir/install-noc-heartbeat.env" <<'EOF'
+# MikroTik stuff
+MIKROTIK_HEARTBEAT_SCRIPT_NAME=noc-heartbeat
+MIKROTIK_HEARTBEAT_SCHEDULER_NAME=noc-heartbeat
+MIKROTIK_HEARTBEAT_INTERVAL=5m
+# Shared stuff (from MikroTik to Oderland)
+MIKROTIK_NOC_HOST=mikrotik-test
+MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
+# Oderland stuff
+TELEMETRY_ENDPOINT=https://example.invalid/telemetry
+EOF
+run_render templates/mikrotik/install-noc-heartbeat.rsc.template \
+"$tmpdir/noc-heartbeat.rsc" \
+"$tmpdir/install-noc-heartbeat.env"
+
+# Test Oderland telemetry.endpoint.template.php
+cat > "$tmpdir/telemetry.endpoint.env" <<'EOF'
+# Oderland stuff
+TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
+EOF
+run_render templates/oderland/telemetry.endpoint.template.php \
+"$tmpdir/telemetry.php" \
+"$tmpdir/telemetry.endpoint.env"
+
+# Test Oderland telemetry.config.template.php
+cat > "$tmpdir/telemetry.config.env" <<'EOF'
+# Shared stuff (from MikroTik to Oderland)
+MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
+# Oderland stuff
+NOC_DATA_DIR=/private/data/
+EOF
+run_render templates/oderland/telemetry.config.template.php \
+"$tmpdir/telemetry.config.php" \
+"$tmpdir/telemetry.config.env"
+
+# Test Oderland rotate-logs.template
+cat > "$tmpdir/rotate-logs.env" <<'EOF'
+# Oderland stuff
+NOC_DATA_DIR=/private/data/
+EOF
+run_render templates/oderland/rotate-logs.sh.template \
+"$tmpdir/rotate-logs.sh" \
+"$tmpdir/rotate-logs.env"
 
 echo "render-template tests passed"

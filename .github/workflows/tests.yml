@@ -12,8 +12,5 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Run renderer tests
-        run: ./tests/render-template.test.sh
-
-      - name: Run log compression tests
-        run: ./tests/compress-noc-logs.test.sh
+      - name: Run tests
+        run: ./tests/run-all.sh

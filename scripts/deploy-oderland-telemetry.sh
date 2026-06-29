@@ -13,17 +13,17 @@ trap 'rm -rf "$tmpdir"' EXIT
 oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
 oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
 
-endpoint_remote="${MIKROTIK_ENDPOINT_FILE:?Missing MIKROTIK_ENDPOINT_FILE}"
-config_remote="${MIKROTIK_CONFIG_FILE:?Missing MIKROTIK_CONFIG_FILE}"
+endpoint_remote="${TELEMETRY_ENDPOINT_FILE:?Missing TELEMETRY_ENDPOINT_FILE}"
+config_remote="${TELEMETRY_CONFIG_FILE:?Missing TELEMETRY_CONFIG_FILE}"
 
-endpoint_local="$tmpdir/mikrotik.php"
-config_local="$tmpdir/mikrotik.config.php"
+endpoint_local="$tmpdir/telemetry.php"
+config_local="$tmpdir/telemetry.config.php"
 
-echo "Rendering Oderland MikroTik endpoint..."
-scripts/render-template.sh templates/oderland/mikrotik.endpoint.template.php "$endpoint_local"
+echo "Rendering Oderland Telemetry endpoint..."
+scripts/render-template.sh templates/oderland/telemetry.endpoint.template.php "$endpoint_local"
 
-echo "Rendering Oderland MikroTik private config..."
-scripts/render-template.sh templates/oderland/mikrotik.config.template.php "$config_local"
+echo "Rendering Oderland Telemetry private config..."
+scripts/render-template.sh templates/oderland/telemetry.config.template.php "$config_local"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
@@ -41,4 +41,4 @@ echo -n "Verifying config... "
 env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "test -s '${config_remote}'"
 echo "OK"
 
-echo "Oderland MikroTik endpoint deployed."
+echo "Oderland Telemetry endpoint deployed."
