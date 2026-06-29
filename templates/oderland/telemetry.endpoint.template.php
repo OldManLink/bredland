@@ -56,8 +56,18 @@ $record = [
 
 $fields = param('fields');
 
+
+
 foreach (explode(',', $fields) as $field) {
     $field = trim($field);
+
+    if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $field)) {
+        respond(403, 'forbidden');
+    }
+
+    if (isset($record[$field]) || $field === 'token' || $field === 'fields' || $field === 'remote_addr') {
+        respond(403, 'forbidden');
+    }
 
     if ($field === '') {
         continue;
