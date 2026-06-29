@@ -28,33 +28,47 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(405, 'method not allowed');
 }
 
-if (!isset($EXPECTED_TOKEN) || !isset($DATA_DIR)) {
+if (!isset($HOST_TOKENS) || !isset($DATA_DIR)) {
     respond(500, 'server configuration error');
 }
 
+$host = param('host');
 $token = param('token');
+
+if (!isset($HOST_TOKENS[$host])) {
+    respond(403, 'forbidden');
+}
 
 // PHP 5.5 compatibility.
 // A constant-time comparison (hash_equals) is unnecessary here because
 // the token is a high-entropy random value and network latency dominates
 // any timing differences.
-if ($EXPECTED_TOKEN !== $token) {
+if (param('token') !== $HOST_TOKENS[$host]) {
     respond(403, 'forbidden');
 }
 
-$host = param('host');
-$record = array(
+$record = [
     'schema' => 1,
     'ts' => gmdate('Y-m-d\TH:i:s\Z'),
     'host' => $host,
     'uptime' => param('uptime'),
-    'version' => param('version'),
-    'model' => trim(param('model')),
-    'cpu_load' => param('cpu_load'),
-    'free_memory' => param('free_memory'),
-    'total_memory' => param('total_memory'),
-    'remote_addr' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''
-);
+];
+
+$fields = param('fields');
+
+foreach (explode(',', $fields) as $field) {
+    $field = trim($field);
+
+    if ($field === '') {
+        continue;
+    }
+
+    $record[$field] = trim(param($field));
+}
+
+$record['remote_addr'] = isset($_SERVER['REMOTE_ADDR'])
+    ? $_SERVER['REMOTE_ADDR']
+    : '';
 
 $line = json_encode($record) . "\n";
 
