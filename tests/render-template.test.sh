@@ -75,4 +75,33 @@ run_render templates/oderland/rotate-logs.sh.template \
 "$tmpdir/rotate-logs.sh" \
 "$tmpdir/rotate-logs.env"
 
+# Test bredland-heartbeat.service.template
+cat > "$tmpdir/bredland-heartbeat.service.env" <<'EOF'
+# Bredland stuff
+BREDLAND_HEARTBEAT_SCRIPT_FILE=/private/bredland-heartbeat
+EOF
+run_render templates/bredland/bredland-heartbeat.service.template \
+"$tmpdir/bredland-heartbeat.service" \
+"$tmpdir/bredland-heartbeat.service.env"
+
+# Test bredland-heartbeat.sh.template
+cat > "$tmpdir/bredland-heartbeat.sh.env" <<'EOF'
+# Bredland stuff
+BREDLAND_NOC_HOST=bredland-test
+BREDLAND_NOC_TOKEN=bredland.v1.test-token
+TELEMETRY_ENDPOINT=https://example.invalid/telemetry
+EOF
+run_render templates/bredland/bredland-heartbeat.sh.template \
+"$tmpdir/bredland-heartbeat.sh" \
+"$tmpdir/bredland-heartbeat.sh.env"
+
+# Test bredland-heartbeat.timer.template
+cat > "$tmpdir/bredland-heartbeat.timer.env" <<'EOF'
+# Bredland stuff
+BREDLAND_HEARTBEAT_INTERVAL=5min
+EOF
+run_render templates/bredland/bredland-heartbeat.timer.template \
+"$tmpdir/bredland-heartbeat.timer" \
+"$tmpdir/bredland-heartbeat.timer.env"
+
 echo "render-template tests passed"

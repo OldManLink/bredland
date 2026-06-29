@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+host="__BREDLAND_NOC_HOST__"
+token="__BREDLAND_NOC_TOKEN__"
+endpoint="__TELEMETRY_ENDPOINT__"
+
+uptime="$(cut -d' ' -f1 /proc/uptime)"
+temperature="$(vcgencmd measure_temp | sed -E "s/temp=([0-9.]+)'C/\1/")"
+throttled="$(vcgencmd get_throttled | sed -E 's/throttled=//')"
+
+fields="temperature,throttled"
+
+curl --silent --show-error --fail \
+  --data-urlencode "host=$host" \
+  --data-urlencode "token=$token" \
+  --data-urlencode "uptime=$uptime" \
+  --data-urlencode "fields=$fields" \
+  --data-urlencode "temperature=$temperature" \
+  --data-urlencode "throttled=$throttled" \
+  "$endpoint"
+  

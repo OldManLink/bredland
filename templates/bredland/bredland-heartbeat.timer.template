@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Bredland heartbeat every __BREDLAND_HEARTBEAT_INTERVAL__
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=__BREDLAND_HEARTBEAT_INTERVAL__
+
+[Install]
+WantedBy=timers.target
