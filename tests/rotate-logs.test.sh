@@ -28,11 +28,11 @@ cat > "$data_dir/mikrotik-2026-06-26.jsonl" <<EOF
 {"host":"mikrotik","ts":"2026-06-26T12:00:00Z"}
 EOF
 
-rendered="$tmpdir/compress-noc-logs.sh"
+rendered="$tmpdir/rotate-test.sh"
 
 BREDLAND_SECRETS_FILE="$tmpdir/secrets.env" \
     scripts/render-template.sh \
-    templates/oderland/compress-noc-logs.sh.template \
+    templates/oderland/rotate-logs.sh.template \
     "$rendered"
 
 chmod +x "$rendered"
@@ -70,4 +70,4 @@ if [[ "$before" != "$after" ]]; then
     exit 1
 fi
 
-echo "compress-noc-logs tests passed"
+echo "rotate-logs tests passed"

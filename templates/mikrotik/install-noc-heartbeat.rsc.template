@@ -3,19 +3,20 @@
 # This file is a template.
 # Deployment-specific values are injected outside version control.
 
-:local scriptName "__MIKROTIK_NOC_SCRIPT_NAME__"
-:local schedulerName "__MIKROTIK_NOC_SCHEDULER_NAME__"
-:local interval "__MIKROTIK_NOC_INTERVAL__"
+:local scriptName "__MIKROTIK_HEARTBEAT_SCRIPT_NAME__"
+:local schedulerName "__MIKROTIK_HEARTBEAT_SCHEDULER_NAME__"
+:local interval "__MIKROTIK_HEARTBEAT_INTERVAL__"
 
 :if ([:len [/system script find name=$scriptName]] > 0) do={
     /system script remove [find name=$scriptName]
 }
 
 /system script add name=$scriptName policy=read,write,test source={
-    :local endpoint "__MIKROTIK_NOC_ENDPOINT__"
+    :local endpoint "__TELEMETRY_ENDPOINT__"
+
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local host "__MIKROTIK_NOC_HOST__"
-
+    :local fields "version,model,cpu_load,free_memory,total_memory"
     :local version [/system resource get version]
     :local model [/system resource get board-name]
     :local uptime [/system resource get uptime]
@@ -23,7 +24,17 @@
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
 
-    :local payload ("token=$token&host=$host&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
+    :set token [:convert $token to=url]
+    :set host [:convert $host to=url]
+    :set fields [:convert $fields to=url]
+    :set version [:convert $version to=url]
+    :set model [:convert $model to=url]
+    :set uptime [:convert $uptime to=url]
+    :set cpuLoad [:convert $cpuLoad to=url]
+    :set freeMemory [:convert $freeMemory to=url]
+    :set totalMemory [:convert $totalMemory to=url]
+
+    :local payload ("token=$token&host=$host&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }
