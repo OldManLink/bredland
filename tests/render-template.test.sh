@@ -58,7 +58,10 @@ run_render templates/oderland/telemetry.endpoint.template.php \
 # Test Oderland telemetry.config.template.php
 cat > "$tmpdir/telemetry.config.env" <<'EOF'
 # Shared stuff (from MikroTik to Oderland)
+MIKROTIK_NOC_HOST=mikrotik-test
 MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
+BREDLAND_NOC_HOST=mikrotik-test
+BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
 EOF
@@ -98,7 +101,7 @@ run_render templates/bredland/bredland-heartbeat.sh.template \
 # Test bredland-heartbeat.timer.template
 cat > "$tmpdir/bredland-heartbeat.timer.env" <<'EOF'
 # Bredland stuff
-BREDLAND_HEARTBEAT_INTERVAL=5min
+BREDLAND_HEARTBEAT_SCHEDULE=5_and_10_past
 EOF
 run_render templates/bredland/bredland-heartbeat.timer.template \
 "$tmpdir/bredland-heartbeat.timer" \

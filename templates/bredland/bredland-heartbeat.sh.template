@@ -6,7 +6,21 @@ host="__BREDLAND_NOC_HOST__"
 token="__BREDLAND_NOC_TOKEN__"
 endpoint="__TELEMETRY_ENDPOINT__"
 
-uptime="$(cut -d' ' -f1 /proc/uptime)"
+# shellcheck disable=SC2120
+format_uptime() {
+    total="${1:-$(cut -d. -f1 /proc/uptime)}"
+    total="${total%%.*}"
+
+    days=$((total / 86400))
+    hours=$(((total % 86400) / 3600))
+    minutes=$(((total % 3600) / 60))
+    seconds=$((total % 60))
+
+    printf '%dd%02d:%02d:%02d' \
+        "$days" "$hours" "$minutes" "$seconds"
+}
+
+uptime="$(format_uptime)"
 temperature="$(vcgencmd measure_temp | sed -E "s/temp=([0-9.]+)'C/\1/")"
 throttled="$(vcgencmd get_throttled | sed -E 's/throttled=//')"
 

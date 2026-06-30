@@ -1,9 +1,11 @@
 [Unit]
-Description=Run Bredland heartbeat every __BREDLAND_HEARTBEAT_INTERVAL__
+Description=Bredland telemetry heartbeat
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=__BREDLAND_HEARTBEAT_INTERVAL__
+OnCalendar=__BREDLAND_HEARTBEAT_SCHEDULE__
+AccuracySec=1s
+Persistent=true
 
 [Install]
 WantedBy=timers.target

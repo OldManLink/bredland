@@ -5,6 +5,7 @@
 // Do not commit rendered files.
 
 $HOST_TOKENS = [
-    'mikrotik' => '__MIKROTIK_NOC_TOKEN__',
+    '__MIKROTIK_NOC_HOST__' => '__MIKROTIK_NOC_TOKEN__',
+    '__BREDLAND_NOC_HOST__' => '__BREDLAND_NOC_TOKEN__',
 ];
 $DATA_DIR = '__NOC_DATA_DIR__';
