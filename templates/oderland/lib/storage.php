@@ -8,3 +8,17 @@ function append_record($file, $record): void
         throw new RuntimeException('failed to append record: ' . $file);
     }
 }
+
+function daily_jsonl_fileName($data_dir, $host, $date) : string
+{
+    $safe_host = preg_replace('/[^a-zA-Z0-9_-]/', '_', $host);
+
+    return rtrim($data_dir, '/') . '/' . $safe_host . '-' . $date . '.jsonl';
+}
+
+function ensure_data_dir($data_dir)
+{
+    if (!is_dir($data_dir)) {
+        mkdir($data_dir, 0700, true);
+    }
+}

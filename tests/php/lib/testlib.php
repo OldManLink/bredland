@@ -15,7 +15,6 @@ function assertSame($expected, $actual): void
 }
 
 function assertNotSame($unexpected, $actual): void
-
 {
     if ($unexpected === $actual) {
         fwrite(STDERR,
@@ -24,4 +23,10 @@ function assertNotSame($unexpected, $actual): void
         );
         exit(1);
     }
+}
+
+function fail($message): void
+{
+    fwrite(STDERR, $message . "\n");
+    exit(1);
 }

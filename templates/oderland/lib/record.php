@@ -1,5 +1,7 @@
 <?php
 
+const RESERVED_FIELDS = ['schema', 'ts', 'host', 'token', 'uptime', 'fields', 'remote_addr'];
+
 function select_fields($fields, $source): array
 {
     $selected = array();
@@ -12,11 +14,15 @@ function select_fields($fields, $source): array
         }
 
         if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $field)) {
-            throw new InvalidArgumentException('invalid field name: ' . $field);
+            throw new InvalidArgumentException("invalid field name: $field");
         }
 
         if (!array_key_exists($field, $source)) {
-            throw new InvalidArgumentException('missing field: ' . $field);
+            throw new InvalidArgumentException("missing field: $field");
+        }
+
+        if (in_array($field, RESERVED_FIELDS, true)) {
+            throw new InvalidArgumentException("reserved field: $field");
         }
 
         $selected[$field] = trim($source[$field]);

@@ -49,4 +49,14 @@ assertSame(
     $record
 );
 
+foreach (RESERVED_FIELDS as $RESERVED_FIELD)
+{
+    try {
+        select_fields($RESERVED_FIELD, array("$RESERVED_FIELD" => 'reject me'));
+        fail("Expected $RESERVED_FIELD to be rejected");
+    } catch (InvalidArgumentException $e) {
+        assertSame("reserved field: $RESERVED_FIELD", $e->getMessage());
+    }
+}
+
 echo "record tests passed\n";
