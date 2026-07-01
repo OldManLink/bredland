@@ -2,9 +2,12 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$repo_root"
 
-for test_script in tests/*.test.sh; do
-    echo "==> $test_script"
-    "$test_script"
-done
+echo "==> Shell tests"
+tests/sh/run-all.sh
+
+echo
+echo "==> PHP tests"
+tests/php/run-all.sh

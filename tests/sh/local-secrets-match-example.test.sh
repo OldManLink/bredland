@@ -2,13 +2,14 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$repo_root"
 
 example_file="config/bredland.example.env"
 secrets_file="/etc/bredland/secrets.env"
 
-if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-    echo "Skipping local secrets test on GitHub Actions"
+if [[ "${CHECK_LOCAL_SECRETS:-0}" != "1" ]]; then
+    echo "Skipping local secrets test (CHECK_LOCAL_SECRETS not set)"
     exit 0
 fi
 
