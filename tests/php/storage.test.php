@@ -49,5 +49,3 @@ assertSame(true, is_dir($subdir));
 
 rmdir($subdir);
 rmdir($tmpdir);
-
-echo "storage tests passed\n";

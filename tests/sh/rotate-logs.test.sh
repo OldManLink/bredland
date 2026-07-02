@@ -69,5 +69,3 @@ if [[ "$before" != "$after" ]]; then
     echo "Second run was not idempotent" >&2
     exit 1
 fi
-
-echo "rotate-logs tests passed"

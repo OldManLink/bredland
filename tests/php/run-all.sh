@@ -13,7 +13,33 @@ if (( ${#test_scripts[@]} == 0 )); then
     exit 0
 fi
 
-for test_script in "${test_scripts[@]}"; do
-    echo "==> $test_script"
-    php "$test_script"
+passed=0
+skipped=0
+failed=0
+crashed=0
+
+for test in "${test_scripts[@]}"; do
+    name="$(basename "$test" .test.php)"    # or .test.php
+    echo "==> $name"
+
+    set +e
+    php "$test"
+    rc=$?
+    set -e
+
+    case "$rc" in
+        0)  echo "✅ $name"; ((passed++)) ;;
+        77) echo "⚠️ $name"; ((skipped++)) ;;
+        1)  echo "❌ $name"; ((failed++)) ;;
+        *)  echo "💥 $name (exit $rc)"; ((crashed++)) ;;
+    esac
+
+    echo
 done
+
+total=$((passed + skipped + failed + crashed))
+echo "Suite summary: $total tests run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
+
+if (( failed || crashed )); then
+    exit 1
+fi

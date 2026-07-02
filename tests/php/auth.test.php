@@ -43,5 +43,3 @@ assertSame(
         $HOST_TOKENS
     )
 );
-
-echo "auth tests passed\n";

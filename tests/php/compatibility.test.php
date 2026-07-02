@@ -9,5 +9,3 @@ require __DIR__ . '/../../templates/oderland/lib/compatibility.php';
 assertSame(true, telemetry_hash_equals('secret', 'secret'));
 assertSame(false, telemetry_hash_equals('secret', 'wrong'));
 assertSame(false, telemetry_hash_equals('secret', 'secret-extra'));
-
-echo "compatibility tests passed\n";

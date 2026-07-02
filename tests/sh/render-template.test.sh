@@ -108,5 +108,3 @@ EOF
 run_render templates/bredland/bredland-heartbeat.timer.template \
 "$tmpdir/bredland-heartbeat.timer" \
 "$tmpdir/bredland-heartbeat.timer.env"
-
-echo "render-template tests passed"

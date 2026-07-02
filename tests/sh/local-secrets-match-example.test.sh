@@ -5,12 +5,14 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
+# shellcheck source=tests/sh/lib/testlib.sh
+source "$repo_root/tests/sh/lib/testlib.sh"
+
 example_file="config/bredland.example.env"
 secrets_file="/etc/bredland/secrets.env"
 
 if [[ "${CHECK_LOCAL_SECRETS:-0}" != "1" ]]; then
-    echo "Skipping local secrets test (CHECK_LOCAL_SECRETS not set)"
-    exit 0
+    skip "CHECK_LOCAL_SECRETS not set"
 fi
 
 if [[ ! -f "$secrets_file" ]]; then
@@ -37,5 +39,3 @@ done < <(
 if (( missing )); then
     exit 1
 fi
-
-echo "local secrets match example env"

@@ -58,5 +58,3 @@ foreach (reserved_fields() as $reserved_field)
         assertSame("reserved field: $reserved_field", $e->getMessage());
     }
 }
-
-echo "record tests passed\n";
