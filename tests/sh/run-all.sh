@@ -22,10 +22,10 @@ for test_script in tests/sh/*.test.sh; do
     set -e
 
     case "$rc" in
-        0)  echo "✅ $name"; ((passed++)) ;;
-        77) echo "⚠️ $name"; ((skipped++)) ;;
-        1)  echo "❌ $name"; ((failed++)) ;;
-        *)  echo "💥 $name (exit $rc)"; ((crashed++)) ;;
+        0)  echo "✅ $name"; ((++passed)) ;;
+        77) echo "⚠️ $name"; ((++skipped)) ;;
+        1)  echo "❌ $name"; ((++failed)) ;;
+        *)  echo "💥 $name (exit $rc)"; ((++crashed)) ;;
     esac
 
     echo
