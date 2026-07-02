@@ -12,3 +12,4 @@
 ## Bredland
 
 - Investigate remaining persistent SD-card writes after heartbeat deployment.
+- Consider tightening render-template placeholder syntax to avoid collisions with language constructs (e.g. PHP `__DIR__`).

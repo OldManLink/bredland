@@ -1,6 +1,6 @@
 <?php
 
-function authenticate($host, $token, $host_tokens): bool
+function authenticate($host, $token, $host_tokens)
 {
     if (!array_key_exists($host, $host_tokens)) {
         return false;

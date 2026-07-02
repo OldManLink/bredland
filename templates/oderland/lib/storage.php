@@ -1,6 +1,6 @@
 <?php
 
-function append_record($file, $record): void
+function append_record($file, $record)
 {
     $line = json_encode($record) . "\n";
 
@@ -9,7 +9,7 @@ function append_record($file, $record): void
     }
 }
 
-function daily_jsonl_fileName($data_dir, $host, $date) : string
+function daily_jsonl_fileName($data_dir, $host, $date)
 {
     $safe_host = preg_replace('/[^a-zA-Z0-9_-]/', '_', $host);
 

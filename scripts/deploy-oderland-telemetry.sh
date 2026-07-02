@@ -33,13 +33,13 @@ cp templates/oderland/lib/*.php "$libdir_local/"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
-echo "Uploading endpoint..."
+echo "Uploading endpoint to $endpoint_remote..."
 scp "$endpoint_local" "${oderland_user}@${oderland_host}:${endpoint_remote}"
 
-echo "Uploading private config..."
+echo "Uploading private config to $config_remote..."
 scp "$config_local" "${oderland_user}@${oderland_host}:${config_remote}"
 
-echo "Uploading libraries..."
+echo "Uploading libraries to $libdir_remote..."
 env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "mkdir -p '$libdir_remote'"
 scp "$libdir_local"/*.php "${oderland_user}@${oderland_host}:${libdir_remote}/"
 

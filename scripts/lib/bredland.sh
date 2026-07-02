@@ -12,4 +12,15 @@ load_bredland_secrets() {
     # shellcheck disable=SC1090
     source "$BREDLAND_SECRETS_FILE"
     set +a
+
+    if [[ "${SMOKE_TEST_DEPLOY:-0}" == "1" ]]; then
+        TELEMETRY_ENDPOINT_FILE="${TELEMETRY_ENDPOINT_FILE%.php}-smoke.php"
+        TELEMETRY_CONFIG_FILE="${TELEMETRY_CONFIG_FILE%.php}-smoke.php"
+        TELEMETRY_ENDPOINT="${TELEMETRY_ENDPOINT%.php}-smoke.php"
+
+        export TELEMETRY_ENDPOINT_FILE
+        export TELEMETRY_CONFIG_FILE
+        export TELEMETRY_ENDPOINT
+
+    fi
 }

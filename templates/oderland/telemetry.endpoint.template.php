@@ -5,11 +5,13 @@
 // This file is a template.
 // Deployment-specific values are injected outside version control.
 
+$base_dir = dirname($_SERVER['SCRIPT_FILENAME']);
+
 require '__TELEMETRY_CONFIG_FILE__';
-require __DIR__ . '/lib/compatibility.php';
-require __DIR__ . '/lib/auth.php';
-require __DIR__ . '/lib/record.php';
-require __DIR__ . '/lib/storage.php';
+require "$base_dir/lib/compatibility.php";
+require "$base_dir/lib/auth.php";
+require "$base_dir/lib/record.php";
+require "$base_dir/lib/storage.php";
 
 function respond($status, $message)
 {

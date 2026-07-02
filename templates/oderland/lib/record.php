@@ -1,8 +1,11 @@
 <?php
 
-const RESERVED_FIELDS = ['schema', 'ts', 'host', 'token', 'uptime', 'fields', 'remote_addr'];
+function reserved_fields()
+{
+    return array('schema', 'ts', 'host', 'token', 'uptime', 'fields', 'remote_addr');
+}
 
-function select_fields($fields, $source): array
+function select_fields($fields, $source)
 {
     $selected = array();
 
@@ -21,7 +24,7 @@ function select_fields($fields, $source): array
             throw new InvalidArgumentException("missing field: $field");
         }
 
-        if (in_array($field, RESERVED_FIELDS, true)) {
+        if (in_array($field, reserved_fields(), true)) {
             throw new InvalidArgumentException("reserved field: $field");
         }
 
@@ -31,7 +34,7 @@ function select_fields($fields, $source): array
     return $selected;
 }
 
-function build_record($schema_version, $timestamp, $host, $fields) :array
+function build_record($schema_version, $timestamp, $host, $fields)
 {
     return array_merge(
         array(

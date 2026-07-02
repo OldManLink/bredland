@@ -49,13 +49,13 @@ assertSame(
     $record
 );
 
-foreach (RESERVED_FIELDS as $RESERVED_FIELD)
+foreach (reserved_fields() as $reserved_field)
 {
     try {
-        select_fields($RESERVED_FIELD, array("$RESERVED_FIELD" => 'reject me'));
-        fail("Expected $RESERVED_FIELD to be rejected");
+        select_fields($reserved_field, array("$reserved_field" => 'reject me'));
+        fail("Expected $reserved_field to be rejected");
     } catch (InvalidArgumentException $e) {
-        assertSame("reserved field: $RESERVED_FIELD", $e->getMessage());
+        assertSame("reserved field: $reserved_field", $e->getMessage());
     }
 }
 
