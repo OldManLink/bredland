@@ -21,10 +21,20 @@ format_uptime() {
 }
 
 uptime="$(format_uptime)"
-temperature="$(vcgencmd measure_temp | sed -E "s/temp=([0-9.]+)'C/\1/")"
-throttled="$(vcgencmd get_throttled | sed -E 's/throttled=//')"
+if command -v vcgencmd >/dev/null 2>&1; then
+    temperature="$(vcgencmd measure_temp | sed -E "s/temp=([0-9.]+)'C/\1/")"
+    throttled="$(vcgencmd get_throttled | sed -E 's/throttled=//')"
+else
+    temperature=""
+    throttled=""
+fi
 
-fields="temperature,throttled"
+free_memory="$(awk '/MemAvailable:/ { print $2 * 1024 }' /proc/meminfo)"
+total_memory="$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo)"
+root_free="$(df -P / | awk 'NR == 2 { print $4 * 1024 }')"
+root_total="$(df -P / | awk 'NR == 2 { print $2 * 1024 }')"
+
+fields="temperature,throttled,free_memory,total_memory,root_free,root_total"
 
 curl --silent --show-error --fail \
   --data-urlencode "host=$host" \
@@ -33,5 +43,9 @@ curl --silent --show-error --fail \
   --data-urlencode "fields=$fields" \
   --data-urlencode "temperature=$temperature" \
   --data-urlencode "throttled=$throttled" \
+  --data-urlencode "free_memory=$free_memory" \
+  --data-urlencode "total_memory=$total_memory" \
+  --data-urlencode "root_free=$root_free" \
+  --data-urlencode "root_total=$root_total" \
   "$endpoint"
   

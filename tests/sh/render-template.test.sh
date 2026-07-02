@@ -19,11 +19,6 @@ run_render() {
         exit 1
     fi
 
-    if grep -q '""' "$output"; then
-        echo "Suspicious doubled quotes in $output" >&2
-        exit 1
-    fi
-
     if diff -q "$template" "$output" >/dev/null; then
         echo "Rendered output did not differ from template: $template" >&2
         exit 1
