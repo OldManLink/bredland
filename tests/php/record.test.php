@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/oderland/lib/record.php';
+require __DIR__ . '/../../templates/noc/lib/record.php';
 
 $source = array(
     'temperature' => ' 35.5 ',

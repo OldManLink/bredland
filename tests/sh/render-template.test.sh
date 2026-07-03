@@ -48,7 +48,7 @@ DIR=DIR
 # Oderland stuff
 TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
 EOF
-run_render templates/oderland/telemetry.endpoint.template.php \
+run_render templates/noc/telemetry.endpoint.template.php \
 "$tmpdir/telemetry.php" \
 "$tmpdir/telemetry.endpoint.env"
 
@@ -64,7 +64,7 @@ NOC_DATA_DIR=/private/data/
 # Remove placeholder from config file
 SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
-run_render templates/oderland/telemetry.config.template.php \
+run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \
 "$tmpdir/telemetry.config.env"
 
@@ -73,9 +73,20 @@ cat > "$tmpdir/rotate-logs.env" <<'EOF'
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
 EOF
-run_render templates/oderland/rotate-logs.sh.template \
+run_render templates/noc/rotate-logs.sh.template \
 "$tmpdir/rotate-logs.sh" \
 "$tmpdir/rotate-logs.env"
+
+# Test NOC index.template.php
+cat > "$tmpdir/noc-index.env" <<'EOF'
+# Oderland stuff
+TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
+EOF
+run_render templates/noc/index.template.php \
+"$tmpdir/index.php" \
+"$tmpdir/noc-index.env"
+grep -q 'Hello from the NOC' "$tmpdir/index.php"
+grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
 
 # Test bredland-heartbeat.service.template
 cat > "$tmpdir/bredland-heartbeat.service.env" <<'EOF'

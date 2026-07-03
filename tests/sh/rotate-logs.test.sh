@@ -32,7 +32,7 @@ rendered="$tmpdir/rotate-test.sh"
 
 BREDLAND_SECRETS_FILE="$tmpdir/secrets.env" \
     scripts/render-template.sh \
-    templates/oderland/rotate-logs.sh.template \
+    templates/noc/rotate-logs.sh.template \
     "$rendered"
 
 chmod +x "$rendered"

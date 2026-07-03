@@ -25,9 +25,9 @@ php_image="php:5.6-cli"
 failed=0
 
 for file in \
-    templates/oderland/telemetry.endpoint.template.php \
-    templates/oderland/telemetry.config.template.php \
-    templates/oderland/lib/*.php
+    templates/noc/telemetry.endpoint.template.php \
+    templates/noc/telemetry.config.template.php \
+    templates/noc/lib/*.php
 do
     echo -n "Checking $(basename "$file") ... "
 

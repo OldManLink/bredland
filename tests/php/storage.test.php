@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/oderland/lib/storage.php';
+require __DIR__ . '/../../templates/noc/lib/storage.php';
 
 assertSame(
         '/tmp/noc-data/bredland-2026-07-01.jsonl',

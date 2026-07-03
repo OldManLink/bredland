@@ -28,10 +28,9 @@ EOF
 
 rendered_config="$build_dir/telemetry.config.php"
 BREDLAND_SECRETS_FILE="$secrets_file" ./scripts/render-template.sh \
-    templates/oderland/telemetry.config.template.php \
+    templates/noc/telemetry.config.template.php \
     "$rendered_config"
 export TEST_CONFIG="$rendered_config"
-cat "$rendered_config"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
