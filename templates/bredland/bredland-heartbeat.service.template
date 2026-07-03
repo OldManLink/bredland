@@ -1,0 +1,6 @@
+[Unit]
+Description=Bredland telemetry heartbeat
+
+[Service]
+Type=oneshot
+ExecStart=__BREDLAND_HEARTBEAT_SCRIPT_FILE__

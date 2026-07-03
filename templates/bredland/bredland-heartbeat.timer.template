@@ -1,0 +1,11 @@
+[Unit]
+Description=Bredland telemetry heartbeat
+
+[Timer]
+OnBootSec=1min
+OnCalendar=__BREDLAND_HEARTBEAT_SCHEDULE__
+AccuracySec=1s
+Persistent=no
+
+[Install]
+WantedBy=timers.target

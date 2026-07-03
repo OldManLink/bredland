@@ -7,6 +7,10 @@ source "$(dirname "$0")/lib/bredland.sh"
 
 load_bredland_secrets
 
+if [[ "${SMOKE_TEST_DEPLOY:-0}" == "1" ]]; then
+    enable_smoke_deploy
+fi
+
 if [[ $# -ne 2 ]]; then
     echo "Usage: $0 <template> <output>" >&2
     exit 1

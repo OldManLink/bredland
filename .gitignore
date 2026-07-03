@@ -29,3 +29,6 @@ config/*.env
 # Local scratch space
 tmp/
 scratch/
+
+# Generated test artefacts
+tests/**/build/

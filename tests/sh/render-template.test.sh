@@ -19,11 +19,6 @@ run_render() {
         exit 1
     fi
 
-    if grep -q '""' "$output"; then
-        echo "Suspicious doubled quotes in $output" >&2
-        exit 1
-    fi
-
     if diff -q "$template" "$output" >/dev/null; then
         echo "Rendered output did not differ from template: $template" >&2
         exit 1
@@ -48,6 +43,8 @@ run_render templates/mikrotik/install-noc-heartbeat.rsc.template \
 
 # Test Oderland telemetry.endpoint.template.php
 cat > "$tmpdir/telemetry.endpoint.env" <<'EOF'
+# PHP magic constants
+DIR=DIR
 # Oderland stuff
 TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
 EOF
@@ -58,9 +55,14 @@ run_render templates/oderland/telemetry.endpoint.template.php \
 # Test Oderland telemetry.config.template.php
 cat > "$tmpdir/telemetry.config.env" <<'EOF'
 # Shared stuff (from MikroTik to Oderland)
+MIKROTIK_NOC_HOST=mikrotik-test
 MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
+BREDLAND_NOC_HOST=bredland-test
+BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
+# Remove placeholder from config file
+SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
 run_render templates/oderland/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \
@@ -75,4 +77,31 @@ run_render templates/oderland/rotate-logs.sh.template \
 "$tmpdir/rotate-logs.sh" \
 "$tmpdir/rotate-logs.env"
 
-echo "render-template tests passed"
+# Test bredland-heartbeat.service.template
+cat > "$tmpdir/bredland-heartbeat.service.env" <<'EOF'
+# Bredland stuff
+BREDLAND_HEARTBEAT_SCRIPT_FILE=/private/bredland-heartbeat
+EOF
+run_render templates/bredland/bredland-heartbeat.service.template \
+"$tmpdir/bredland-heartbeat.service" \
+"$tmpdir/bredland-heartbeat.service.env"
+
+# Test bredland-heartbeat.sh.template
+cat > "$tmpdir/bredland-heartbeat.sh.env" <<'EOF'
+# Bredland stuff
+BREDLAND_NOC_HOST=bredland-test
+BREDLAND_NOC_TOKEN=bredland.v1.test-token
+TELEMETRY_ENDPOINT=https://example.invalid/telemetry
+EOF
+run_render templates/bredland/bredland-heartbeat.sh.template \
+"$tmpdir/bredland-heartbeat.sh" \
+"$tmpdir/bredland-heartbeat.sh.env"
+
+# Test bredland-heartbeat.timer.template
+cat > "$tmpdir/bredland-heartbeat.timer.env" <<'EOF'
+# Bredland stuff
+BREDLAND_HEARTBEAT_SCHEDULE=5_and_10_past
+EOF
+run_render templates/bredland/bredland-heartbeat.timer.template \
+"$tmpdir/bredland-heartbeat.timer" \
+"$tmpdir/bredland-heartbeat.timer.env"

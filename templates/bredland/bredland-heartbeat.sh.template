@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+host="__BREDLAND_NOC_HOST__"
+token="__BREDLAND_NOC_TOKEN__"
+endpoint="__TELEMETRY_ENDPOINT__"
+
+# shellcheck disable=SC2120
+format_uptime() {
+    total="${1:-$(cut -d. -f1 /proc/uptime)}"
+    total="${total%%.*}"
+
+    days=$((total / 86400))
+    hours=$(((total % 86400) / 3600))
+    minutes=$(((total % 3600) / 60))
+    seconds=$((total % 60))
+
+    printf '%dd%02d:%02d:%02d' \
+        "$days" "$hours" "$minutes" "$seconds"
+}
+
+uptime="$(format_uptime)"
+if command -v vcgencmd >/dev/null 2>&1; then
+    temperature="$(vcgencmd measure_temp | sed -E "s/temp=([0-9.]+)'C/\1/")"
+    throttled="$(vcgencmd get_throttled | sed -E 's/throttled=//')"
+else
+    temperature=""
+    throttled=""
+fi
+
+free_memory="$(awk '/MemAvailable:/ { print $2 * 1024 }' /proc/meminfo)"
+total_memory="$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo)"
+root_free="$(df -P / | awk 'NR == 2 { print $4 * 1024 }')"
+root_total="$(df -P / | awk 'NR == 2 { print $2 * 1024 }')"
+
+fields="temperature,throttled,free_memory,total_memory,root_free,root_total"
+
+curl --silent --show-error --fail \
+  --data-urlencode "host=$host" \
+  --data-urlencode "token=$token" \
+  --data-urlencode "uptime=$uptime" \
+  --data-urlencode "fields=$fields" \
+  --data-urlencode "temperature=$temperature" \
+  --data-urlencode "throttled=$throttled" \
+  --data-urlencode "free_memory=$free_memory" \
+  --data-urlencode "total_memory=$total_memory" \
+  --data-urlencode "root_free=$root_free" \
+  --data-urlencode "root_total=$root_total" \
+  "$endpoint"
+  
