@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
+require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/oderland/telemetry.config.template.php';
 require __DIR__ . '/../../templates/oderland/lib/record.php';
 
 $source = array(

@@ -7,6 +7,11 @@ source "$(dirname "$0")/lib/bredland.sh"
 
 load_bredland_secrets
 
+export SMOKE_TEST_HOST_TOKEN_LINE=
+if [[ "${SMOKE_TEST_DEPLOY:-0}" == "1" ]]; then
+    enable_smoke_deploy
+fi
+
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 

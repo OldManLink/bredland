@@ -57,10 +57,12 @@ cat > "$tmpdir/telemetry.config.env" <<'EOF'
 # Shared stuff (from MikroTik to Oderland)
 MIKROTIK_NOC_HOST=mikrotik-test
 MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
-BREDLAND_NOC_HOST=mikrotik-test
+BREDLAND_NOC_HOST=bredland-test
 BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
+# Remove placeholder from config file
+SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
 run_render templates/oderland/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \

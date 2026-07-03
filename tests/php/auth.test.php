@@ -3,16 +3,16 @@
 
 declare(strict_types=1);
 
+require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/oderland/telemetry.config.template.php';
 require __DIR__ . '/../../templates/oderland/lib/compatibility.php';
 require __DIR__ . '/../../templates/oderland/lib/auth.php';
 
 assertSame(
     true,
     authenticate(
-        '__MIKROTIK_NOC_HOST__',
-        '__MIKROTIK_NOC_TOKEN__',
+        'mikrotik-test',
+        'mikrotik.v1.test-token',
         $HOST_TOKENS
     )
 );
@@ -20,8 +20,8 @@ assertSame(
 assertSame(
     true,
     authenticate(
-        '__BREDLAND_NOC_HOST__',
-        '__BREDLAND_NOC_TOKEN__',
+        'bredland-test',
+        'bredland.v1.test-token',
         $HOST_TOKENS
     )
 );
@@ -29,7 +29,7 @@ assertSame(
 assertSame(
     false,
     authenticate(
-        '__MIKROTIK_NOC_HOST__',
+        'mikrotik-test',
         'wrong-token',
         $HOST_TOKENS
     )
