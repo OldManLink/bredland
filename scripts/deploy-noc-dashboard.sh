@@ -27,6 +27,14 @@ dashboard_remote="$noc_root_dir/index.php"
 static_local="$tmpdir/static"
 static_remote="$noc_root_dir/static"
 
+version_file="templates/noc/static/static.version"
+
+current="$(cat "$version_file")"
+next="$((current + 1))"
+printf '%s\n' "$next" > "$version_file"
+
+export STATIC_VERSION="$next"
+
 echo "Rendering NOC dashboard..."
 scripts/render-template.sh templates/noc/index.template.php "$dashboard_local"
 

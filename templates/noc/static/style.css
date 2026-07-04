@@ -9,7 +9,7 @@ pre.telemetry {
     word-break: normal;
 
     font-family: ui-monospace, monospace;
-    font-size: 1.5rem; !important
+    font-size: 1.3rem;
     line-height: 1.4;
 
     background: #f5f5f5;
@@ -17,3 +17,37 @@ pre.telemetry {
     border-radius: 4px;
     padding: 0.75rem;
 }
+
+.card {
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 2.5rem;
+    line-height: 1.15;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.card.green { background: #f7fff7; }
+.card.yellow { background: #fffdf2; }
+.card.red { background: #fff7f9; }
+
+.card h2 {
+    margin: 0 0 0.5rem 0;
+}
+
+.card p {
+    margin: 0.2rem 0;
+}
+
+.led {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 50%;
+}
+
+.led.green { background: green; }
+.led.yellow { background: goldenrod; }
+.led.red { background: red; }
