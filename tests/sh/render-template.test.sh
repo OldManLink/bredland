@@ -26,6 +26,7 @@ run_render() {
 }
 
 # Test MikroTik install-noc-heartbeat.rsc.template
+echo -n "Testing mikrotik/install-noc-heartbeat.rsc.template ... "
 cat > "$tmpdir/install-noc-heartbeat.env" <<'EOF'
 # MikroTik stuff
 MIKROTIK_HEARTBEAT_SCRIPT_NAME=noc-heartbeat
@@ -40,8 +41,10 @@ EOF
 run_render templates/mikrotik/install-noc-heartbeat.rsc.template \
 "$tmpdir/noc-heartbeat.rsc" \
 "$tmpdir/install-noc-heartbeat.env"
+echo "OK"
 
 # Test Oderland telemetry.endpoint.template.php
+echo -n "Testing noc/telemetry.endpoint.template.php ... "
 cat > "$tmpdir/telemetry.endpoint.env" <<'EOF'
 # PHP magic constants
 DIR=DIR
@@ -51,8 +54,10 @@ EOF
 run_render templates/noc/telemetry.endpoint.template.php \
 "$tmpdir/telemetry.php" \
 "$tmpdir/telemetry.endpoint.env"
+echo "OK"
 
 # Test Oderland telemetry.config.template.php
+echo -n "testing noc/telemetry.config.template.php ... "
 cat > "$tmpdir/telemetry.config.env" <<'EOF'
 # Shared stuff (from MikroTik to Oderland)
 MIKROTIK_NOC_HOST=mikrotik-test
@@ -67,8 +72,10 @@ EOF
 run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \
 "$tmpdir/telemetry.config.env"
+echo "OK"
 
 # Test Oderland rotate-logs.template
+echo -n "Testing noc/rotate-logs.sh.template ... "
 cat > "$tmpdir/rotate-logs.env" <<'EOF'
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
@@ -76,8 +83,10 @@ EOF
 run_render templates/noc/rotate-logs.sh.template \
 "$tmpdir/rotate-logs.sh" \
 "$tmpdir/rotate-logs.env"
+echo "OK"
 
 # Test NOC index.template.php
+echo -n "Testing noc/index.template.php ... "
 cat > "$tmpdir/noc-index.env" <<'EOF'
 # Oderland stuff
 TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
@@ -85,10 +94,12 @@ EOF
 run_render templates/noc/index.template.php \
 "$tmpdir/index.php" \
 "$tmpdir/noc-index.env"
-grep -q 'Hello from the NOC' "$tmpdir/index.php"
-grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
+grep -q 'private/telemetry.config.php' "$tmpdir/index.php"
+grep -q '<!DOCTYPE html>"
+echo "OK"
 
 # Test bredland-heartbeat.service.template
+echo -n "Testing bredland/bredland-heartbeat.service.template ... "
 cat > "$tmpdir/bredland-heartbeat.service.env" <<'EOF'
 # Bredland stuff
 BREDLAND_HEARTBEAT_SCRIPT_FILE=/private/bredland-heartbeat
@@ -96,8 +107,10 @@ EOF
 run_render templates/bredland/bredland-heartbeat.service.template \
 "$tmpdir/bredland-heartbeat.service" \
 "$tmpdir/bredland-heartbeat.service.env"
+echo "OK"
 
 # Test bredland-heartbeat.sh.template
+echo -n "Testing bredland/bredland-heartbeat.sh.template ... "
 cat > "$tmpdir/bredland-heartbeat.sh.env" <<'EOF'
 # Bredland stuff
 BREDLAND_NOC_HOST=bredland-test
@@ -107,8 +120,10 @@ EOF
 run_render templates/bredland/bredland-heartbeat.sh.template \
 "$tmpdir/bredland-heartbeat.sh" \
 "$tmpdir/bredland-heartbeat.sh.env"
+echo "OK"
 
 # Test bredland-heartbeat.timer.template
+echo -n "Testing bredland/bredland-heartbeat.timer.template ... "
 cat > "$tmpdir/bredland-heartbeat.timer.env" <<'EOF'
 # Bredland stuff
 BREDLAND_HEARTBEAT_SCHEDULE=5_and_10_past
@@ -116,3 +131,4 @@ EOF
 run_render templates/bredland/bredland-heartbeat.timer.template \
 "$tmpdir/bredland-heartbeat.timer" \
 "$tmpdir/bredland-heartbeat.timer.env"
+echo "OK"

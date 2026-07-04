@@ -57,7 +57,7 @@ $record['remote_addr'] = isset($_SERVER['REMOTE_ADDR'])
 
 ensure_data_dir($DATA_DIR);
 
-$data_file = daily_jsonl_fileName($DATA_DIR, param('host'), gmdate('Y-m-d'));
+$data_file = daily_jsonl_filename($DATA_DIR, param('host'), gmdate('Y-m-d'));
 append_record($data_file, $record);
 
 respond(200, 'ok');

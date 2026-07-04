@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# shellcheck source=scripts/lib/bredland.sh
+source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/utils.sh
+source "$(dirname "$0")/lib/utils.sh"
+
+load_bredland_secrets
+
+command -v ssh >/dev/null
+command -v scp >/dev/null
+
+tmpdir="$(mktemp -d)"
+cleanup() {
+    rm -rf "$tmpdir"
+}
+trap cleanup EXIT
+
+oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
+oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
+noc_root_dir="${NOC_ROOT_DIR:?Missing NOC_ROOT_DIR}"
+
+dashboard_local="$tmpdir/index.php"
+dashboard_remote="$noc_root_dir/index.php"
+static_local="$tmpdir/static"
+static_remote="$noc_root_dir/static"
+
+echo "Rendering NOC dashboard..."
+scripts/render-template.sh templates/noc/index.template.php "$dashboard_local"
+
+echo "Copying static files"
+mkdir -p "$static_local"
+cp templates/noc/static/* "$static_local/"
+
+echo "Deploying NOC dashboard to ${ODERLAND_SSH_USER}@${ODERLAND_SSH_HOST}..."
+
+echo "Uploading static files to $static_remote..."
+execute_remote_command "mkdir -p '$static_remote'"
+scp "$static_local"/* "${oderland_user}@${oderland_host}:${static_remote}/"
+
+echo "Verifying static files..."
+for static_file in "$static_local"/*; do
+    static_name="$(basename "$static_file")"
+    echo -n "  $static_name... "
+    execute_remote_command "test -s '${static_remote}/${static_name}'"
+    echo "OK"
+done
+
+echo "Uploading dashboard to $dashboard_remote..."
+scp "$dashboard_local" "${oderland_user}@${oderland_host}:${dashboard_remote}"
+
+echo -n "Verifying dashboard... "
+execute_remote_command "test -s '${dashboard_remote}'"
+echo "OK"
+
+echo "Opening dashboard..."
+open "${NOC_DASHBOARD_URL:?Missing NOC_DASHBOARD_URL}"
+
+echo "NOC dashboard deployed."

@@ -1,12 +1,10 @@
 <?php
 
-function reserved_fields()
-{
+function reserved_fields() {
     return array('schema', 'ts', 'host', 'token', 'uptime', 'fields', 'remote_addr');
 }
 
-function select_fields($fields, $source)
-{
+function select_fields($fields, $source) {
     $selected = array();
 
     foreach (explode(',', $fields) as $field) {
@@ -34,8 +32,7 @@ function select_fields($fields, $source)
     return $selected;
 }
 
-function build_record($schema_version, $timestamp, $host, $fields)
-{
+function build_record($schema_version, $timestamp, $host, $fields) {
     return array_merge(
         array(
             'schema' => $schema_version,
