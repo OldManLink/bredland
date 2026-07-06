@@ -25,51 +25,58 @@ $ages = [
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="refresh" content="60">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#ffffff">
     <link rel="stylesheet" href="static/style.css?v=__STATIC_VERSION__">
+    <script src="static/dashboard.js?v=__STATIC_VERSION__"></script>
     <title>Network Operations Centre</title>
 </head>
 <body>
-    <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">
-        <h2>
-            <span class="led <?= heartbeat_health_colour($ages['mikrotik']) ?>"></span>
-            MikroTik
-        </h2>
+    <div class="dashboard">
+        <div class="cards-row">
+            <div class="card-slot">
+                <div class="card-container">
+                    <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">
+                        <h2>
+                            <span class="led <?= heartbeat_health_colour($ages['mikrotik']) ?>"></span>
+                            MikroTik
+                        </h2>
 
-        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
-        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <button class="drawer-handle" type="button" data-telemetry-toggle="mikrotik">=</button>
+                    </div>
+                </div>
+                <template id="mikrotik-telemetry-template">
+                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($mikrotik_file), ENT_QUOTES, 'UTF-8') ?></pre>
+                </template>
+            </div>
+
+            <div class="card-slot">
+                <div class="card-container">
+                    <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
+                        <h2>
+                            <span class="led <?= heartbeat_health_colour($ages['bredland']) ?>"></span>
+                            Bredland
+                        </h2>
+
+                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <button class="drawer-handle" type="button" data-telemetry-toggle="bredland">=</button>
+                    </div>
+                </div>
+                <template id="bredland-telemetry-template">
+                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($bredland_file), ENT_QUOTES, 'UTF-8') ?></pre>
+                </template>
+            </div>
+        </div>
     </div>
-
-    <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
-        <h2>
-            <span class="led <?= heartbeat_health_colour($ages['bredland']) ?>"></span>
-            Bredland
-        </h2>
-
-        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
-        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-    </div>
-
-    <h2>MikroTik</h2>
-    <pre class="telemetry"><?= htmlspecialchars(
-        latest_jsonl_line($mikrotik_file),
-        ENT_QUOTES,
-        'UTF-8'
-    ) ?></pre>
-
-    <h2>Bredland</h2>
-    <pre class="telemetry"><?= htmlspecialchars(
-        latest_jsonl_line($bredland_file),
-        ENT_QUOTES,
-        'UTF-8'
-    ) ?></pre>
 </body>
 </html>
