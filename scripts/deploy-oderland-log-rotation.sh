@@ -4,6 +4,8 @@ set -euo pipefail
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/utile.sh
+source "$(dirname "$0")/lib/utils.sh"
 
 load_bredland_secrets
 
@@ -27,42 +29,32 @@ cron_line="10 2 * * * $remote_script"
 
 echo "Rendering NOC log compression script..."
 scripts/render-template.sh \
-  templates/oderland/rotate-logs.sh.template \
+  templates/noc/rotate-logs.sh.template \
   "$local_script"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
 echo "Uploading script..."
-env -u LC_CTYPE -u LC_ALL -u LANG \
-  ssh "${oderland_user}@${oderland_host}" \
-  "mkdir -p '$noc_bin_dir'"
+execute_remote_command "mkdir -p '$noc_bin_dir'"
 scp "$local_script" "${oderland_user}@${oderland_host}:${remote_script}"
 
 echo -n "Making script executable... "
-env -u LC_CTYPE -u LC_ALL -u LANG \
-  ssh "${oderland_user}@${oderland_host}" \
-  "chmod +x '$remote_script'"
+execute_remote_command "chmod +x '$remote_script'"
 echo "OK"
 
 echo "Installing cron entry..."
-env -u LC_CTYPE -u LC_ALL -u LANG \
-  ssh "${oderland_user}@${oderland_host}" \
-  "tmp=\$(mktemp); \
+execute_remote_command "tmp=\$(mktemp); \
    crontab -l 2>/dev/null | sed '/^${cron_begin}$/,/^${cron_end}$/d' > \"\$tmp\"; \
    printf '%s\n%s\n%s\n' '${cron_begin}' '${cron_line}' '${cron_end}' >> \"\$tmp\"; \
    crontab \"\$tmp\"; \
    rm -f \"\$tmp\""
 
 echo -n "Verifying script... "
-env -u LC_CTYPE -u LC_ALL -u LANG \
-  ssh "${oderland_user}@${oderland_host}" \
-  "test -x '$remote_script'"
+execute_remote_command "test -x '$remote_script'"
 echo "OK"
 
 echo -n "Verifying cron entry... "
-env -u LC_CTYPE -u LC_ALL -u LANG \
-  ssh "${oderland_user}@${oderland_host}" \
-  "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
+execute_remote_command  "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
    crontab -l | grep -Fx '${cron_line}' >/dev/null &&
    crontab -l | grep -Fx '${cron_end}' >/dev/null"
 echo "OK"

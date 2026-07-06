@@ -4,6 +4,8 @@ set -euo pipefail
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/utils.sh
+source "$(dirname "$0")/lib/utils.sh"
 
 load_bredland_secrets
 
@@ -31,7 +33,7 @@ smoke_file="${data_dir%/}/${SMOKE_TEST_HOST}-${smoke_date}.jsonl"
 smoke_local="$(mktemp)"
 
 # Start clean so verification is deterministic.
-env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "rm -f '$smoke_file'"
+execute_remote_command "rm -f '$smoke_file'"
 smoke_host="${SMOKE_TEST_HOST:?Missing SMOKE_TEST_HOST}"
 smoke_token="${SMOKE_TEST_TOKEN:?Missing SMOKE_TEST_TOKEN}"
 endpoint="${TELEMETRY_ENDPOINT:?Missing TELEMETRY_ENDPOINT}"
@@ -76,8 +78,7 @@ done
 
 echo "Cleaning up smoke-test artefacts..."
 
-env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" \
-    "rm -f '$smoke_file' '$TELEMETRY_ENDPOINT_FILE' '$TELEMETRY_CONFIG_FILE'"
+execute_remote_command "rm -f '$smoke_file' '$TELEMETRY_ENDPOINT_FILE' '$TELEMETRY_CONFIG_FILE'"
 
 rm -f "$smoke_local"
 

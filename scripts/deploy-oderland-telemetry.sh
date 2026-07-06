@@ -4,6 +4,8 @@ set -euo pipefail
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/utile.sh
+source "$(dirname "$0")/lib/utils.sh"
 
 load_bredland_secrets
 
@@ -28,27 +30,26 @@ config_local="$tmpdir/telemetry.config.php"
 libdir_local="$tmpdir/lib"
 
 echo "Rendering Oderland Telemetry endpoint..."
-scripts/render-template.sh templates/oderland/telemetry.endpoint.template.php "$endpoint_local"
+scripts/render-template.sh templates/noc/telemetry.endpoint.template.php "$endpoint_local"
 
 echo "Rendering Oderland Telemetry private config..."
-scripts/render-template.sh templates/oderland/telemetry.config.template.php "$config_local"
+scripts/render-template.sh templates/noc/telemetry.config.template.php "$config_local"
 
 echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
-cp templates/oderland/lib/*.php "$libdir_local/"
+cp templates/noc/lib/*.php "$libdir_local/"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
 echo "Uploading libraries to $libdir_remote..."
-env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "mkdir -p '$libdir_remote'"
+execute_remote_command "mkdir -p '$libdir_remote'"
 scp "$libdir_local"/*.php "${oderland_user}@${oderland_host}:${libdir_remote}/"
 
 echo "Verifying libraries..."
 for lib_file in "$libdir_local"/*.php; do
     lib_name="$(basename "$lib_file")"
     echo -n "  $lib_name... "
-    env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" \
-        "test -s '${libdir_remote}/${lib_name}'"
+    execute_remote_command "test -s '${libdir_remote}/${lib_name}'"
     echo "OK"
 done
 
@@ -56,14 +57,14 @@ echo "Uploading private config to $config_remote..."
 scp "$config_local" "${oderland_user}@${oderland_host}:${config_remote}"
 
 echo -n "Verifying config... "
-env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "test -s '${config_remote}'"
+execute_remote_command "test -s '${config_remote}'"
 echo "OK"
 
 echo "Uploading endpoint to $endpoint_remote..."
 scp "$endpoint_local" "${oderland_user}@${oderland_host}:${endpoint_remote}"
 
 echo -n "Verifying endpoint... "
-env -u LC_CTYPE -u LC_ALL -u LANG ssh "${oderland_user}@${oderland_host}" "test -s '${endpoint_remote}'"
+execute_remote_command "test -s '${endpoint_remote}'"
 echo "OK"
 
 echo "Oderland Telemetry endpoint deployed."

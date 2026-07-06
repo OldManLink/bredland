@@ -5,8 +5,8 @@ declare(strict_types=1);
 
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/oderland/lib/compatibility.php';
-require __DIR__ . '/../../templates/oderland/lib/auth.php';
+require __DIR__ . '/../../templates/noc/lib/compatibility.php';
+require __DIR__ . '/../../templates/noc/lib/auth.php';
 
 assertSame(
     true,

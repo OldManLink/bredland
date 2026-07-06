@@ -1,7 +1,6 @@
 <?php
 
-function append_record($file, $record)
-{
+function append_record($file, $record) {
     $line = json_encode($record) . "\n";
 
     if (file_put_contents($file, $line, FILE_APPEND | LOCK_EX) === false) {
@@ -9,15 +8,13 @@ function append_record($file, $record)
     }
 }
 
-function daily_jsonl_fileName($data_dir, $host, $date)
-{
+function daily_jsonl_filename($data_dir, $host, $date) {
     $safe_host = preg_replace('/[^a-zA-Z0-9_-]/', '_', $host);
 
     return rtrim($data_dir, '/') . '/' . $safe_host . '-' . $date . '.jsonl';
 }
 
-function ensure_data_dir($data_dir)
-{
+function ensure_data_dir($data_dir) {
     if (!is_dir($data_dir)) {
         mkdir($data_dir, 0700, true);
     }
