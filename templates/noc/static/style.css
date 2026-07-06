@@ -43,6 +43,13 @@ body {
     margin: 0.2rem 0;
 }
 
+.cards-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
 /* Status LED */
 
 .led {
@@ -72,7 +79,7 @@ body {
 .telemetry-panel {
     width: 90vw;
     max-width: 90vw;
-    margin: -2.0rem auto 1rem auto;
+    margin: -0.5rem auto 1rem auto;
 }
 
 /* Telemetry */
@@ -101,8 +108,31 @@ pre.telemetry {
 @media (min-width: 800px) {
     .dashboard {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(18rem, max-content));
-        justify-content: start;
+        grid-template-columns: repeat(auto-fit, minmax(22rem, max-content));
+        gap: 1rem;
         align-items: start;
+    }
+
+    .card-slot {
+        width: fit-content;
+    }
+
+    .card-container {
+        margin: 0;
+    }
+
+    .cards-row {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .telemetry-panel {
+        width: 90vw;
+        max-width: 90vw;
+        margin: 0 auto 1rem auto;
+    }
+
+    pre.telemetry {
+        font-size: 1rem;
     }
 }

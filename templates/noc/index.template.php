@@ -39,39 +39,44 @@ $ages = [
 </head>
 <body>
     <div class="dashboard">
-        <div class="card-container">
-            <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">
-                <h2>
-                    <span class="led <?= heartbeat_health_colour($ages['mikrotik']) ?>"></span>
-                    MikroTik
-                </h2>
+        <div class="cards-row">
+            <div class="card-slot">
+                <div class="card-container">
+                    <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">
+                        <h2>
+                            <span class="led <?= heartbeat_health_colour($ages['mikrotik']) ?>"></span>
+                            MikroTik
+                        </h2>
 
-                <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
-                <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                <button class="drawer-handle" type="button" data-drawer-target="mikrotik-telemetry">=</button>
+                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <button class="drawer-handle" type="button" data-drawer-target="mikrotik-telemetry">=</button>
+                    </div>
+                </div>
+                <div id="mikrotik-telemetry" class="telemetry-panel" hidden>
+                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($mikrotik_file), ENT_QUOTES, 'UTF-8') ?></pre>
+                </div>
             </div>
-        </div>
-        <div id="mikrotik-telemetry" class="telemetry-panel" hidden>
-            <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($mikrotik_file), ENT_QUOTES, 'UTF-8') ?></pre>
-        </div>
 
+            <div class="card-slot">
+                <div class="card-container">
+                    <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
+                        <h2>
+                            <span class="led <?= heartbeat_health_colour($ages['bredland']) ?>"></span>
+                            Bredland
+                        </h2>
 
-        <div class="card-container">
-            <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
-                <h2>
-                    <span class="led <?= heartbeat_health_colour($ages['bredland']) ?>"></span>
-                    Bredland
-                </h2>
-
-                <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
-                <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                <button class="drawer-handle" type="button" data-drawer-target="bredland-telemetry">=</button>
+                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <button class="drawer-handle" type="button" data-drawer-target="bredland-telemetry">=</button>
+                    </div>
+                </div>
+                <div id="bredland-telemetry" class="telemetry-panel" hidden>
+                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($bredland_file), ENT_QUOTES, 'UTF-8') ?></pre>
+                </div>
             </div>
-        </div>
-        <div id="bredland-telemetry" class="telemetry-panel" hidden>
-            <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($bredland_file), ENT_QUOTES, 'UTF-8') ?></pre>
         </div>
     </div>
 </body>
