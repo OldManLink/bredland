@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initialisePullToRefresh();
 });
 
+// Drawers are associated with layout rows rather than cards so the
+// same mechanism works for both single-column (mobile) and multi-column
+// (desktop) layouts.
+
 function initialiseDrawers() {
     var handles = document.querySelectorAll('[data-telemetry-toggle]');
     var openCardId = null;
