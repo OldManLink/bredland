@@ -1,32 +1,34 @@
 body {
     font-family: system-ui, sans-serif;
     margin: 1rem;
+    background: #202124;
 }
 
-pre.telemetry {
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    word-break: normal;
+/* Dashboard layout */
 
-    font-family: ui-monospace, monospace;
-    font-size: 1.3rem;
-    line-height: 1.4;
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
 
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 0.75rem;
+/* Cards */
+
+.card-container {
+    width: fit-content;
+    max-width: 90vw;
+    margin: 0 auto;
 }
 
 .card {
-    width: fit-content;
-    max-width: 100%;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 2.5rem;
+    width: auto;
+    font-size: 1.7rem;
     line-height: 1.15;
-    padding: 1.2rem;
-    margin-bottom: 1rem;
+    max-width: 32rem;
+    margin: 0 auto 1rem auto;
+    padding: 1.0rem 1.5rem;
+    border-radius: 12px;
 }
 
 .card.green { background: #f7fff7; }
@@ -41,6 +43,8 @@ pre.telemetry {
     margin: 0.2rem 0;
 }
 
+/* Status LED */
+
 .led {
     display: inline-block;
     width: 0.8em;
@@ -51,3 +55,54 @@ pre.telemetry {
 .led.green { background: green; }
 .led.yellow { background: goldenrod; }
 .led.red { background: red; }
+
+/* Drawer */
+
+.drawer-handle {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #aaa;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.telemetry-panel {
+    width: 90vw;
+    max-width: 90vw;
+    margin: -2.0rem auto 1rem auto;
+}
+
+/* Telemetry */
+
+pre.telemetry {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: normal;
+
+    font-family: ui-monospace, monospace;
+    font-size: 1.0rem;
+    line-height: 1.4;
+
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    min-width: 0;
+    border-radius: 12px;
+}
+
+/* Desktop layout */
+
+@media (min-width: 800px) {
+    .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(18rem, max-content));
+        justify-content: start;
+        align-items: start;
+    }
+}
