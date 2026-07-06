@@ -42,9 +42,9 @@ $ages = [
             MikroTik
         </h2>
 
-        <p>Last heartbeat: <?= format_duration_seconds($ages['mikrotik']) ?> ago</p>
-        <p>Uptime: <?= htmlspecialchars($heartbeats['mikrotik']['uptime']) ?></p>
-        <p>Free memory: <?= htmlspecialchars($heartbeats['mikrotik']['free_memory']) ?></p>
+        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
+        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
 
     <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
@@ -53,9 +53,9 @@ $ages = [
             Bredland
         </h2>
 
-        <p>Last heartbeat: <?= format_duration_seconds($ages['bredland']) ?> ago</p>
-        <p>Uptime: <?= htmlspecialchars($heartbeats['bredland']['uptime']) ?></p>
-        <p>Free memory: <?= htmlspecialchars($heartbeats['bredland']['free_memory']) ?></p>
+        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
+        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
+        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
 
     <h2>MikroTik</h2>

@@ -37,6 +37,10 @@ version_file="templates/noc/static/static.version"
 
 current="$(cat "$version_file")"
 next="$((current + 1))"
+# static.version is intentionally source-controlled project state.
+# Deploy increments it so the rendered dashboard always references a
+# fresh static asset version, and the repository records the last deployed
+# asset version for the next manual coding session.
 printf '%s\n' "$next" > "$version_file"
 
 export STATIC_VERSION="$next"

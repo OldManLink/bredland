@@ -93,3 +93,21 @@ assertSame('5m 0s', format_duration_seconds(300));
 assertSame('1h 2m', format_duration_seconds(3720));
 assertSame('2d 3h', format_duration_seconds(183600));
 assertSame('36d 8h', format_duration_seconds(3141459));
+
+assertSame('unavailable', format_heartbeat_age(null));
+assertSame('42s ago', format_heartbeat_age(42));
+assertSame('5m 0s ago', format_heartbeat_age(300));
+
+assertSame(
+    'unavailable',
+    heartbeat_field(null, 'uptime', 'unavailable')
+);
+
+assertSame(
+    '6d08:32:06',
+    heartbeat_field(
+        ['uptime' => '6d08:32:06'],
+        'uptime',
+        'unavailable'
+    )
+);

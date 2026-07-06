@@ -75,4 +75,22 @@ function format_duration_seconds($seconds)
 
     return $days . 'd ' . $hours . 'h';
 }
+
+function format_heartbeat_age($age_seconds)
+{
+    if ($age_seconds === null) {
+        return 'unavailable';
+    }
+
+    return format_duration_seconds($age_seconds) . ' ago';
+}
+
+function heartbeat_field($heartbeat, $field, $default)
+{
+    if ($heartbeat === null || !isset($heartbeat[$field])) {
+        return $default;
+    }
+
+    return $heartbeat[$field];
+}
 ?>
