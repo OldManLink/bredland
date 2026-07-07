@@ -37,6 +37,9 @@ $ages = [
     <title>Network Operations Centre</title>
 </head>
 <body>
+    <div id="refresh-indicator">
+        <div class="spinner"></div>
+    </div>
     <div class="dashboard">
         <div class="cards-row">
             <div class="card-slot">

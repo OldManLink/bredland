@@ -99,6 +99,7 @@ function initialisePullToRefresh() {
     var startY = 0;
     var pulling = false;
     var shouldRefresh = false;
+    var indicator = document.getElementById('refresh-indicator');
 
     document.addEventListener('touchstart', function (event) {
         if (window.scrollY <= 0) {
@@ -115,18 +116,43 @@ function initialisePullToRefresh() {
 
         var deltaY = event.touches[0].clientY - startY;
 
+        var offset = Math.min(deltaY * 0.4, 40);
+
         if (deltaY > 80) {
             shouldRefresh = true;
+
+            if (indicator) {
+                indicator.style.setProperty(
+                    '--pull-offset',
+                    offset + 'px'
+                );
+                indicator.classList.add('pulling');
+                indicator.classList.add('visible');
+            }
+        } else {
+            shouldRefresh = false;
+
+            if (indicator) {
+                indicator.classList.remove('visible');
+            }
         }
     }, { passive: true });
 
     document.addEventListener('touchend', function () {
         if (pulling && shouldRefresh) {
-            location.reload();
-        }
+            if (indicator) {
+                indicator.style.removeProperty('--pull-offset');
+                indicator.classList.remove('pulling');
+                indicator.classList.remove('visible');
+            }
 
+            window.setTimeout(function () {
+                location.reload();
+            }, 180);
+
+            shouldRefresh = false;
+        }
         pulling = false;
-        shouldRefresh = false;
     });
 }
 //
