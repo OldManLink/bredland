@@ -1,44 +1,21 @@
 #!/usr/bin/env bash
+# Keep this image aligned with the PHP version supported by Oderland.
+PHP_TEST_IMAGE="php:5.6-cli"
 
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
-echo "==> Shell tests"
-set +e
-tests/sh/run-all.sh
-sh_rc=$?
-set -e
-
-echo
-set +e
-echo "==> PHP tests"
-tests/php/run-all.sh
-php_rc=$?
-set -e
-
-echo
-echo "==> Overall summary"
-
-if [[ $sh_rc -eq 0 ]]; then
-    echo "✅ Shell tests"
-else
-    echo "❌ Shell tests"
-fi
-
-if [[ $php_rc -eq 0 ]]; then
-    echo "✅ PHP tests"
-else
-    echo "❌ PHP tests"
-fi
-
-if [[ $sh_rc -eq 0 && $php_rc -eq 0 ]]; then
-    echo
-    echo "✅ All tests passed"
-    exit 0
-else
-    echo
-    echo "❌ Test failures"
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker is required and must be running." >&2
     exit 1
 fi
+
+echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
+docker run --rm \
+    --platform linux/amd64 \
+    -v "$repo_root:/app" \
+    -w /app \
+    $PHP_TEST_IMAGE \
+    bash tests/in-container.sh

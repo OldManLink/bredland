@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-function assertSame($expected, $actual): void
+function assertSame($expected, $actual)
 {
     if ($expected !== $actual) {
         fwrite(STDERR,
@@ -14,7 +12,7 @@ function assertSame($expected, $actual): void
     }
 }
 
-function assertNotSame($unexpected, $actual): void
+function assertNotSame($unexpected, $actual)
 {
     if ($unexpected === $actual) {
         fwrite(STDERR,
@@ -25,7 +23,7 @@ function assertNotSame($unexpected, $actual): void
     }
 }
 
-function fail($message): void
+function fail($message)
 {
     fwrite(STDERR, $message . "\n");
     exit(1);
