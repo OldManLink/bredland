@@ -93,7 +93,7 @@ function findLastCardSlotInSameRow(cardSlot) {
 }
 
 //
-// Add a "pull to refresh" gesture to the desctop assuming it's running as a PWA on iPhone
+// Add a "pull to refresh" gesture to the desktop assuming it's running as a PWA on iPhone
 //
 function initialisePullToRefresh() {
     var startY = 0;
@@ -149,9 +149,8 @@ function initialisePullToRefresh() {
             window.setTimeout(function () {
                 location.reload();
             }, 180);
-
-            shouldRefresh = false;
         }
+        shouldRefresh = false;
         pulling = false;
     });
 }
@@ -160,7 +159,6 @@ function initialisePullToRefresh() {
 //
 function initialiseDesktopAutoRefresh() {
     var desktopQuery = window.matchMedia('(min-width: 800px)');
-    var refreshIntervalMs = 60 * 1000;
 
     if (!desktopQuery.matches) {
         return;
