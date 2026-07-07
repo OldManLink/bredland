@@ -27,9 +27,9 @@ cron_begin="# BEGIN BREDLAND BRD-002"
 cron_end="# END BREDLAND BRD-002"
 cron_line="10 2 * * * $remote_script"
 
-echo "Rendering NOC log compression script..."
+echo "Rendering NOC daily log rotation script..."
 scripts/render-template.sh \
-  templates/noc/rotate-logs.sh.template \
+  templates/noc/rotate-daily-logs.sh.template \
   "$local_script"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
