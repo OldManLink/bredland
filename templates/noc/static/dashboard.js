@@ -1,12 +1,15 @@
 document.addEventListener('DOMContentLoaded', function () {
     initialiseDrawers();
     initialisePullToRefresh();
+    initialiseDesktopAutoRefresh();
 });
+
+//Constants
+var DESKTOP_AUTO_REFRESH_MS = 60 * 1000;
 
 // Drawers are associated with layout rows rather than cards so the
 // same mechanism works for both single-column (mobile) and multi-column
 // (desktop) layouts.
-
 function initialiseDrawers() {
     var handles = document.querySelectorAll('[data-telemetry-toggle]');
     var openCardId = null;
@@ -68,6 +71,11 @@ function initialiseDrawers() {
     });
 }
 
+//
+// Given the supplied card slot, find the last currently displayed card slot in the same row
+// Note that in the case of a PWA this will be the same object as the supplied argument, since
+// every row only contains a single card slot.
+//
 function findLastCardSlotInSameRow(cardSlot) {
     var slots = Array.prototype.slice.call(document.querySelectorAll('.card-slot'));
     var rowTop = Math.round(cardSlot.getBoundingClientRect().top);
@@ -84,10 +92,14 @@ function findLastCardSlotInSameRow(cardSlot) {
     return lastInRow;
 }
 
+//
+// Add a "pull to refresh" gesture to the desktop assuming it's running as a PWA on iPhone
+//
 function initialisePullToRefresh() {
     var startY = 0;
     var pulling = false;
     var shouldRefresh = false;
+    var indicator = document.getElementById('refresh-indicator');
 
     document.addEventListener('touchstart', function (event) {
         if (window.scrollY <= 0) {
@@ -104,17 +116,55 @@ function initialisePullToRefresh() {
 
         var deltaY = event.touches[0].clientY - startY;
 
+        var offset = Math.min(deltaY * 0.4, 40);
+
         if (deltaY > 80) {
             shouldRefresh = true;
+
+            if (indicator) {
+                indicator.style.setProperty(
+                    '--pull-offset',
+                    offset + 'px'
+                );
+                indicator.classList.add('pulling');
+                indicator.classList.add('visible');
+            }
+        } else {
+            shouldRefresh = false;
+
+            if (indicator) {
+                indicator.classList.remove('visible');
+            }
         }
     }, { passive: true });
 
     document.addEventListener('touchend', function () {
         if (pulling && shouldRefresh) {
-            location.reload();
-        }
+            if (indicator) {
+                indicator.style.removeProperty('--pull-offset');
+                indicator.classList.remove('pulling');
+                indicator.classList.remove('visible');
+            }
 
-        pulling = false;
+            window.setTimeout(function () {
+                location.reload();
+            }, 180);
+        }
         shouldRefresh = false;
+        pulling = false;
     });
+}
+//
+// If the dashboard is in desktop mode, cause it to refresh every DESKTOP_AUTO_REFRESH_MS milliseconds
+//
+function initialiseDesktopAutoRefresh() {
+    var desktopQuery = window.matchMedia('(min-width: 800px)');
+
+    if (!desktopQuery.matches) {
+        return;
+    }
+
+    window.setTimeout(function () {
+        location.reload();
+    }, DESKTOP_AUTO_REFRESH_MS);
 }
