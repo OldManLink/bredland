@@ -12,6 +12,15 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
+if [[ "${CHECK_LOCAL_SECRETS:-0}" == "1" ]]; then
+    echo "==> Verifying development environment"
+
+    tests/sh/check-local-secrets.sh
+
+    echo "✅ Local secrets match example config"
+    echo
+fi
+
 echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
 docker run --rm \
   --platform linux/amd64 \
