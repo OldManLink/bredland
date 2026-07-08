@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+NOC_DATA_DIR="__NOC_DATA_DIR__"
+
+consolidation_date="${NOC_CONSOLIDATION_DATE:-$(date +%Y-%m-%d)}"
+previous_month="$(date -d "$consolidation_date -1 day" +%Y-%m)"
+
+cd "$NOC_DATA_DIR"
+
+for first_daily_archive in *-"$previous_month"-??.jsonl.gz; do
+    [[ -e "$first_daily_archive" ]] || continue
+
+    host="${first_daily_archive%-"$previous_month"-??.jsonl.gz}"
+    monthly_archive="$host-$previous_month.jsonl.gz"
+
+    if [[ -f "$monthly_archive" ]]; then
+        continue
+    fi
+
+    daily_archives=( "$host-$previous_month"-??.jsonl.gz )
+
+    tmp_archive="$monthly_archive.tmp"
+
+    gzip -dc "${daily_archives[@]}" | gzip -c > "$tmp_archive"
+    gzip -t "$tmp_archive"
+
+    mv "$tmp_archive" "$monthly_archive"
+    rm "${daily_archives[@]}"
+done

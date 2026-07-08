@@ -74,15 +74,26 @@ run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.env"
 echo "OK"
 
-# Test Oderland rotate-logs.template
-echo -n "Testing noc/rotate-logs.sh.template ... "
-cat > "$tmpdir/rotate-logs.env" <<'EOF'
+# Test Oderland rotate-daily-logs.template
+echo -n "Testing noc/rotate-daily-logs.sh.template ... "
+cat > "$tmpdir/rotate-daily-logs.env" <<'EOF'
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
 EOF
-run_render templates/noc/rotate-logs.sh.template \
-"$tmpdir/rotate-logs.sh" \
-"$tmpdir/rotate-logs.env"
+run_render templates/noc/rotate-daily-logs.sh.template \
+"$tmpdir/rotate-daily-logs.sh" \
+"$tmpdir/rotate-daily-logs.env"
+echo "OK"
+
+# Test Oderland consolidate-monthly-logs.template
+echo -n "Testing noc/consolidate-monthly-logs.sh.template ... "
+cat > "$tmpdir/consolidate-monthly-logs.env" <<'EOF'
+# Oderland stuff
+NOC_DATA_DIR=/private/data/
+EOF
+run_render templates/noc/consolidate-monthly-logs.sh.template \
+"$tmpdir/consolidate-monthly-logs.sh" \
+"$tmpdir/consolidate-monthly-logs.env"
 echo "OK"
 
 # Test NOC index.template.php
