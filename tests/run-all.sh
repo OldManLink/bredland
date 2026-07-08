@@ -14,8 +14,8 @@ fi
 
 echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
 docker run --rm \
-    --platform linux/amd64 \
-    -v "$repo_root:/app" \
-    -w /app \
-    $PHP_TEST_IMAGE \
-    bash tests/in-container.sh
+  --platform linux/amd64 \
+  -v "$repo_root:/app" \
+  -w /app \
+  $PHP_TEST_IMAGE \
+  bash tests/in-container.sh

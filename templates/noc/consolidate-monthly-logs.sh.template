@@ -5,12 +5,12 @@ set -euo pipefail
 NOC_DATA_DIR="__NOC_DATA_DIR__"
 
 consolidation_date="${NOC_CONSOLIDATION_DATE:-$(date +%Y-%m-%d)}"
-previous_month="$(date -j -f "%Y-%m-%d" "$consolidation_date" -v-1m +%Y-%m)"
+previous_month="$(date -d "$consolidation_date -1 day" +%Y-%m)"
 
 cd "$NOC_DATA_DIR"
 
 for first_daily_archive in *-"$previous_month"-??.jsonl.gz; do
-    [[ -e "$first_daily_archive" ]] || exit 0
+    [[ -e "$first_daily_archive" ]] || continue
 
     host="${first_daily_archive%-"$previous_month"-??.jsonl.gz}"
     monthly_archive="$host-$previous_month.jsonl.gz"
