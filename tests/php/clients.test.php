@@ -45,6 +45,7 @@ foreach ($clientFiles as $clientFile) {
     }
 
     assertTrue(isset($definedFields['uptime']), "$clientFile must define mandatory uptime field");
+    assertTrue(isset($client['order']), "$clientFile must define order");
 }
 
 function read_json_file($path)

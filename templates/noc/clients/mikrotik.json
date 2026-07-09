@@ -5,7 +5,8 @@
     {
       "label": "Uptime",
       "field": "uptime",
-      "valueType": "string"
+      "valueType": "integer",
+      "format": "display_uptime"
     },
     {
       "label": "Free memory",
@@ -13,5 +14,6 @@
       "valueType": "integer",
       "format": "display_memory"
     }
-  ]
+  ],
+  "order": 10
 }
