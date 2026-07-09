@@ -19,7 +19,7 @@
     :local fields "version,model,cpu_load,free_memory,total_memory"
     :local version [/system resource get version]
     :local model [/system resource get board-name]
-    :local uptime [/system resource get uptime]
+    :local uptime [:tonum [/system resource get uptime]]
     :local cpuLoad [/system resource get cpu-load]
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]

@@ -2,11 +2,11 @@
 <?php
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/noc/lib/compatibility.php';
-require __DIR__ . '/../../templates/noc/lib/auth.php';
+$repoRoot = dirname(dirname(__DIR__));
+require $repoRoot . '/templates/noc/lib/compatibility.php';
+require $repoRoot . '/templates/noc/lib/auth.php';
 
-assertSame(
-    true,
+assertTrue(
     authenticate(
         'mikrotik-test',
         'mikrotik.v1.test-token',
@@ -14,8 +14,7 @@ assertSame(
     )
 );
 
-assertSame(
-    true,
+assertTrue(
     authenticate(
         'bredland-test',
         'bredland.v1.test-token',
@@ -23,8 +22,7 @@ assertSame(
     )
 );
 
-assertSame(
-    false,
+assertFalse(
     authenticate(
         'mikrotik-test',
         'wrong-token',
@@ -32,8 +30,7 @@ assertSame(
     )
 );
 
-assertSame(
-    false,
+assertFalse(
     authenticate(
         'unknown-host',
         'anything',

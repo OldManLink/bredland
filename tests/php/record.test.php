@@ -2,7 +2,8 @@
 <?php
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/noc/lib/record.php';
+$repoRoot = dirname(dirname(__DIR__));
+require $repoRoot . '/templates/noc/lib/record.php';
 
 $source = array(
     'temperature' => ' 35.5 ',

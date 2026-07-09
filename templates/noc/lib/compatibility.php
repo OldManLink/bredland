@@ -1,7 +1,6 @@
 <?php
 
-function telemetry_hash_equals($known, $user)
-{
+function telemetry_hash_equals($known, $user) {
     if (function_exists('hash_equals')) {
         return hash_equals($known, $user);
     }

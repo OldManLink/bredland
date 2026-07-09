@@ -1,25 +1,10 @@
 <?php
-// BRD-005: Networkk Operations Centre template.
-
-$base_dir = dirname($_SERVER['SCRIPT_FILENAME']);
-
+// BRD-005: Network Operations Centre template.
 require '__TELEMETRY_CONFIG_FILE__';
-require "$base_dir/lib/storage.php";
-require "$base_dir/lib/telemetry.php";
+$base_dir = dirname($_SERVER['SCRIPT_FILENAME']);
+require "$base_dir/lib/client.php";
 
-$mikrotik_file = daily_jsonl_filename($DATA_DIR, 'mikrotik', gmdate('Y-m-d'));
-$bredland_file = daily_jsonl_filename($DATA_DIR, 'bredland', gmdate('Y-m-d'));
-
-$heartbeats = [
-    'mikrotik' => heartbeat_from_jsonl($mikrotik_file),
-    'bredland' => heartbeat_from_jsonl($bredland_file),
-];
-
-$now = gmdate('c');
-$ages = [
-    'mikrotik' => heartbeat_age_seconds($heartbeats['mikrotik'], $now),
-    'bredland' => heartbeat_age_seconds($heartbeats['bredland'], $now),
-];
+$clients = load_clients("$base_dir/clients", $DATA_DIR);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,43 +27,27 @@ $ages = [
     </div>
     <div class="dashboard">
         <div class="cards-row">
+            <?php foreach ($clients as $client): ?>
             <div class="card-slot">
                 <div class="card-container">
-                    <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">
+                    <div class="card <?= heartbeat_health_colour($client['age']) ?>">
                         <h2>
-                            <span class="led <?= heartbeat_health_colour($ages['mikrotik']) ?>"></span>
-                            MikroTik
+                            <span class="led <?= heartbeat_health_colour($client['age']) ?>"></span>
+                            <?= htmlspecialchars($client['title'], ENT_QUOTES, 'UTF-8') ?>
                         </h2>
 
-                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['mikrotik']), ENT_QUOTES, 'UTF-8') ?></p>
-                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['mikrotik'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                        <button class="drawer-handle" type="button" data-telemetry-toggle="mikrotik">=</button>
+                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($client['age']), ENT_QUOTES, 'UTF-8') ?></p>
+                        <?php foreach ($client['fields'] as $field): ?>
+                        <p><?= htmlspecialchars($field['label'], ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars(display_client_field($client, $field), ENT_QUOTES, 'UTF-8') ?></p>
+                        <?php endforeach; ?>
+                        <button class="drawer-handle" type="button" data-telemetry-toggle="<?= htmlspecialchars($client['host'], ENT_QUOTES, 'UTF-8') ?>">=</button>
                     </div>
                 </div>
-                <template id="mikrotik-telemetry-template">
-                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($mikrotik_file), ENT_QUOTES, 'UTF-8') ?></pre>
+                <template id="<?= htmlspecialchars($client['host'], ENT_QUOTES, 'UTF-8') ?>-telemetry-template">
+                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($client['heartbeat_file']), ENT_QUOTES, 'UTF-8') ?></pre>
                 </template>
             </div>
-
-            <div class="card-slot">
-                <div class="card-container">
-                    <div class="card <?= heartbeat_health_colour($ages['bredland']) ?>">
-                        <h2>
-                            <span class="led <?= heartbeat_health_colour($ages['bredland']) ?>"></span>
-                            Bredland
-                        </h2>
-
-                        <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($ages['bredland']), ENT_QUOTES, 'UTF-8') ?></p>
-                        <p>Uptime: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'uptime', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                        <p>Free memory: <?= htmlspecialchars(heartbeat_field($heartbeats['bredland'], 'free_memory', 'unavailable'), ENT_QUOTES, 'UTF-8') ?></p>
-                        <button class="drawer-handle" type="button" data-telemetry-toggle="bredland">=</button>
-                    </div>
-                </div>
-                <template id="bredland-telemetry-template">
-                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($bredland_file), ENT_QUOTES, 'UTF-8') ?></pre>
-                </template>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </body>
