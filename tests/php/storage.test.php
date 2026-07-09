@@ -2,7 +2,8 @@
 <?php
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
-require __DIR__ . '/../../templates/noc/lib/storage.php';
+$repoRoot = dirname(dirname(__DIR__));
+require $repoRoot . '/templates/noc/lib/storage.php';
 
 assertSame(
         '/tmp/noc-data/bredland-2026-07-01.jsonl',
@@ -38,11 +39,11 @@ $subdir = $tmpdir . '/data';
 
 ensure_data_dir($subdir);
 
-assertSame(true, is_dir($subdir));
+assertTrue(is_dir($subdir));
 
 ensure_data_dir($subdir);
 
-assertSame(true, is_dir($subdir));
+assertTrue(is_dir($subdir));
 
 rmdir($subdir);
 rmdir($tmpdir);

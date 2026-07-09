@@ -42,6 +42,7 @@ $ages = [
     </div>
     <div class="dashboard">
         <div class="cards-row">
+
             <div class="card-slot">
                 <div class="card-container">
                     <div class="card <?= heartbeat_health_colour($ages['mikrotik']) ?>">

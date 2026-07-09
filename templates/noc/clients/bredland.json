@@ -1,0 +1,17 @@
+{
+  "host": "bredland",
+  "title": "Bredland",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "valueType": "string"
+    },
+    {
+      "label": "Free memory",
+      "field": "free_memory",
+      "valueType": "integer",
+      "format": "display_memory"
+    }
+  ]
+}

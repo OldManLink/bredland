@@ -32,6 +32,8 @@ libdir_local="$tmpdir/lib"
 libdir_remote="$noc_root_dir/lib"
 icons_local="$tmpdir/icons"
 icons_remote="$noc_root_dir/icons"
+clients_local="$tmpdir/clients"
+clients_remote="$noc_root_dir/clients"
 
 version_file="templates/noc/static/static.version"
 
@@ -55,6 +57,10 @@ cp templates/noc/static/* "$static_local/"
 echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
 cp templates/noc/lib/*.php "$libdir_local/"
+
+echo "Copying client definitions"
+mkdir -p "$clients_local"
+cp templates/noc/clients/*.json "$clients_local/"
 
 echo "Copying manifest.json"
 cp templates/noc/manifest.json "$manifest_local"
@@ -89,6 +95,17 @@ for lib_file in "$libdir_local"/*.php; do
     echo "OK"
 done
 
+echo "Uploading client definitions to $clients_remote..."
+execute_remote_command "mkdir -p '$clients_remote'"
+scp "$clients_local"/*.json "${oderland_user}@${oderland_host}:${clients_remote}/"
+
+echo "Verifying client definitions..."
+for client_file in "$clients_local"/*.json; do
+    client_name="$(basename "$client_file")"
+    echo -n "  $client_name... "
+    execute_remote_command "test -s '${clients_remote}/${client_name}'"
+    echo "OK"
+done
 
 echo "Uploading manifest.json to $manifest_remote..."
 scp "$manifest_local" "${oderland_user}@${oderland_host}:${manifest_remote}"

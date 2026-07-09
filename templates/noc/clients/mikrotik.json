@@ -1,0 +1,17 @@
+{
+  "host": "mikrotik",
+  "title": "MikroTik",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "valueType": "string"
+    },
+    {
+      "label": "Free memory",
+      "field": "free_memory",
+      "valueType": "integer",
+      "format": "display_memory"
+    }
+  ]
+}
