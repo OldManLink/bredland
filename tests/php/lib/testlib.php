@@ -23,3 +23,13 @@ function fail($message) {
     fwrite(STDERR, $message . "\n");
     exit(1);
 }
+
+function assertIdentifier($identifier, $message = '')
+{
+    assertTrue(
+        preg_match('/^[a-z][a-z0-9_]*$/', $identifier) === 1,
+        $message === ''
+            ? "Expected valid identifier: $identifier"
+            : $message
+    );
+}

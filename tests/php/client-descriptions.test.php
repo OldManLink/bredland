@@ -3,8 +3,9 @@
 require getenv('TEST_CONFIG');
 require __DIR__ . '/lib/testlib.php';
 $repoRoot = dirname(dirname(__DIR__));
+require $repoRoot . '/templates/noc/lib/client.php';
 
-$capabilities = require $repoRoot . '/templates/noc/lib/exports.php';
+$exports = require $repoRoot . '/templates/noc/lib/exports.php';
 
 $clientsDir = $repoRoot . '/templates/noc/clients';
 $fixturesDir = $repoRoot . '/tests/fixtures/heartbeats';
@@ -13,9 +14,15 @@ $clientFiles = glob($clientsDir . '/*.json');
 
 assertTrue(count($clientFiles) > 0, 'Expected at least one client definition');
 
+$seenHosts = array();
 foreach ($clientFiles as $clientFile) {
-    $client = read_json_file($clientFile);
+    $client = read_client_file($clientFile);
     $host = required_string($client, 'host', $clientFile);
+    assertIdentifier($host, "$clientFile field $host must be a valid identifier");
+    $expectedHost = pathinfo($clientFile, PATHINFO_FILENAME);
+    assertSame($expectedHost, $host, "$clientFile host must match filename");
+    assertFalse(isset($seenHosts[$host]), "Duplicate host: $host");
+    $seenHosts[$host] = true;
 
     assertTrue(isset($client['title']), "$clientFile must define title");
     assertTrue(isset($client['fields']) && is_array($client['fields']), "$clientFile must define fields array");
@@ -23,40 +30,46 @@ foreach ($clientFiles as $clientFile) {
     $fixtureFile = $fixturesDir . '/' . $host . '.json';
     assertTrue(file_exists($fixtureFile), "Missing heartbeat fixture for $host");
 
-    $heartbeat = read_json_file($fixtureFile);
+    $heartbeat = read_client_file($fixtureFile);
 
     $definedFields = array();
 
     foreach ($client['fields'] as $fieldDef) {
         $fieldName = required_string($fieldDef, 'field', $clientFile);
+        assertIdentifier($fieldName, "$clientFile field $fieldName must be a valid identifier");
 
         $definedFields[$fieldName] = true;
 
         assertTrue(isset($fieldDef['label']), "$clientFile field $fieldName must define label");
+        $valueType = required_string($fieldDef, 'valueType', $clientFile);
+
+        assertTrue(
+            in_array($valueType, array('string', 'integer'), true),
+            "$clientFile field $fieldName has unknown valueType: $valueType"
+        );
         assertTrue(array_key_exists($fieldName, $heartbeat), "$clientFile field $fieldName not found in $fixtureFile");
 
         if (isset($fieldDef['format'])) {
-            $format = $fieldDef['format'];
+            $format = required_string($fieldDef, 'format', $clientFile);
+            $valueType = required_string($fieldDef, 'valueType', $clientFile);
             assertTrue(
-                in_array($format, $capabilities['formatters'], true),
+                is_known_value_type($valueType),
+                "$clientFile field $fieldName has unknown valueType: $valueType"
+            );
+            assertTrue(
+                isset($exports['formatters'][$format]),
                 "Unknown formatter: $format"
+            );
+            assertTrue(
+                in_array($valueType, $exports['formatters'][$format]['valueTypes'], true),
+                "Formatter $format is not compatible with valueType $valueType"
             );
         }
     }
 
     assertTrue(isset($definedFields['uptime']), "$clientFile must define mandatory uptime field");
     assertTrue(isset($client['order']), "$clientFile must define order");
-}
-
-function read_json_file($path)
-{
-    $contents = file_get_contents($path);
-    assertTrue($contents !== false, "Unable to read $path");
-
-    $data = json_decode($contents, true);
-    assertTrue(json_last_error() === JSON_ERROR_NONE, "Invalid JSON in $path: " . json_last_error_msg());
-
-    return $data;
+    assertTrue(is_int($client['order']), "$clientFile order must be an integer");
 }
 
 function required_string($array, $key, $context)

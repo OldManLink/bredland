@@ -1,12 +1,12 @@
 <?php
 
-return [
-    'formatters' => [
-        'display_memory',
-        'display_uptime',
-    ],
-
-    'clickActions' => [
-        'roll_up',
-    ],
-];
+return array(
+    'formatters' => array(
+        'display_memory' => array(
+            'valueTypes' => array('integer'),
+        ),
+        'display_uptime' => array(
+            'valueTypes' => array('integer'),
+        ),
+    )
+);
