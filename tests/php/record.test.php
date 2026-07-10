@@ -119,6 +119,9 @@ $schema = array(
     'throttled' => array(
         'valueType' => 'string',
     ),
+    'update_available' => array(
+        'valueType' => 'boolean',
+    ),
 );
 
 $record = build_record(
@@ -127,6 +130,7 @@ $record = build_record(
         'ts' => '2026-07-01T15:00:00Z',
         'temperature' => '35.5',
         'throttled' => '0x0',
+        'update_available' => 'false',
     )
 );
 
@@ -137,6 +141,7 @@ assertSame(
         'host' => 'bredland',
         'temperature' => 35.5,
         'throttled' => '0x0',
+        'update_available' => false,
     ),
     $record
 );
@@ -198,5 +203,13 @@ assertSame(-0.42, convert_field_value('-.42', 'float'));
 assertSame(42.0, convert_field_value('42', 'float'));
 assertSame(null, convert_field_value('42.0°C', 'float'));
 assertSame(null, convert_field_value('', 'float'));
+
+assertSame(true, convert_field_value('true', 'boolean'));
+assertSame(false, convert_field_value('false', 'boolean'));
+
+assertSame(null, convert_field_value('1', 'boolean'));
+assertSame(null, convert_field_value('0', 'boolean'));
+assertSame(null, convert_field_value('yes', 'boolean'));
+assertSame(null, convert_field_value('', 'boolean'));
 
 assertSame('123', convert_field_value('123', 'string'));

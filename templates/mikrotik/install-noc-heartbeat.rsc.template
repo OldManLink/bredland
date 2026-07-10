@@ -16,13 +16,19 @@
 
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local host "__MIKROTIK_NOC_HOST__"
-    :local fields "version,model,cpu_load,free_memory,total_memory"
+    :local fields "version,model,cpu_load,free_memory,total_memory,update_available"
     :local version [/system resource get version]
     :local model [/system resource get board-name]
     :local uptime [:tonum [/system resource get uptime]]
     :local cpuLoad [/system resource get cpu-load]
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
+    :local installedVersion [/system package update get installed-version]
+    :local latestVersion [/system package update get latest-version]
+    :local updateAvailable "false"
+    :if ($installedVersion != $latestVersion) do={
+        :set updateAvailable "true"
+    }
 
     :set token [:convert $token to=url]
     :set host [:convert $host to=url]
@@ -33,8 +39,9 @@
     :set cpuLoad [:convert $cpuLoad to=url]
     :set freeMemory [:convert $freeMemory to=url]
     :set totalMemory [:convert $totalMemory to=url]
+    :set updateAvailable [:convert $updateAvailable to=url]
 
-    :local payload ("token=$token&host=$host&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory")
+    :local payload ("token=$token&host=$host&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&update_available=$updateAvailable")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }

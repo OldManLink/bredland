@@ -26,6 +26,9 @@
   "total_memory": {
     "valueType": "integer"
   },
+  "update_available": {
+    "valueType": "boolean"
+  },
   "remote_addr": {
     "valueType": "string"
   }
