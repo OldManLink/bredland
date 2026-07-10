@@ -1,8 +1,8 @@
 <?php
 // BRD-005: Network Operations Centre template.
-require '__TELEMETRY_CONFIG_FILE__';
+require_once '__TELEMETRY_CONFIG_FILE__';
 $base_dir = dirname($_SERVER['SCRIPT_FILENAME']);
-require "$base_dir/lib/client.php";
+require_once "$base_dir/lib/client.php";
 
 $clients = load_clients("$base_dir/clients", $DATA_DIR);
 ?>

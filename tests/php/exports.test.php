@@ -1,11 +1,11 @@
 #!/usr/bin/env php
 <?php
-require getenv('TEST_CONFIG');
-require __DIR__ . '/lib/testlib.php';
-$repoRoot = dirname(dirname(__DIR__));
-require $repoRoot . '/templates/noc/lib/client.php';
+require_once getenv('TEST_CONFIG');
+require_once __DIR__ . '/lib/testlib.php';
+$nocLibRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
+require_once $nocLibRoot . '/client.php';
 
-$exports = require $repoRoot . '/templates/noc/lib/exports.php';
+$exports = require_once $nocLibRoot . '/exports.php';
 
 assertTrue(isset($exports['formatters']), 'exports.php must define formatters');
 assertTrue(is_array($exports['formatters']), 'exports.php formatters must be an array');
