@@ -1,12 +1,15 @@
 <?php
+require_once __DIR__ . '/telemetry.php';
+require_once __DIR__ . '/storage.php';
 
-require __DIR__ . '/telemetry.php';
-
-const VALUE_TYPES = ['string', 'integer'];
+function known_value_types()
+{
+    return array('integer', 'float', 'string');
+}
 
 function is_known_value_type($value_type)
 {
-    return in_array($value_type, VALUE_TYPES, true);
+    return in_array($value_type, known_value_types(), true);
 }
 
 function load_clients($clients_dir, $data_dir) {
@@ -85,6 +88,10 @@ function display_client_field($client, $field) {
 function value_matches_type($value, $value_type) {
     if ($value_type === 'integer') {
         return is_int($value);
+    }
+
+    if ($value_type === 'float') {
+        return is_float($value);
     }
 
     if ($value_type === 'string') {

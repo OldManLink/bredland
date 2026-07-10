@@ -1,9 +1,8 @@
 #!/usr/bin/env php
 <?php
-require getenv('TEST_CONFIG');
-require __DIR__ . '/lib/testlib.php';
-$repoRoot = dirname(dirname(__DIR__));
-require $repoRoot . '/templates/noc/lib/telemetry.php';
+require_once getenv('TEST_CONFIG');
+require_once __DIR__ . '/lib/testlib.php';
+require_once dirname(dirname(__DIR__)) . '/templates/noc/lib/telemetry.php';
 
 $tmpdir = sys_get_temp_dir() . '/bredland-telemetry-test-' . getmypid();
 mkdir($tmpdir);

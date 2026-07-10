@@ -1,0 +1,35 @@
+{
+  "schema": {
+    "const": 1
+  },
+  "ts": {
+    "valueType": "string"
+  },
+  "host": {
+    "const": "bredland"
+  },
+  "uptime": {
+    "valueType": "integer"
+  },
+  "temperature": {
+    "valueType": "float"
+  },
+  "throttled": {
+    "valueType": "string"
+  },
+  "free_memory": {
+    "valueType": "integer"
+  },
+  "total_memory": {
+    "valueType": "integer"
+  },
+  "root_free": {
+    "valueType": "integer"
+  },
+  "root_total": {
+    "valueType": "integer"
+  },
+  "remote_addr": {
+    "valueType": "string"
+  }
+}

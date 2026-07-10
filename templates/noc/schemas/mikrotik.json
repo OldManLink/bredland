@@ -1,0 +1,32 @@
+{
+  "schema": {
+    "const": 1
+  },
+  "ts": {
+    "valueType": "string"
+  },
+  "host": {
+    "const": "mikrotik"
+  },
+  "uptime": {
+    "valueType": "integer"
+  },
+  "version": {
+    "valueType": "string"
+  },
+  "model": {
+    "valueType": "string"
+  },
+  "cpu_load": {
+    "valueType": "integer"
+  },
+  "free_memory": {
+    "valueType": "integer"
+  },
+  "total_memory": {
+    "valueType": "integer"
+  },
+  "remote_addr": {
+    "valueType": "string"
+  }
+}

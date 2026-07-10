@@ -11,12 +11,10 @@ load_bredland_secrets
 
 command -v ssh >/dev/null
 command -v scp >/dev/null
+command -v rsync >/dev/null
 
 tmpdir="$(mktemp -d)"
-cleanup() {
-    rm -rf "$tmpdir"
-}
-trap cleanup EXIT
+trap 'rm -rf "$tmpdir"' EXIT
 
 oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
 oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
@@ -30,6 +28,8 @@ static_local="$tmpdir/static"
 static_remote="$noc_root_dir/static"
 libdir_local="$tmpdir/lib"
 libdir_remote="$noc_root_dir/lib"
+schemas_local="$tmpdir/schemas"
+schemas_remote="$noc_root_dir/schemas"
 icons_local="$tmpdir/icons"
 icons_remote="$noc_root_dir/icons"
 clients_local="$tmpdir/clients"
@@ -58,6 +58,10 @@ echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
 cp templates/noc/lib/*.php "$libdir_local/"
 
+echo "Copying heartbeat schemas"
+mkdir -p "$schemas_local"
+cp templates/noc/schemas/*.json "$schemas_local/"
+
 echo "Copying client definitions"
 mkdir -p "$clients_local"
 cp templates/noc/clients/*.json "$clients_local/"
@@ -71,9 +75,9 @@ cp templates/noc/icons/* "$icons_local/"
 
 echo "Deploying NOC dashboard to ${ODERLAND_SSH_USER}@${ODERLAND_SSH_HOST}..."
 
-echo "Uploading static files to $static_remote..."
+echo "Synchronising static files to $static_remote..."
 execute_remote_command "mkdir -p '$static_remote'"
-scp "$static_local"/* "${oderland_user}@${oderland_host}:${static_remote}/"
+execute_rsync "$static_local/" "${oderland_user}@${oderland_host}:${static_remote}/"
 
 echo "Verifying static files..."
 for static_file in "$static_local"/*; do
@@ -83,9 +87,9 @@ for static_file in "$static_local"/*; do
     echo "OK"
 done
 
-echo "Uploading libraries to $libdir_remote..."
+echo "Synchronising libraries to $libdir_remote..."
 execute_remote_command "mkdir -p '$libdir_remote'"
-scp "$libdir_local"/*.php "${oderland_user}@${oderland_host}:${libdir_remote}/"
+execute_rsync "$libdir_local/" "${oderland_user}@${oderland_host}:${libdir_remote}/"
 
 echo "Verifying libraries..."
 for lib_file in "$libdir_local"/*.php; do
@@ -95,9 +99,21 @@ for lib_file in "$libdir_local"/*.php; do
     echo "OK"
 done
 
-echo "Uploading client definitions to $clients_remote..."
+echo "Synchronising schemas to $schemas_remote..."
+execute_remote_command "mkdir -p '$schemas_remote'"
+execute_rsync "$schemas_local/" "${oderland_user}@${oderland_host}:${schemas_remote}/"
+
+echo "Verifying schemas..."
+for schema_file in "$schemas_local"/*.json; do
+    schema_name="$(basename "$schema_file")"
+    echo -n "  $schema_name... "
+    execute_remote_command "test -s '${schemas_remote}/${schema_name}'"
+    echo "OK"
+done
+
+echo "Synchronising client definitions to $clients_remote..."
 execute_remote_command "mkdir -p '$clients_remote'"
-scp "$clients_local"/*.json "${oderland_user}@${oderland_host}:${clients_remote}/"
+execute_rsync "$clients_local/" "${oderland_user}@${oderland_host}:${clients_remote}/"
 
 echo "Verifying client definitions..."
 for client_file in "$clients_local"/*.json; do
@@ -116,7 +132,7 @@ echo "OK"
 
 echo "Uploading icons to $icons_remote"
 execute_remote_command "mkdir -p '$icons_remote'"
-scp "$icons_local"/* "${oderland_user}@${oderland_host}:${icons_remote}/"
+execute_rsync "$icons_local/" "${oderland_user}@${oderland_host}:${icons_remote}/"
 
 echo "Verifying icons..."
 for icon_file in "$icons_local"/*; do
