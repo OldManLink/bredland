@@ -15,5 +15,17 @@
       "format": "display_memory"
     }
   ],
+  "rules": [
+    {
+      "when": {
+        "field": "update_available",
+        "equals": true
+      },
+      "then": {
+        "type": "notification",
+        "message": "Software update available:\nVersion {{latest_version}}"
+      }
+    }
+  ],
   "order": 10
 }

@@ -39,3 +39,22 @@ function required_string($array, $key, $context) {
 
     return $array[$key];
 }
+
+function assert_allowed_keys($required, $allowed, $actual, $context)
+{
+    $actualKeys = array_keys($actual);
+
+    foreach ($required as $key) {
+        assertTrue(
+            array_key_exists($key, $actual),
+            "$context is missing required property: $key"
+        );
+    }
+
+    foreach ($actualKeys as $key) {
+        assertTrue(
+            in_array($key, $allowed, true),
+            "$context contains unknown property: $key"
+        );
+    }
+}

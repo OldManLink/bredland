@@ -15,5 +15,17 @@
       "format": "display_memory"
     }
   ],
+  "rules": [
+    {
+      "when": {
+        "field": "free_memory",
+        "lessThan": 1073741824
+      },
+      "then": {
+        "type": "health",
+        "value": "warning"
+      }
+    }
+  ],
   "order": 20
 }
