@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Verifies that the PHP files deployed to Oderland are syntactically
+# Verifies that all PHP files in the repository are syntactically
 # compatible with the target PHP runtime.
 #
 # This test is expected to run inside the Linux/PHP test container.
@@ -15,26 +15,23 @@ cd "$repo_root"
 
 failed=0
 
-for file in \
-    templates/noc/telemetry.endpoint.template.php \
-    templates/noc/telemetry.config.template.php \
-    templates/noc/lib/*.php
-do
-    echo -n "Checking $(basename "$file") ... "
+while IFS= read -r -d '' file; do
+    echo -n "Checking ${file#./} ... "
 
-    set +e
-    output="$(php -l "$file" 2>&1)"
-    rc=$?
-    set -e
-
-    if [[ $rc -ne 0 ]]; then
+    if output="$(php -l "$file" 2>&1)"; then
+        echo "OK"
+    else
         echo "FAILED"
         echo "$output"
         failed=1
-    else
-        echo "OK"
     fi
-done
+done < <(
+    find . \
+        -name '*.php' \
+        -not -path './tests/docker/*' \
+        -print0 |
+    sort -z
+)
 
 if (( failed )); then
     exit 1

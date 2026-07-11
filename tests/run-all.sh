@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Keep this image aligned with the PHP version supported by Oderland.
-PHP_TEST_IMAGE="php:5.6-cli"
+PHP_TEST_IMAGE="bredland/php55-test"
 
 set -euo pipefail
 
@@ -20,6 +20,12 @@ if [[ "${CHECK_LOCAL_SECRETS:-0}" == "1" ]]; then
     echo "✅ Local secrets match example config"
     echo
 fi
+
+echo "==> Building Linux test environment ($PHP_TEST_IMAGE)"
+docker build \
+  --platform linux/amd64 \
+  -t "$PHP_TEST_IMAGE" \
+  tests/docker/php55
 
 echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
 docker run --rm \
