@@ -15,12 +15,13 @@ cd "$repo_root"
 
 failed=0
 
-for file in \
-    templates/noc/telemetry.endpoint.template.php \
-    templates/noc/telemetry.config.template.php \
-    templates/noc/lib/*.php
-do
-    echo -n "Checking $(basename "$file") ... "
+find . \
+    -name '*.php' \
+    -not -path './tests/docker/*' \
+    -print0 |
+sort -z |
+while IFS= read -r -d '' file; do
+    echo -n "Checking ${file#./} ... "
 
     set +e
     output="$(php -l "$file" 2>&1)"
