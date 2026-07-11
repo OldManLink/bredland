@@ -162,12 +162,26 @@ $field = array(
 
 assertSame('unavailable', display_client_field($client, $field));
 
-assertTrue(is_known_value_type('string'));
 assertTrue(is_known_value_type('integer'));
+assertTrue(is_known_value_type('float'));
+assertTrue(is_known_value_type('string'));
+assertTrue(is_known_value_type('boolean'));
 assertFalse(is_known_value_type('array'));
 
 assertTrue(value_matches_type(123, 'integer'));
 assertFalse(value_matches_type('123', 'integer'));
+
+assertTrue(value_matches_type(12.3, 'float'));
+assertTrue(value_matches_type(.123, 'float'));
+assertFalse(value_matches_type('123', 'float'));
+
+assertTrue(value_matches_type(true, 'boolean'));
+assertTrue(value_matches_type(false, 'boolean'));
+assertFalse(value_matches_type('true', 'boolean'));
+assertFalse(value_matches_type('false', 'boolean'));
+assertFalse(value_matches_type(1, 'boolean'));
+assertFalse(value_matches_type(0, 'boolean'));
+assertFalse(value_matches_type(null, 'boolean'));
 
 assertTrue(value_matches_type('123', 'string'));
 assertFalse(value_matches_type(123, 'string'));

@@ -4,7 +4,7 @@ require_once __DIR__ . '/storage.php';
 
 function known_value_types()
 {
-    return array('integer', 'float', 'string');
+    return array('integer', 'float', 'boolean', 'string');
 }
 
 function is_known_value_type($value_type)
@@ -92,6 +92,10 @@ function value_matches_type($value, $value_type) {
 
     if ($value_type === 'float') {
         return is_float($value);
+    }
+
+    if ($value_type === 'boolean') {
+        return is_bool($value);
     }
 
     if ($value_type === 'string') {

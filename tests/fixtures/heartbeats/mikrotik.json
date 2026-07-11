@@ -1,1 +1,13 @@
-{"schema":1,"ts":"2026-07-10T16:43:00Z","host":"mikrotik","uptime":1274106,"version":"7.23.1 (stable)","model":"RB4011iGS+","cpu_load":0,"free_memory":881184768,"total_memory":1073741824,"remote_addr":"91.128.129.6"}
+{
+  "schema": 1,
+  "ts": "2026-07-11T12:28:00Z",
+  "host": "mikrotik",
+  "uptime": 1345206,
+  "version": "7.23.1 (stable)",
+  "model": "RB4011iGS+",
+  "cpu_load": 0,
+  "free_memory": 880664576,
+  "total_memory": 1073741824,
+  "update_available": true,
+  "remote_addr": "91.128.129.6"
+}

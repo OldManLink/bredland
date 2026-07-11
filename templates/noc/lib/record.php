@@ -99,6 +99,18 @@ function convert_field_value($value, $value_type) {
         return (float)$value;
     }
 
+    if ($value_type === 'boolean') {
+        if ($value === 'true') {
+            return true;
+        }
+
+        if ($value === 'false') {
+            return false;
+        }
+
+        return null;
+    }
+
     if ($value_type === 'string') {
         return (string)$value;
     }
