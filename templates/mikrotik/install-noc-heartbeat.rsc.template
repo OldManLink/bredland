@@ -26,10 +26,13 @@
     :local installedVersion [/system package update get installed-version]
     :local latestVersion [/system package update get latest-version]
     :local updateAvailable "false"
-    :if ($installedVersion != $latestVersion) do={
-        :set updateAvailable "true"
+    :if ($installedVersion != "") do={
+        :if ($latestVersion != "") do={
+            :if ($installedVersion != $latestVersion) do={
+                :set updateAvailable "true"
+            }
+        }
     }
-
     :set token [:convert $token to=url]
     :set host [:convert $host to=url]
     :set fields [:convert $fields to=url]
