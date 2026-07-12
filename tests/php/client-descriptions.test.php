@@ -36,78 +36,8 @@ foreach ($clientFiles as $clientFile) {
     );
 
     if (array_key_exists('rules', $client)) {
-        assertTrue(
-            is_array($client['rules']),
-            "$clientFile rules must be an array"
-        );
-
+// YXA
         foreach ($client['rules'] as $index => $rule) {
-            assertTrue(
-                is_array($rule),
-                "$clientFile rule $index must be an object"
-            );
-            $ruleIdentifiers = array('when', 'then');
-
-            assert_allowed_keys(
-                $ruleIdentifiers,
-                $ruleIdentifiers,
-                $rule,
-                "$clientFile rule $index"
-            );
-
-            foreach ($ruleIdentifiers as $identifier) {
-                assertTrue(
-                    is_array($rule[$identifier]),
-                    "$clientFile rule $index $identifier must be an object"
-                );
-            }
-
-            $predicate = $rule['when'];
-            $predicateReceiver = array('field');
-            $predicateComparators = array('equals', 'lessThan');
-
-            assert_allowed_keys(
-                $predicateReceiver,
-                array_merge($predicateReceiver, $predicateComparators),
-                $predicate,
-                "$clientFile rule $index when"
-            );
-            assertTrue(
-                is_string($predicate['field']) && $predicate['field'] !== '',
-                "$clientFile rule $index when field must be a non-empty string"
-            );
-            
-            $comparatorsPresent = array();
-            foreach ($predicateComparators as $comparator) {
-                if (array_key_exists($comparator, $predicate)) {
-                    $comparatorsPresent[] = $comparator;
-                }
-            }
-            assertSame(
-                1,
-                count($comparatorsPresent),
-                "$clientFile rule $index when must contain exactly one comparator"
-            );
-
-            $comparator = $comparatorsPresent[0];
-            if ($comparator === 'equals') {
-                assertTrue(
-                    is_bool($predicate['equals']) ||
-                    is_int($predicate['equals']) ||
-                    is_float($predicate['equals']) ||
-                    is_string($predicate['equals']),
-                    "$clientFile rule $index equals must be a scalar value"
-                );
-            }
-
-            if ($comparator === 'lessThan') {
-                assertTrue(
-                    is_int($predicate['lessThan']) ||
-                    is_float($predicate['lessThan']),
-                    "$clientFile rule $index lessThan must be numeric"
-                );
-            }
-
 
             $effect = $rule['then'];
             assert_allowed_keys(

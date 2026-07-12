@@ -58,3 +58,9 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
         );
     }
 }
+
+function assert_compile_error($result, $message) {
+    assertSame(0, count($result->rules()));
+    assertSame(1, count($result->messages()));
+    assertSame($message, $result->messages()[0]);
+}
