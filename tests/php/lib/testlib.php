@@ -11,6 +11,14 @@ function assertSame($expected, $actual, $message = '') {
     }
 }
 
+function disabled($testDescription) {
+    logDebug("Disabled test: $testDescription");
+}
+
+function logDebug($message) {
+    fwrite(STDERR,"\n🔎 >> $message << 🔍\n");
+}
+
 function assertTrue($actual, $message = '') {
     assertSame(true, $actual, $message);
 }
@@ -60,7 +68,14 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
 }
 
 function assert_compile_error($result, $message) {
-    assertSame(0, count($result->rules()));
+    assertSame(null, ($result->value()));
     assertSame(1, count($result->messages()));
     assertSame($message, $result->messages()[0]);
 }
+
+function assert_includes_compile_error($result, $message) {
+    assertSame('array', gettype($result->value()));
+    assertSame(1, count($result->messages()));
+    assertSame($message, $result->messages()[0]);
+}
+

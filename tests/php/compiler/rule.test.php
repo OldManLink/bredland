@@ -2,11 +2,12 @@
 <?php
 
 require_once getenv('TEST_CONFIG');
-require_once __DIR__ . '/lib/testlib.php';
-
-$nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
-
-require_once $nocRoot . '/lib/rule.php';
+$phpRoot = dirname(__DIR__);
+require_once $phpRoot . '/lib/testlib.php';
+$compilerRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib/compiler';
+require_once $compilerRoot .'/rule.php';
+require_once $compilerRoot .'/predicate.php';
+require_once $compilerRoot .'/effect.php';
 
 $predicate = new Predicate(
     'update_available',

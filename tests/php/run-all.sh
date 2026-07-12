@@ -35,7 +35,7 @@ repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
 shopt -s nullglob
-test_scripts=(tests/php/*.test.php)
+test_scripts=(tests/php/{,compiler/}*.test.php)
 
 if (( ${#test_scripts[@]} == 0 )); then
     echo "==> no PHP tests yet"
