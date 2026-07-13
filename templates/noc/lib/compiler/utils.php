@@ -19,3 +19,20 @@
 function indexed_path($base, $index) {
     return $base . '[' . $index . ']';
 }
+
+function check_allowed_keys($definition, $allowedKeys, $path) {
+
+    foreach ($allowedKeys as $key => $class) {
+        if(!array_key_exists($key, $definition)) {
+            return CompilationResult::failure(array("$path: expected $key"));
+        }
+    }
+
+    foreach ($definition as $key => $value) {
+        if (!isset($allowedKeys[$key])) {
+            return CompilationResult::failure(array("$path: unsupported attribute $key"));
+        }
+    }
+
+    return CompilationResult::success(null);
+}

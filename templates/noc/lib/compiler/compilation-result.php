@@ -1,37 +1,31 @@
 <?php
 
-class CompilationResult
-{
+class CompilationResult {
     private $value;
-    private $messages;
+    private $errors;
 
-    public function __construct($value, $messages)
-    {
+    private function __construct($value, $errors) {
         $this->value = $value;
-        $this->messages = $messages;
+        $this->errors = $errors;
+    }
+
+    public static function success($value) {
+        return new self($value, array());
+    }
+
+    public static function failure($errorMessages) {
+        return new self(null, $errorMessages);
+    }
+
+    public function isSuccess() {
+        return count($this->errors) === 0;
     }
 
     public function value() {
         return $this->value;
     }
 
-    public function messages() {
-        return $this->messages;
+    public function errors() {
+        return $this->errors;
     }
-
-    public function hasErrors() {
-        return count($this->messages) > 0;
-    }
-
-}
-
-function compilation_success($value) {
-    return new CompilationResult($value, array());
-}
-
-function compilation_failure($message) {
-    return new CompilationResult(
-        null,
-        array($message)
-    );
 }

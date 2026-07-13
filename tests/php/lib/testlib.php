@@ -68,14 +68,9 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
 }
 
 function assert_compile_error($result, $message) {
-    assertSame(null, ($result->value()));
-    assertSame(1, count($result->messages()));
-    assertSame($message, $result->messages()[0]);
+    assertSame(null, $result->value());
+    assertSame(1, count($result->errors()));
+    assertSame($message, $result->errors()[0]);
 }
 
-function assert_includes_compile_error($result, $message) {
-    assertSame('array', gettype($result->value()));
-    assertSame(1, count($result->messages()));
-    assertSame($message, $result->messages()[0]);
-}
 
