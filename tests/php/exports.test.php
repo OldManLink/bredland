@@ -4,9 +4,9 @@ require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
 $nocLibRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
 require_once $nocLibRoot . '/client.php';
+require_once $nocLibRoot . '/exports.php';
 
-$exports = require_once $nocLibRoot . '/exports.php';
-
+$exports = get_exports();
 assertTrue(isset($exports['formatters']), 'exports.php must define formatters');
 assertTrue(is_array($exports['formatters']), 'exports.php formatters must be an array');
 
@@ -16,7 +16,7 @@ foreach ($exports['formatters'] as $formatter => $definition) {
 
     assertTrue(isset($definition['valueTypes']), "Formatter must define valueTypes: $formatter");
     assertTrue(is_array($definition['valueTypes']), "Formatter valueTypes must be an array: $formatter");
-    foreach ($definition['valueTypes'] as $valueType) {
+    foreach ($definition['valueTypes'] as $valueType => $ignore) {
             assertTrue(is_known_value_type($valueType), "Formatter $formatter references unknown valueType: $valueType");
         }
     $reflection = new ReflectionFunction($formatter);

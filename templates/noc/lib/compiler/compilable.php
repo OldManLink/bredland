@@ -2,5 +2,5 @@
 
 interface Compilable
 {
-    public static function compile($definition, $path);
+    public static function compile($definition, $schema, $path);
 }

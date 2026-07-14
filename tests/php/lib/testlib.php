@@ -73,4 +73,20 @@ function assert_compile_error($result, $message) {
     assertSame($message, $result->errors()[0]);
 }
 
+function test_schema() {
+    return array(
+       'uptime' => array(
+           'value_type' => 'integer'
+       ),
+       'free_memory' => array(
+           'value_type' => 'integer'
+       ),
+       'latest_version' => array(
+           'value_type' => 'string'
+       ),
+       'update_available' => array(
+            'valueType' => 'boolean'
+       )
+    );
+}
 

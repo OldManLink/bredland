@@ -4,7 +4,7 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 
 class Effect implements Compilable {
-    private $receiver;
+    private $type;
     private $attribute;
     private $argument;
 
@@ -16,7 +16,7 @@ class Effect implements Compilable {
         );
     }
 
-    private static function receivers() {
+    private static function types() {
         return array(
             'notification' => 'message',
             'health' => 'value'
@@ -31,7 +31,7 @@ class Effect implements Compilable {
         );
     }
 
-    public static function compile($definition, $path) {
+    public static function compile($definition, $schema, $path) {
         if (!is_array($definition)) {
             return CompilationResult::failure(array("$path must be an object"));
         }
@@ -46,39 +46,39 @@ class Effect implements Compilable {
             return $validationResult;
         }
 
-        $receiver = $definition['type'];
-        if (!is_string($receiver) || $receiver === '') {
+        $type = $definition['type'];
+        if (!is_string($type) || $type === '') {
             return CompilationResult::failure(array("$path.type: must be a non-empty string"));
         }
 
         $attribute = $definition['attribute'];
-        if (!isset(Effect::receivers()[$receiver])) {
-            return CompilationResult::failure(array("$path: unsupported type $receiver"));
-        } elseif (Effect::receivers()[$receiver] !== $attribute) {
-            return CompilationResult::failure(array("$path.$receiver: unsupported attribute: $attribute"));
+        if (!isset(Effect::types()[$type])) {
+            return CompilationResult::failure(array("$path: unsupported type $type"));
+        } elseif (Effect::types()[$type] !== $attribute) {
+            return CompilationResult::failure(array("$path.$type: unsupported attribute: $attribute"));
         }
 
         $argument = $definition['value'];
         if (!is_string($argument) || $argument === '') {
             return CompilationResult::failure(array("$path.$attribute: must be a non-empty string"));
         }
-        if ($receiver == 'health' && !isset(Effect::healthValues()[$argument])) {
-            return CompilationResult::failure(array("$path.$receiver: unsupported value $argument"));
+        if ($type == 'health' && !isset(Effect::healthValues()[$argument])) {
+            return CompilationResult::failure(array("$path.$type: unsupported value $argument"));
         }
 
         return CompilationResult::success(
-            new Effect($receiver, $attribute, $argument)
+            new Effect($type, $attribute, $argument)
         );
     }
 
-    public function __construct($receiver, $attribute, $argument) {
-        $this->receiver = $receiver;
+    public function __construct($type, $attribute, $argument) {
+        $this->type = $type;
         $this->attribute = $attribute;
         $this->argument = $argument;
     }
 
-    public function receiver() {
-        return $this->receiver;
+    public function type() {
+        return $this->type;
     }
 
     public function attribute() {

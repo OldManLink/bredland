@@ -5,13 +5,13 @@
     {
       "label": "Uptime",
       "field": "uptime",
-      "valueType": "integer",
+      "value_type": "integer",
       "format": "display_uptime"
     },
     {
       "label": "Free memory",
       "field": "free_memory",
-      "valueType": "integer",
+      "value_type": "integer",
       "format": "display_memory"
     }
   ],
@@ -19,10 +19,12 @@
     {
       "when": {
         "field": "free_memory",
-        "lessThan": 1073741824
+        "operator": "lessThan",
+        "value": 1073741824
       },
       "then": {
         "type": "health",
+        "attribute": "value",
         "value": "warning"
       }
     }

@@ -22,17 +22,23 @@ function indexed_path($base, $index) {
 
 function check_allowed_keys($definition, $allowedKeys, $path) {
 
+    foreach ($definition as $key => $value) {
+        if(preg_match('/^[a-z][a-z0-9_]*$/', $key) !== 1) {
+            return CompilationResult::failure(array("$path: invalid identifier: $key"));
+        }
+
+        if (!isset($allowedKeys[$key])) {
+            return CompilationResult::failure(array("$path: unsupported attribute: $key"));
+        }
+    }
+
     foreach ($allowedKeys as $key => $class) {
         if(!array_key_exists($key, $definition)) {
             return CompilationResult::failure(array("$path: expected $key"));
         }
     }
 
-    foreach ($definition as $key => $value) {
-        if (!isset($allowedKeys[$key])) {
-            return CompilationResult::failure(array("$path: unsupported attribute $key"));
-        }
-    }
+
 
     return CompilationResult::success(null);
 }

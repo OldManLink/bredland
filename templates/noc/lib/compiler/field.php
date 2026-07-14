@@ -2,17 +2,23 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
-require_once __DIR__ . '/predicate.php';
-require_once __DIR__ . '/effect.php';
+require_once __DIR__ . '/str-val.php';
+require_once __DIR__ . '/field-val.php';
+require_once __DIR__ . '/type-val.php';
+require_once __DIR__ . '/format-val.php';
 
-class Rule implements Compilable {
-    private $predicate;
-    private $effect;
+class Field implements Compilable {
+    private $label;
+    private $field;
+    private $value_type;
+    private $format;
 
     private static function partClasses() {
         return array(
-            'when' => Predicate::class,
-            'then' => Effect::class,
+            'label' => StrVal::class,
+            'field' => FieldVal::class,
+            'value_type' => TypeVal::class,
+            'format' => FormatVal::class,
         );
     }
 
@@ -31,18 +37,26 @@ class Rule implements Compilable {
             return $validationResult;
         }
 
-        $compiledPartsResult = Rule::compileParts($definition, $schema, $path);
+        $compiledPartsResult = Field::compileParts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;
         }
 
         $compiledParts = $compiledPartsResult->value();
+        $format = $compiledParts['format']->value();
+        $format_name = $format->name();
+        $value_type = $compiledParts['value_type']->value();
+        if(!isset($format->valueTypes()[$value_type])) {
+            return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type"));
+        }
 
         return CompilationResult::success(
-            new Rule(
-                $compiledParts['when']->value(),
-                $compiledParts['then']->value()
+            new Field(
+                $compiledParts['label']->value(),
+                $compiledParts['field']->value(),
+                $value_type,
+                $format_name
             )
         );
     }
@@ -80,23 +94,33 @@ class Rule implements Compilable {
             CompilationResult::failure($errors);
     }
 
-    public function __construct($predicate, $effect) {
-        $this->predicate = $predicate;
-        $this->effect = $effect;
+    public function __construct($label, $field, $value_type, $format) {
+        $this->label = $label;
+        $this->field = $field;
+        $this->value_type = $value_type;
+        $this->format = $format;
     }
 
-    public function predicate() {
-        return $this->predicate;
+    public function label() {
+        return $this->label;
     }
 
-    public function effect() {
-        return $this->effect;
+    public function field() {
+        return $this->field;
+    }
+
+    public function value_type() {
+        return $this->value_type;
+    }
+
+    public function format() {
+        return $this->format;
     }
 }
 
-class RuleList implements Compilable {
+class FieldList implements Compilable {
     public static function compile($definitions, $schema, $path) {
-        $rules = array();
+        $fields = array();
         $errors = array();
 
         if (!is_array($definitions)) {
@@ -106,10 +130,10 @@ class RuleList implements Compilable {
         }
 
         foreach ($definitions as $index => $definition) {
-                $result = Rule::compile($definition, $schema, indexed_path($path, $index));
+                $result = Field::compile($definition, $schema, indexed_path($path, $index));
 
                 if ($result->isSuccess()) {
-                    $rules[] = $result->value();
+                    $fields[] = $result->value();
                 } else {
                     $errors = array_merge($errors, $result->errors());
                 }
@@ -119,7 +143,6 @@ class RuleList implements Compilable {
                 return CompilationResult::failure($errors);
             }
 
-            return CompilationResult::success($rules);
+            return CompilationResult::success($fields);
     }
 }
-

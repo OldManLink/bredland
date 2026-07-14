@@ -2,20 +2,25 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
-require_once __DIR__ . '/field-val.php';
-require_once __DIR__ . '/op-val.php';
-require_once __DIR__ . '/val.php';
+require_once __DIR__ . '/field.php';
+require_once __DIR__ . '/rule.php';
+require_once __DIR__ . '/int-val.php';
+require_once __DIR__ . '/str-val.php';
 
-class Predicate implements Compilable {
-    private $receiver;
-    private $operator;
-    private $argument;
+class Client implements Compilable {
+    private $host;
+    private $title;
+    private $fields;
+    private $rules;
+    private $order;
 
     private static function partClasses() {
         return array(
-            'field' => FieldVal::class,
-            'operator' => OpVal::class,
-            'value' => Val::class
+            'host' => StrVal::class,
+            'title' => StrVal::class,
+            'fields' => FieldList::class,
+            'rules' => RuleList::class,
+            'order' => IntVal::class,
         );
     }
 
@@ -34,7 +39,7 @@ class Predicate implements Compilable {
             return $validationResult;
         }
 
-        $compiledPartsResult = Predicate::compileParts($definition, $schema, $path);
+        $compiledPartsResult = Client::compileParts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;
@@ -42,25 +47,15 @@ class Predicate implements Compilable {
 
         $compiledParts = $compiledPartsResult->value();
 
-        $field = $compiledParts['field']->value();
-        $operator = $compiledParts['operator']->value();
-        $value = $compiledParts['value']->value();
-        $operator_name = $operator->name();
-        $field_type = $schema[$field]['valueType'];
-
-        if(!isset($operator->operandTypes()[$field_type])) {
-            return CompilationResult::failure(array("$path.$operator_name: incompatible with $field_type"));
-        }
-        $valueValueType = $value->valueType();
-        if($value->valueType() !== $field_type) {
-            return CompilationResult::failure(array("$path.$operator_name: $valueValueType incompatible with $field_type"));
-        }
-
         return CompilationResult::success(
-            new Predicate($field, $operator->name(), $value->value())
+            new Client(
+                $compiledParts['host']->value(),
+                $compiledParts['title']->value(),
+                $compiledParts['fields']->value(),
+                $compiledParts['rules']->value(),
+                $compiledParts['order']->value()
+            )
         );
-
-
     }
 
     private static function compileParts($definition, $schema, $path) {
@@ -96,22 +91,31 @@ class Predicate implements Compilable {
             CompilationResult::failure($errors);
     }
 
-    public function __construct($receiver, $operator, $argument) {
-        $this->receiver = $receiver;
-        $this->operator = $operator;
-        $this->argument = $argument;
+    public function __construct($host, $title, $fields, $rules, $order) {
+        $this->host = $host;
+        $this->title = $title;
+        $this->fields = $fields;
+        $this->rules = $rules;
+        $this->order = $order;
     }
 
-    public function receiver() {
-        return $this->receiver;
+    public function host() {
+        return $this->host;
     }
 
-    public function operator() {
-        return $this->operator;
+    public function title() {
+        return $this->title;
     }
 
-    public function argument() {
-        return $this->argument;
+    public function fields() {
+        return $this->fields;
+    }
+
+    public function rules() {
+        return $this->rules;
+    }
+
+    public function order() {
+        return $this->order;
     }
 }
-

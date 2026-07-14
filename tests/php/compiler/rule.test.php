@@ -30,11 +30,12 @@ assertSame('update_available', $rule->predicate()->receiver());
 assertSame('equals', $rule->predicate()->operator());
 assertSame(true, $rule->predicate()->argument());
 
-assertSame('notification', $rule->effect()->receiver());
+assertSame('notification', $rule->effect()->type());
 assertSame('message', $rule->effect()->attribute());
 assertSame('Software update available', $rule->effect()->argument());
 
 // Compiler tests
+$schema = test_schema();
 
 $ruleJson = array(
     'when' => array(
@@ -49,31 +50,31 @@ $ruleJson = array(
     ),
 );
 
-$result = Rule::compile($ruleJson, 'Happy Path');
+$result = Rule::compile($ruleJson, $schema, 'Happy Path');
 assertTrue($result instanceof CompilationResult);
 
 $rule = $result->value();
 assertSame('update_available', $rule->predicate()->receiver());
 assertSame('equals', $rule->predicate()->operator());
 assertSame(true, $rule->predicate()->argument());
-assertSame('notification', $rule->effect()->receiver());
+assertSame('notification', $rule->effect()->type());
 assertSame('message', $rule->effect()->attribute());
 assertSame('Software update available', $rule->effect()->argument());
 
-$result = RuleList::compile(array($ruleJson), 'Happy array path');
+$result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
 assertSame(1, count($result->value()));
 assertTrue($result->value()[0] instanceof Rule);
 assertSame('update_available', $result->value()[0]->predicate()->receiver());
 
-assert_compile_error(Rule::compile(42, 'rule_42'), 'rule_42 must be an object');
+assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
 
-$result = RuleList::compile(array(), 'Empty array');
+$result = RuleList::compile(array(), $schema, 'Empty array');
 assertTrue($result instanceof CompilationResult);
 assertSame(array(), $result->value());
 assertSame(array(), $result->errors());
 assertTrue($result->isSuccess());
 
-$result=RuleList::compile(42, 'Number 42');
+$result=RuleList::compile(42, $schema, 'Number 42');
 assert_compile_error($result, 'Number 42: must be an array');
 
 $invalidRuleJson = array(
@@ -89,10 +90,18 @@ $invalidRuleJson = array(
     ),
 );
 
-assert_compile_error(Rule::compile($invalidRuleJson, 'rule'), 'rule.when: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($invalidRuleJson), 'rules'), 'rules[0].when: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($ruleJson, $invalidRuleJson), 'rules'), 'rules[1].when: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJson), 'rules'), 'rules[2].when: unsupported operator: greaterThan');
+assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule.when.operator: unsupported operator: greaterThan');
+assert_compile_error(RuleList::compile(array($invalidRuleJson), $schema, 'rules'), 'rules[0].when.operator: unsupported operator: greaterThan');
+assert_compile_error(RuleList::compile(array($ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[1].when.operator: unsupported operator: greaterThan');
+assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[2].when.operator: unsupported operator: greaterThan');
+
+$invalidRuleJson = array(
+    'thén' => array(
+        'type' => 'notification',
+        'message' => 'Software update available',
+    ),
+);
+assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: invalid identifier: thén');
 
 $invalidRuleJson = array(
     'then' => array(
@@ -100,8 +109,7 @@ $invalidRuleJson = array(
         'message' => 'Software update available',
     ),
 );
-
-assert_compile_error(Rule::compile($invalidRuleJson, 'rule'), 'rule: expected when');
+assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: expected when');
 
 $invalidRuleJson = array(
     'when' => array(
@@ -109,8 +117,7 @@ $invalidRuleJson = array(
         'equals' => true,
     ),
 );
-
-assert_compile_error(Rule::compile($invalidRuleJson, 'rule'), 'rule: expected then');
+assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: expected then');
 
 
 $invalidRuleJson = array(
@@ -127,7 +134,5 @@ $invalidRuleJson = array(
         'message' => 'Software update available',
     ),
 );
-
-$result = Rule::compile($invalidRuleJson, 'rule');
-assert_compile_error($result, 'rule: unsupported attribute else');
+assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: unsupported attribute: else');
 
