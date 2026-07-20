@@ -23,9 +23,8 @@
         "value": true
       },
       "then": {
-        "type": "notification",
-        "attribute": "message",
-        "value": "Software update available:\nVersion {{latest_version}}"
+        "method": "addNotification",
+        "argument": "Software update available:\nVersion {{latest_version}}"
       }
     }
   ],

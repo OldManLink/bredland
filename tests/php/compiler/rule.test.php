@@ -7,7 +7,7 @@ require_once $phpRoot . '/lib/testlib.php';
 $compilerRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib/compiler';
 require_once $compilerRoot .'/rule.php';
 require_once $compilerRoot .'/predicate.php';
-require_once $compilerRoot .'/effect.php';
+require_once $compilerRoot .'/action.php';
 
 $predicate = new Predicate(
     'update_available',
@@ -15,24 +15,22 @@ $predicate = new Predicate(
     true
 );
 
-$effect = new Effect(
-    'notification',
-    'message',
+$action = new Action(
+    'addNotification',
     'Software update available'
 );
 
-$rule = new Rule($predicate, $effect);
+$rule = new Rule($predicate, $action);
 
 assertSame($predicate, $rule->predicate());
-assertSame($effect, $rule->effect());
+assertSame($action, $rule->action());
 
 assertSame('update_available', $rule->predicate()->receiver());
 assertSame('equals', $rule->predicate()->operator());
 assertSame(true, $rule->predicate()->argument());
 
-assertSame('notification', $rule->effect()->type());
-assertSame('message', $rule->effect()->attribute());
-assertSame('Software update available', $rule->effect()->argument());
+assertSame('addNotification', $rule->action()->method());
+assertSame('Software update available', $rule->action()->argument());
 
 // Compiler tests
 $schema = test_schema();
@@ -44,9 +42,8 @@ $ruleJson = array(
         'value' => true,
     ),
     'then' => array(
-        'type' => 'notification',
-        'attribute' => 'message',
-        'value' => 'Software update available',
+        'method' => 'addNotification',
+        'argument' => 'Software update available',
     ),
 );
 
@@ -57,9 +54,8 @@ $rule = $result->value();
 assertSame('update_available', $rule->predicate()->receiver());
 assertSame('equals', $rule->predicate()->operator());
 assertSame(true, $rule->predicate()->argument());
-assertSame('notification', $rule->effect()->type());
-assertSame('message', $rule->effect()->attribute());
-assertSame('Software update available', $rule->effect()->argument());
+assertSame('addNotification', $rule->action()->method());
+assertSame('Software update available', $rule->action()->argument());
 
 $result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
 assertSame(1, count($result->value()));
@@ -84,9 +80,8 @@ $invalidRuleJson = array(
         'value' => true,
     ),
     'then' => array(
-        'type' => 'notification',
-        'attribute' => 'message',
-        'value' => 'Software update available',
+        'method' => 'addNotification',
+        'argument' => 'Software update available',
     ),
 );
 
@@ -97,7 +92,7 @@ assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJ
 
 $invalidRuleJson = array(
     'thén' => array(
-        'type' => 'notification',
+        'method' => 'notification',
         'message' => 'Software update available',
     ),
 );
@@ -105,7 +100,7 @@ assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: in
 
 $invalidRuleJson = array(
     'then' => array(
-        'type' => 'notification',
+        'method' => 'notification',
         'message' => 'Software update available',
     ),
 );
@@ -126,11 +121,11 @@ $invalidRuleJson = array(
         'equals' => true,
     ),
     'then' => array(
-        'type' => 'notification',
+        'method' => 'notification',
         'message' => 'Software update available',
     ),
     'else' => array(
-        'type' => 'notification',
+        'method' => 'notification',
         'message' => 'Software update available',
     ),
 );

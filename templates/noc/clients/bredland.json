@@ -23,9 +23,8 @@
         "value": 1073741824
       },
       "then": {
-        "type": "health",
-        "attribute": "value",
-        "value": "warning"
+        "method": "setHealth",
+        "argument": "warning"
       }
     }
   ],

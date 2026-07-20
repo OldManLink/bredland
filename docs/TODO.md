@@ -16,12 +16,12 @@ Remaining work before the declarative rules compiler is considered complete.
 - ✅ Validate that the selected comparator is compatible with the receiver's declared `valueType`.
 - ✅ Add regression tests for all of the above.
 
-### Effect
+### Action
 
-- ✅ Reject unknown effect attributes.
+- ✅ Reject unknown action attributes.
 - [ ] Validate notification message placeholders (`{{field}}`) against the client schema.
 - [ ] Add regression tests for placeholder validation.
-- ✅ Add regression tests for unknown effect attributes.
+- ✅ Add regression tests for unknown action attributes.
 
 ## Client compilation
 
@@ -60,11 +60,11 @@ These ideas intentionally remain out of scope for this slice.
 
 - Keep the compiler pure: JSON + Schema → CompilationResult.
 - Keep all filesystem access outside the compiler.
-- Prefer many small compiler stages (`compile_rule`, `compile_predicate`, `compile_effect`) over one large function.
+- Prefer many small compiler stages (`compile_rule`, `compile_predicate`, `compile_action`) over one large function.
 - Every compiler stage should either produce a valid domain object or a diagnostic, never both.
 
 ### Design rule
 
 Resist adding language features until the domain genuinely requires them.
 
-One predicate → one effect has proven to be expressive, simple and easy to reason about. Keep it that way unless real-world requirements demonstrate otherwise.
+One predicate → one action has proven to be expressive, simple and easy to reason about. Keep it that way unless real-world requirements demonstrate otherwise.

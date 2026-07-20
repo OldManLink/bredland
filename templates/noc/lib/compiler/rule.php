@@ -3,16 +3,16 @@ require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/predicate.php';
-require_once __DIR__ . '/effect.php';
+require_once __DIR__ . '/action.php';
 
 class Rule implements Compilable {
     private $predicate;
-    private $effect;
+    private $action;
 
     private static function partClasses() {
         return array(
             'when' => Predicate::class,
-            'then' => Effect::class,
+            'then' => Action::class,
         );
     }
 
@@ -80,17 +80,17 @@ class Rule implements Compilable {
             CompilationResult::failure($errors);
     }
 
-    public function __construct($predicate, $effect) {
+    public function __construct($predicate, $action) {
         $this->predicate = $predicate;
-        $this->effect = $effect;
+        $this->action = $action;
     }
 
     public function predicate() {
         return $this->predicate;
     }
 
-    public function effect() {
-        return $this->effect;
+    public function action() {
+        return $this->action;
     }
 }
 
