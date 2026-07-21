@@ -1,11 +1,13 @@
 <?php
 require_once __DIR__ . '/compilable.php';
+require_once __DIR__ . '/part-compiler.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/predicate.php';
 require_once __DIR__ . '/action.php';
 
 class Rule implements Compilable {
+    use PartCompiler;
     private $predicate;
     private $action;
 
@@ -31,7 +33,7 @@ class Rule implements Compilable {
             return $validationResult;
         }
 
-        $compiledPartsResult = Rule::compileParts($definition, $schema, $path);
+        $compiledPartsResult = Rule::compile_parts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;
@@ -45,39 +47,6 @@ class Rule implements Compilable {
                 $compiledParts['then']->value()
             )
         );
-    }
-
-    private static function compileParts($definition, $schema, $path) {
-        $partClasses = self::partClasses();
-        $compiledParts = array();
-        $errors = array();
-
-        foreach ($definition as $partName => $partDefinition) {
-            $partClass = $partClasses[$partName];
-
-            if (!class_exists($partClass)) {
-                return CompilationResult::failure(array("$path.$partname: Compiler class does not exist: $partClass."));
-            }
-
-            if (!is_subclass_of($partClass, 'Compilable')) {
-                return CompilationResult::failure(array("$path.$partName: Class $partClass does not implement Compilable."));
-            }
-
-            $result = call_user_func(
-                array($partClass, 'compile'),
-                $partDefinition,
-                $schema,
-                "$path.$partName"
-            );
-
-            $compiledParts[$partName] = $result;
-            if(!$result->isSuccess()) {
-                $errors = array_merge($errors, $result->errors());
-            }
-        }
-        return empty($errors) ?
-            CompilationResult::success($compiledParts) :
-            CompilationResult::failure($errors);
     }
 
     public function __construct($predicate, $action) {

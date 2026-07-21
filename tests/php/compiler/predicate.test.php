@@ -9,14 +9,14 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/predicate.php';
 
 $predicate = new Predicate(
-    'update_available',
-    'equals',
-    true
+    new FieldVal('update_available'),
+    new OpVal('equals', array('string')),
+    new Val(true, 'boolean')
 );
 
-assertSame('update_available', $predicate->receiver());
-assertSame('equals', $predicate->operator());
-assertSame(true, $predicate->argument());
+assertSame('update_available', $predicate->receiver()->value());
+assertSame('equals', $predicate->operator()->name());
+assertSame(true, $predicate->argument()->value());
 
 // Compiler tests
 $schema = test_schema();
@@ -30,9 +30,9 @@ $predicateJson = array(
 $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
 assertTrue($result instanceof CompilationResult);
 $predicate = $result->value();
-assertSame('update_available', $predicate->receiver());
-assertSame('equals', $predicate->operator());
-assertSame(true, $predicate->argument());
+assertSame('update_available', $predicate->receiver()->value());
+assertSame('equals', $predicate->operator()->name());
+assertSame(true, $predicate->argument()->value());
 
 $invalidPredicateJson = array(
     'operator' => 'equals',

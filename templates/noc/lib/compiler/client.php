@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/compilable.php';
+require_once __DIR__ . '/part-compiler.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/field.php';
@@ -8,6 +9,7 @@ require_once __DIR__ . '/int-val.php';
 require_once __DIR__ . '/str-val.php';
 
 class Client implements Compilable {
+    use PartCompiler;
     private $host;
     private $title;
     private $fields;
@@ -39,7 +41,7 @@ class Client implements Compilable {
             return $validationResult;
         }
 
-        $compiledPartsResult = Client::compileParts($definition, $schema, $path);
+        $compiledPartsResult = Client::compile_parts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;
@@ -56,39 +58,6 @@ class Client implements Compilable {
                 $compiledParts['order']->value()
             )
         );
-    }
-
-    private static function compileParts($definition, $schema, $path) {
-        $partClasses = self::partClasses();
-        $compiledParts = array();
-        $errors = array();
-
-        foreach ($definition as $partName => $partDefinition) {
-            $partClass = $partClasses[$partName];
-
-            if (!class_exists($partClass)) {
-                return CompilationResult::failure(array("$path.$partname: Compiler class does not exist: $partClass."));
-            }
-
-            if (!is_subclass_of($partClass, 'Compilable')) {
-                return CompilationResult::failure(array("$path.$partName: Class $partClass does not implement Compilable."));
-            }
-
-            $result = call_user_func(
-                array($partClass, 'compile'),
-                $partDefinition,
-                $schema,
-                "$path.$partName"
-            );
-
-            $compiledParts[$partName] = $result;
-            if(!$result->isSuccess()) {
-                $errors = array_merge($errors, $result->errors());
-            }
-        }
-        return empty($errors) ?
-            CompilationResult::success($compiledParts) :
-            CompilationResult::failure($errors);
     }
 
     public function __construct($host, $title, $fields, $rules, $order) {

@@ -13,7 +13,7 @@ class OpVal implements Compilable {
                 'boolean' => true,
                 'integer' => true,
                 'double' => true,
-                'strinig' => true
+                'string' => true
             ),
             'lessThan' => array(
                 'integer' => true,

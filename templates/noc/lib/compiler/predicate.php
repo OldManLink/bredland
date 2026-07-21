@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/compilable.php';
+require_once __DIR__ . '/part-compiler.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/field-val.php';
@@ -7,6 +8,7 @@ require_once __DIR__ . '/op-val.php';
 require_once __DIR__ . '/val.php';
 
 class Predicate implements Compilable {
+    use PartCompiler;
     private $receiver;
     private $operator;
     private $argument;
@@ -34,7 +36,7 @@ class Predicate implements Compilable {
             return $validationResult;
         }
 
-        $compiledPartsResult = Predicate::compileParts($definition, $schema, $path);
+        $compiledPartsResult = Predicate::compile_parts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;
@@ -46,7 +48,7 @@ class Predicate implements Compilable {
         $operator = $compiledParts['operator']->value();
         $value = $compiledParts['value']->value();
         $operator_name = $operator->name();
-        $field_type = $schema[$field]['valueType'];
+        $field_type = $schema[$field->value()]['valueType'];
 
         if(!isset($operator->operandTypes()[$field_type])) {
             return CompilationResult::failure(array("$path.$operator_name: incompatible with $field_type"));
@@ -57,43 +59,8 @@ class Predicate implements Compilable {
         }
 
         return CompilationResult::success(
-            new Predicate($field, $operator->name(), $value->value())
+            new Predicate($field, $operator, $value)
         );
-
-
-    }
-
-    private static function compileParts($definition, $schema, $path) {
-        $partClasses = self::partClasses();
-        $compiledParts = array();
-        $errors = array();
-
-        foreach ($definition as $partName => $partDefinition) {
-            $partClass = $partClasses[$partName];
-
-            if (!class_exists($partClass)) {
-                return CompilationResult::failure(array("$path.$partname: Compiler class does not exist: $partClass."));
-            }
-
-            if (!is_subclass_of($partClass, 'Compilable')) {
-                return CompilationResult::failure(array("$path.$partName: Class $partClass does not implement Compilable."));
-            }
-
-            $result = call_user_func(
-                array($partClass, 'compile'),
-                $partDefinition,
-                $schema,
-                "$path.$partName"
-            );
-
-            $compiledParts[$partName] = $result;
-            if(!$result->isSuccess()) {
-                $errors = array_merge($errors, $result->errors());
-            }
-        }
-        return empty($errors) ?
-            CompilationResult::success($compiledParts) :
-            CompilationResult::failure($errors);
     }
 
     public function __construct($receiver, $operator, $argument) {

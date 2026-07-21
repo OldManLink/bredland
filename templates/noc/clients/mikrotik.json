@@ -23,6 +23,7 @@
         "value": true
       },
       "then": {
+        "receiver": "client",
         "method": "addNotification",
         "argument": "Software update available:\nVersion {{latest_version}}"
       }

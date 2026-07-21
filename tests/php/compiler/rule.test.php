@@ -10,12 +10,13 @@ require_once $compilerRoot .'/predicate.php';
 require_once $compilerRoot .'/action.php';
 
 $predicate = new Predicate(
-    'update_available',
-    'equals',
-    true
+    new FieldVal('update_available'),
+    new OpVal('equals', array('string')),
+    new Val(true, 'boolean')
 );
 
 $action = new Action(
+    'client',
     'addNotification',
     'Software update available'
 );
@@ -25,10 +26,11 @@ $rule = new Rule($predicate, $action);
 assertSame($predicate, $rule->predicate());
 assertSame($action, $rule->action());
 
-assertSame('update_available', $rule->predicate()->receiver());
-assertSame('equals', $rule->predicate()->operator());
-assertSame(true, $rule->predicate()->argument());
+assertSame('update_available', $rule->predicate()->receiver()->value());
+assertSame('equals', $rule->predicate()->operator()->name());
+assertSame(true, $rule->predicate()->argument()->value());
 
+assertSame('client', $rule->action()->receiver());
 assertSame('addNotification', $rule->action()->method());
 assertSame('Software update available', $rule->action()->argument());
 
@@ -42,6 +44,7 @@ $ruleJson = array(
         'value' => true,
     ),
     'then' => array(
+        'receiver' => 'client',
         'method' => 'addNotification',
         'argument' => 'Software update available',
     ),
@@ -51,16 +54,17 @@ $result = Rule::compile($ruleJson, $schema, 'Happy Path');
 assertTrue($result instanceof CompilationResult);
 
 $rule = $result->value();
-assertSame('update_available', $rule->predicate()->receiver());
-assertSame('equals', $rule->predicate()->operator());
-assertSame(true, $rule->predicate()->argument());
+assertSame('update_available', $rule->predicate()->receiver()->value());
+assertSame('equals', $rule->predicate()->operator()->name());
+assertSame(true, $rule->predicate()->argument()->value());
+assertSame('client', $rule->action()->receiver());
 assertSame('addNotification', $rule->action()->method());
 assertSame('Software update available', $rule->action()->argument());
 
 $result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
 assertSame(1, count($result->value()));
 assertTrue($result->value()[0] instanceof Rule);
-assertSame('update_available', $result->value()[0]->predicate()->receiver());
+assertSame('update_available', $result->value()[0]->predicate()->receiver()->value());
 
 assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
 
@@ -80,6 +84,7 @@ $invalidRuleJson = array(
         'value' => true,
     ),
     'then' => array(
+        'receiver' => 'client',
         'method' => 'addNotification',
         'argument' => 'Software update available',
     ),
@@ -92,6 +97,7 @@ assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJ
 
 $invalidRuleJson = array(
     'thén' => array(
+        'receiver' => 'client',
         'method' => 'notification',
         'message' => 'Software update available',
     ),
@@ -100,6 +106,7 @@ assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: in
 
 $invalidRuleJson = array(
     'then' => array(
+        'receiver' => 'client',
         'method' => 'notification',
         'message' => 'Software update available',
     ),
@@ -121,10 +128,12 @@ $invalidRuleJson = array(
         'equals' => true,
     ),
     'then' => array(
+        'receiver' => 'client',
         'method' => 'notification',
         'message' => 'Software update available',
     ),
     'else' => array(
+        'receiver' => 'client',
         'method' => 'notification',
         'message' => 'Software update available',
     ),

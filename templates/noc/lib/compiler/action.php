@@ -9,8 +9,16 @@ class Action implements Compilable {
 
     private static function partKeys() {
         return array(
+            'receiver' => true,
             'method' => true,
             'argument' => true,
+        );
+    }
+
+    private static function receivers() {
+        return array(
+            'client' => true,
+            'noc' => true
         );
     }
 
@@ -44,6 +52,15 @@ class Action implements Compilable {
             return $validationResult;
         }
 
+        $receiver = $definition['receiver'];
+        if (!is_string($receiver) || $receiver === '') {
+            return CompilationResult::failure(array("$path.receiver: must be a non-empty string"));
+        }
+
+        if (!isset(Action::receivers()[$receiver])) {
+            return CompilationResult::failure(array("$path: unsupported receiver $receiver"));
+        }
+
         $method = $definition['method'];
         if (!is_string($method) || $method === '') {
             return CompilationResult::failure(array("$path.method: must be a non-empty string"));
@@ -57,18 +74,24 @@ class Action implements Compilable {
         if (!is_string($argument) || $argument === '') {
             return CompilationResult::failure(array("$path.argument: must be a non-empty string"));
         }
+
         if ($method == 'setHealth' && !isset(Action::healthValues()[$argument])) {
             return CompilationResult::failure(array("$path.$method: unsupported argument $argument"));
         }
 
         return CompilationResult::success(
-            new Action($method, $argument)
+            new Action($receiver, $method, $argument)
         );
     }
 
-    public function __construct($method, $argument) {
+    public function __construct($receiver, $method, $argument) {
+        $this->receiver = $receiver;
         $this->method = $method;
         $this->argument = $argument;
+    }
+
+    public function receiver() {
+        return $this->receiver;
     }
 
     public function method() {

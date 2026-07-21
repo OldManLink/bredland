@@ -23,6 +23,7 @@
         "value": 1073741824
       },
       "then": {
+        "receiver": "client",
         "method": "setHealth",
         "argument": "warning"
       }

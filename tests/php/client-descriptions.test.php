@@ -27,7 +27,7 @@ foreach ($clientFiles as $clientFile) {
     $clientCompileErrors = implode("::", $clientResult->errors());
     assertTrue($clientResult->isSuccess(), "$clientFile: $clientCompileErrors");
     $client = $clientResult->value();
-    $host = $client->host();
+    $host = $client->host()->value();
     $expectedHost = pathinfo($clientFile, PATHINFO_FILENAME);
     assertSame($expectedHost, $host, "$clientFile host must match filename");
     assertFalse(isset($seenHosts[$host]), "Duplicate host: $host");
@@ -39,7 +39,7 @@ foreach ($clientFiles as $clientFile) {
     $definedFields = $client->fields();
     $foundFields = array();
     foreach($definedFields as $field) {
-        $foundFields[$field->field()] = true;
+        $foundFields[$field->field()->value()] = true;
     }
 
     assertTrue(isset($foundFields['uptime']), "$clientFile must define mandatory uptime field");
