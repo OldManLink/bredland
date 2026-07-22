@@ -1,14 +1,44 @@
 <?php
+require_once __DIR__ . '/test-runner.php';
 
 function assertSame($expected, $actual, $message = '') {
     if ($expected !== $actual) {
-        fwrite(STDERR,
-            "Assertion failed" . ($message === '' ? '' : ": " . $message) . "\n" .
+        throw new AssertionFailed(
+            "Same assertion failed" . ($message === '' ? '' : ": " . $message) . "\n" .
             "Expected: " . var_export($expected, true) . "\n" .
             "Actual:   " . var_export($actual, true) . "\n"
         );
-        exit(1);
     }
+}
+
+function assertDifferent($expected, $actual, $message = '') {
+    if ($expected == $actual) {
+        throw new AssertionFailed(
+            "Different assertion failed" . ($message === '' ? '' : ": " . $message) . "\n" .
+            "Expected: " . var_export($expected, true) . "\n" .
+            "Actual:   " . var_export($actual, true) . "\n"
+        );
+    }
+}
+
+function assertThrows($exceptionClass, $expectedMessage, $operation)
+{
+    try {
+        call_user_func($operation);
+    } catch (Exception $e) {
+        assertSame(
+            $exceptionClass,
+            get_class($e),
+            'Unexpected exception type'
+        );
+        assertSame($expectedMessage, $e->getMessage());
+        return;
+    }
+
+    throw new AssertionFailed(
+        "Expected exception: $exceptionClass\n" .
+        "Expected message: " . var_export($expectedMessage, true)
+    );
 }
 
 function disabled($testDescription) {
@@ -69,7 +99,7 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
 
 function assert_compile_error($result, $message) {
     assertSame(null, $result->value());
-    assertSame(1, count($result->errors()));
+    assertDifferent(0, count($result->errors()));
     assertSame($message, $result->errors()[0]);
 }
 

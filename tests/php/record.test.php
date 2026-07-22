@@ -1,37 +1,119 @@
 #!/usr/bin/env php
 <?php
+
 require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
+
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/record.php';
 
-$source = array(
-    'temperature' => ' 35.5 ',
-    'throttled' => '0x0',
-    'ignored' => 'nope',
-);
+$runner = new TestRunner('record');
 
-assertSame(
-    array(
-        'temperature' => '35.5',
+$runner->test('selects requested fields', function () {
+    $source = array(
+        'temperature' => ' 35.5 ',
         'throttled' => '0x0',
-    ),
-    select_fields('temperature,throttled', $source)
-);
+        'ignored' => 'nope',
+    );
 
-assertSame(
-    array(
-        'temperature' => '35.5',
-    ),
-    select_fields(' temperature ', $source)
-);
+    assertSame(
+        array(
+            'temperature' => '35.5',
+            'throttled' => '0x0',
+        ),
+        select_fields('temperature,throttled', $source)
+    );
+});
 
-$schemasDir = $nocRoot . '/schemas';
+$runner->test('trims requested field names', function () {
+    $source = array(
+        'temperature' => ' 35.5 ',
+        'throttled' => '0x0',
+        'ignored' => 'nope',
+    );
 
-$schema = load_record_schema($schemasDir, 'bredland');
+    assertSame(
+        array(
+            'temperature' => '35.5',
+        ),
+        select_fields(' temperature ', $source)
+    );
+});
 
-assertSame(
-    array(
+$runner->test('loads a record schema', function () use ($nocRoot) {
+    $schema = load_record_schema($nocRoot . '/schemas', 'bredland');
+
+    assertSame(
+        array(
+            'schema' => array(
+                'const' => TELEMETRY_SCHEMA_VERSION,
+            ),
+            'ts' => array(
+                'valueType' => 'string',
+            ),
+            'host' => array(
+                'const' => 'bredland',
+            ),
+            'uptime' => array(
+                'valueType' => 'integer',
+            ),
+            'temperature' => array(
+                'valueType' => 'float',
+            ),
+            'throttled' => array(
+                'valueType' => 'string',
+            ),
+            'free_memory' => array(
+                'valueType' => 'integer',
+            ),
+            'total_memory' => array(
+                'valueType' => 'integer',
+            ),
+            'root_free' => array(
+                'valueType' => 'integer',
+            ),
+            'root_total' => array(
+                'valueType' => 'integer',
+            ),
+            'remote_addr' => array(
+                'valueType' => 'string',
+            ),
+        ),
+        $schema
+    );
+});
+
+$runner->test('rejects a missing record schema', function () use ($nocRoot) {
+    assertThrows(
+        'InvalidArgumentException',
+        'missing record schema: missing',
+        function () use ($nocRoot) {
+            load_record_schema($nocRoot . '/schemas', 'missing');
+        }
+    );
+});
+
+$runner->test('rejects a malformed record schema', function () {
+    $schemasDir = sys_get_temp_dir() . '/schemas-' . uniqid();
+    $schemaFile = $schemasDir . '/broken.json';
+
+    mkdir($schemasDir);
+    file_put_contents($schemaFile, '{ this is not json');
+
+    assertThrows(
+        'InvalidArgumentException',
+        'invalid record schema: broken',
+        function () use ($schemasDir) {
+            load_record_schema($schemasDir, 'broken');
+        }
+    );
+
+    unlink($schemaFile);
+    rmdir($schemasDir);
+});
+
+$runner->test('builds a typed record', function () {
+    $schema = array(
         'schema' => array(
             'const' => TELEMETRY_SCHEMA_VERSION,
         ),
@@ -41,8 +123,50 @@ assertSame(
         'host' => array(
             'const' => 'bredland',
         ),
-        'uptime' => array(
-            'valueType' => 'integer',
+        'temperature' => array(
+            'valueType' => 'float',
+        ),
+        'throttled' => array(
+            'valueType' => 'string',
+        ),
+        'update_available' => array(
+            'valueType' => 'boolean',
+        ),
+    );
+
+    $record = build_record(
+        $schema,
+        array(
+            'ts' => '2026-07-01T15:00:00Z',
+            'temperature' => '35.5',
+            'throttled' => '0x0',
+            'update_available' => 'false',
+        )
+    );
+
+    assertSame(
+        array(
+            'schema' => TELEMETRY_SCHEMA_VERSION,
+            'ts' => '2026-07-01T15:00:00Z',
+            'host' => 'bredland',
+            'temperature' => 35.5,
+            'throttled' => '0x0',
+            'update_available' => false,
+        ),
+        $record
+    );
+});
+
+$runner->test('rejects an invalid float field', function () {
+    $schema = array(
+        'schema' => array(
+            'const' => TELEMETRY_SCHEMA_VERSION,
+        ),
+        'ts' => array(
+            'valueType' => 'string',
+        ),
+        'host' => array(
+            'const' => 'bredland',
         ),
         'temperature' => array(
             'valueType' => 'float',
@@ -50,166 +174,102 @@ assertSame(
         'throttled' => array(
             'valueType' => 'string',
         ),
-        'free_memory' => array(
-            'valueType' => 'integer',
-        ),
-        'total_memory' => array(
-            'valueType' => 'integer',
-        ),
-        'root_free' => array(
-            'valueType' => 'integer',
-        ),
-        'root_total' => array(
-            'valueType' => 'integer',
-        ),
-        'remote_addr' =>
-        array (
-          'valueType' => 'string',
-        ),
-    ),
-    $schema
-);
-
-try {
-    load_record_schema($schemasDir, 'missing');
-
-    fail('Expected missing record schema to be rejected');
-} catch (InvalidArgumentException $e) {
-    assertSame(
-        'missing record schema: missing',
-        $e->getMessage()
-    );
-}
-
-$tmpSchemasDir = sys_get_temp_dir() . '/schemas-' . uniqid();
-mkdir($tmpSchemasDir);
-
-file_put_contents(
-    $tmpSchemasDir . '/broken.json',
-    '{ this is not json'
-);
-
-try {
-    load_record_schema($tmpSchemasDir, 'broken');
-
-    fail('Expected malformed record schema to be rejected');
-} catch (InvalidArgumentException $e) {
-    assertSame(
-        'invalid record schema: broken',
-        $e->getMessage()
-    );
-}
-
-unlink($tmpSchemasDir . '/broken.json');
-rmdir($tmpSchemasDir);
-
-$schema = array(
-    'schema' => array(
-        'const' => TELEMETRY_SCHEMA_VERSION,
-    ),
-    'ts' => array(
-        'valueType' => 'string',
-    ),
-    'host' => array(
-        'const' => 'bredland',
-    ),
-    'temperature' => array(
-        'valueType' => 'float',
-    ),
-    'throttled' => array(
-        'valueType' => 'string',
-    ),
-    'update_available' => array(
-        'valueType' => 'boolean',
-    ),
-);
-
-$record = build_record(
-    $schema,
-    array(
-        'ts' => '2026-07-01T15:00:00Z',
-        'temperature' => '35.5',
-        'throttled' => '0x0',
-        'update_available' => 'false',
-    )
-);
-
-assertSame(
-    array(
-        'schema' => TELEMETRY_SCHEMA_VERSION,
-        'ts' => '2026-07-01T15:00:00Z',
-        'host' => 'bredland',
-        'temperature' => 35.5,
-        'throttled' => '0x0',
-        'update_available' => false,
-    ),
-    $record
-);
-
-try {
-    build_record(
-        $schema,
-        array(
-            'ts' => '2026-07-01T15:00:00Z',
-            'temperature' => '35.5°C',
-            'throttled' => '0x0',
-        )
     );
 
-    fail('Expected invalid float field to be rejected');
-} catch (InvalidArgumentException $e) {
-    assertSame(
+    assertThrows(
+        'InvalidArgumentException',
         'invalid value for field temperature: expected float',
-        $e->getMessage()
+        function () use ($schema) {
+            build_record(
+                $schema,
+                array(
+                    'ts' => '2026-07-01T15:00:00Z',
+                    'temperature' => '35.5°C',
+                    'throttled' => '0x0',
+                )
+            );
+        }
     );
-}
+});
 
-try {
-    build_record(
-        $schema,
-        array(
-            'ts' => '2026-07-01T15:00:00Z',
-            'temperature' => '35.5',
-        )
+$runner->test('rejects a missing schema field', function () {
+    $schema = array(
+        'schema' => array(
+            'const' => TELEMETRY_SCHEMA_VERSION,
+        ),
+        'ts' => array(
+            'valueType' => 'string',
+        ),
+        'host' => array(
+            'const' => 'bredland',
+        ),
+        'temperature' => array(
+            'valueType' => 'float',
+        ),
+        'throttled' => array(
+            'valueType' => 'string',
+        ),
     );
 
-    fail('Expected missing schema field to be rejected');
-} catch (InvalidArgumentException $e) {
-    assertSame(
+    assertThrows(
+        'InvalidArgumentException',
         'missing field: throttled',
-        $e->getMessage()
+        function () use ($schema) {
+            build_record(
+                $schema,
+                array(
+                    'ts' => '2026-07-01T15:00:00Z',
+                    'temperature' => '35.5',
+                )
+            );
+        }
     );
-}
+});
 
-foreach (reserved_fields() as $reserved_field)
-{
-    try {
-        select_fields($reserved_field, array("$reserved_field" => 'reject me'));
-        fail("Expected $reserved_field to be rejected");
-    } catch (InvalidArgumentException $e) {
-        assertSame("reserved field: $reserved_field", $e->getMessage());
+$runner->test('rejects reserved fields', function () {
+    foreach (reserved_fields() as $reservedField) {
+        assertThrows(
+            'InvalidArgumentException',
+            "reserved field: $reservedField",
+            function () use ($reservedField) {
+                select_fields(
+                    $reservedField,
+                    array($reservedField => 'reject me')
+                );
+            }
+        );
     }
-}
+});
 
-assertSame(123, convert_field_value('123', 'integer'));
-assertSame(-123, convert_field_value('-123', 'integer'));
-assertSame(null, convert_field_value('123x', 'integer'));
-assertSame(null, convert_field_value('', 'integer'));
+$runner->test('converts integer values', function () {
+    assertSame(123, convert_field_value('123', 'integer'));
+    assertSame(-123, convert_field_value('-123', 'integer'));
+    assertSame(null, convert_field_value('123x', 'integer'));
+    assertSame(null, convert_field_value('', 'integer'));
+});
 
-assertSame(42.0, convert_field_value('42.0', 'float'));
-assertSame(-42.0, convert_field_value('-42.0', 'float'));
-assertSame(0.42, convert_field_value('.42', 'float'));
-assertSame(-0.42, convert_field_value('-.42', 'float'));
-assertSame(42.0, convert_field_value('42', 'float'));
-assertSame(null, convert_field_value('42.0°C', 'float'));
-assertSame(null, convert_field_value('', 'float'));
+$runner->test('converts float values', function () {
+    assertSame(42.0, convert_field_value('42.0', 'float'));
+    assertSame(-42.0, convert_field_value('-42.0', 'float'));
+    assertSame(0.42, convert_field_value('.42', 'float'));
+    assertSame(-0.42, convert_field_value('-.42', 'float'));
+    assertSame(42.0, convert_field_value('42', 'float'));
+    assertSame(null, convert_field_value('42.0°C', 'float'));
+    assertSame(null, convert_field_value('', 'float'));
+});
 
-assertSame(true, convert_field_value('true', 'boolean'));
-assertSame(false, convert_field_value('false', 'boolean'));
+$runner->test('converts boolean values', function () {
+    assertSame(true, convert_field_value('true', 'boolean'));
+    assertSame(false, convert_field_value('false', 'boolean'));
 
-assertSame(null, convert_field_value('1', 'boolean'));
-assertSame(null, convert_field_value('0', 'boolean'));
-assertSame(null, convert_field_value('yes', 'boolean'));
-assertSame(null, convert_field_value('', 'boolean'));
+    assertSame(null, convert_field_value('1', 'boolean'));
+    assertSame(null, convert_field_value('0', 'boolean'));
+    assertSame(null, convert_field_value('yes', 'boolean'));
+    assertSame(null, convert_field_value('', 'boolean'));
+});
 
-assertSame('123', convert_field_value('123', 'string'));
+$runner->test('converts string values', function () {
+    assertSame('123', convert_field_value('123', 'string'));
+});
+
+$runner->finish();

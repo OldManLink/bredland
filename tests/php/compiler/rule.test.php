@@ -9,33 +9,6 @@ require_once $compilerRoot .'/rule.php';
 require_once $compilerRoot .'/predicate.php';
 require_once $compilerRoot .'/action.php';
 
-$predicate = new Predicate(
-    new FieldVal('update_available'),
-    new OpVal('equals', array('string')),
-    new Val(true, 'boolean')
-);
-
-$action = new Action(
-    'client',
-    'addNotification',
-    'Software update available'
-);
-
-$rule = new Rule($predicate, $action);
-
-assertSame($predicate, $rule->predicate());
-assertSame($action, $rule->action());
-
-assertSame('update_available', $rule->predicate()->receiver()->value());
-assertSame('equals', $rule->predicate()->operator()->name());
-assertSame(true, $rule->predicate()->argument()->value());
-
-assertSame('client', $rule->action()->receiver());
-assertSame('addNotification', $rule->action()->method());
-assertSame('Software update available', $rule->action()->argument());
-
-// Compiler tests
-$schema = test_schema();
 
 $ruleJson = array(
     'when' => array(
@@ -50,93 +23,138 @@ $ruleJson = array(
     ),
 );
 
-$result = Rule::compile($ruleJson, $schema, 'Happy Path');
-assertTrue($result instanceof CompilationResult);
+$runner = new TestRunner('rule');
 
-$rule = $result->value();
-assertSame('update_available', $rule->predicate()->receiver()->value());
-assertSame('equals', $rule->predicate()->operator()->name());
-assertSame(true, $rule->predicate()->argument()->value());
-assertSame('client', $rule->action()->receiver());
-assertSame('addNotification', $rule->action()->method());
-assertSame('Software update available', $rule->action()->argument());
+$runner->test('instance creation', function () {
+    $predicate = new Predicate(
+        new FieldVal('update_available'),
+        new OpVal('equals', array('string')),
+        new Val(true, 'boolean')
+    );
 
-$result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
-assertSame(1, count($result->value()));
-assertTrue($result->value()[0] instanceof Rule);
-assertSame('update_available', $result->value()[0]->predicate()->receiver()->value());
+    $action = new Action(
+        'client',
+        'addNotification',
+        'Software update available'
+    );
 
-assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
+    $rule = new Rule($predicate, $action);
 
-$result = RuleList::compile(array(), $schema, 'Empty array');
-assertTrue($result instanceof CompilationResult);
-assertSame(array(), $result->value());
-assertSame(array(), $result->errors());
-assertTrue($result->isSuccess());
+    assertSame($predicate, $rule->predicate());
+    assertSame($action, $rule->action());
+});
 
-$result=RuleList::compile(42, $schema, 'Number 42');
-assert_compile_error($result, 'Number 42: must be an array');
+$runner->test('compiler tests: Rule', function () use ($ruleJson) {
+    $result = Rule::compile($ruleJson, test_schema(), 'Happy Path');
 
-$invalidRuleJson = array(
-    'when' => array(
-        'field' => 'update_available',
-        'operator' => 'greaterThan',
-        'value' => true,
-    ),
-    'then' => array(
-        'receiver' => 'client',
-        'method' => 'addNotification',
-        'argument' => 'Software update available',
-    ),
-);
+    assertTrue($result instanceof CompilationResult);
 
-assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule.when.operator: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($invalidRuleJson), $schema, 'rules'), 'rules[0].when.operator: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[1].when.operator: unsupported operator: greaterThan');
-assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[2].when.operator: unsupported operator: greaterThan');
+    $rule = $result->value();
+    assertSame('update_available', $rule->predicate()->receiver()->value());
+    assertSame('equals', $rule->predicate()->operator()->name());
+    assertSame(true, $rule->predicate()->argument()->value());
+    assertSame('client', $rule->action()->receiver());
+    assertSame('addNotification', $rule->action()->method());
+    assertSame('Software update available', $rule->action()->argument());
+});
 
-$invalidRuleJson = array(
-    'thén' => array(
-        'receiver' => 'client',
-        'method' => 'notification',
-        'message' => 'Software update available',
-    ),
-);
-assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: invalid identifier: thén');
+$runner->test('compiler tests: RuleList', function () use ($ruleJson) {
+    $schema = test_schema();
+    $result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
+    assertSame(1, count($result->value()));
+    assertTrue($result->value()[0] instanceof Rule);
+    assertSame('update_available', $result->value()[0]->predicate()->receiver()->value());
 
-$invalidRuleJson = array(
-    'then' => array(
-        'receiver' => 'client',
-        'method' => 'notification',
-        'message' => 'Software update available',
-    ),
-);
-assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: expected when');
+    $result = RuleList::compile(array($ruleJson, $ruleJson, $ruleJson), $schema, 'Happy array(3) path');
+    assertSame(3, count($result->value()));
+    assertTrue($result->value()[2] instanceof Rule);
+    assertSame('update_available', $result->value()[1]->predicate()->receiver()->value());
 
-$invalidRuleJson = array(
-    'when' => array(
-        'field' => 'update_available',
-        'equals' => true,
-    ),
-);
-assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: expected then');
+    assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
 
+    $result = RuleList::compile(array(), $schema, 'Empty array');
+    assertTrue($result instanceof CompilationResult);
+    assertSame(array(), $result->value());
+    assertSame(array(), $result->errors());
+    assertTrue($result->isSuccess());
 
-$invalidRuleJson = array(
-    'when' => array(
-        'field' => 'update_available',
-        'equals' => true,
-    ),
-    'then' => array(
-        'receiver' => 'client',
-        'method' => 'notification',
-        'message' => 'Software update available',
-    ),
-    'else' => array(
-        'receiver' => 'client',
-        'method' => 'notification',
-        'message' => 'Software update available',
-    ),
-);
-assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule: unsupported attribute: else');
+    $result=RuleList::compile(42, $schema, 'Number 42');
+    assert_compile_error($result, 'Number 42: must be an array');
+});
 
+$runner->test('unsupported operator: greaterThan', function () use ($ruleJson) {
+    $invalidRuleJson = array(
+        'when' => array(
+            'field' => 'update_available',
+            'operator' => 'greaterThan',
+            'value' => true,
+        ),
+        'then' => array(
+            'receiver' => 'client',
+            'method' => 'addNotification',
+            'argument' => 'Software update available',
+        ),
+    );
+
+    $schema = test_schema();
+    assert_compile_error(Rule::compile($invalidRuleJson, $schema, 'rule'), 'rule.when.operator: unsupported operator: greaterThan');
+    assert_compile_error(RuleList::compile(array($invalidRuleJson), $schema, 'rules'), 'rules[0].when.operator: unsupported operator: greaterThan');
+    assert_compile_error(RuleList::compile(array($ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[1].when.operator: unsupported operator: greaterThan');
+    assert_compile_error(RuleList::compile(array($ruleJson, $ruleJson, $invalidRuleJson), $schema, 'rules'), 'rules[2].when.operator: unsupported operator: greaterThan');
+});
+
+$runner->test('invalid identifier: thén', function () {
+    $invalidRuleJson = array(
+        'thén' => array(
+            'receiver' => 'client',
+            'method' => 'notification',
+            'message' => 'Software update available',
+        ),
+    );
+    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: invalid identifier: thén');
+});
+
+$runner->test('missing when', function () {
+    $invalidRuleJson = array(
+        'then' => array(
+            'receiver' => 'client',
+            'method' => 'notification',
+            'message' => 'Software update available',
+        ),
+    );
+    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: expected when');
+});
+
+$runner->test('missing then', function () {
+    $invalidRuleJson = array(
+        'when' => array(
+            'field' => 'update_available',
+            'operator' => 'equals',
+            'value' => true,
+        ),
+    );
+    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: expected then');
+});
+
+$runner->test('unsupported attribute: else', function () {
+    $invalidRuleJson = array(
+        'when' => array(
+            'field' => 'update_available',
+            'operator' => 'equals',
+            'value' => true,
+        ),
+        'then' => array(
+            'receiver' => 'client',
+            'method' => 'notification',
+            'message' => 'Software update available',
+        ),
+        'else' => array(
+            'receiver' => 'client',
+            'method' => 'notification',
+            'message' => 'Software update available',
+        ),
+    );
+    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: unsupported attribute: else');
+});
+
+$runner->finish();
