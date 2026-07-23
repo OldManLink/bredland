@@ -12,12 +12,12 @@ class OpVal implements Compilable {
             'equals' => array(
                 'boolean' => true,
                 'integer' => true,
-                'double' => true,
+                'float' => true,
                 'string' => true
             ),
             'lessThan' => array(
                 'integer' => true,
-                'double' => true
+                'float' => true
             )
         );
     }

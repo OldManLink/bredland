@@ -3,33 +3,33 @@
     "const": 1
   },
   "ts": {
-    "valueType": "string"
+    "value_type": "string"
   },
   "host": {
     "const": "bredland"
   },
   "uptime": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "temperature": {
-    "valueType": "float"
+    "value_type": "float"
   },
   "throttled": {
-    "valueType": "string"
+    "value_type": "string"
   },
   "free_memory": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "total_memory": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "root_free": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "root_total": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "remote_addr": {
-    "valueType": "string"
+    "value_type": "string"
   }
 }

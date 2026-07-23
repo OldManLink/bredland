@@ -21,18 +21,31 @@ assertSame(true, $predicate->argument()->value());
 // Compiler tests
 $schema = test_schema();
 
-$predicateJson = array(
+$predicateJsonBool = array(
     'field' => 'update_available',
     'operator' => 'equals',
     'value' => true,
 );
 
-$result = Predicate::compile($predicateJson, $schema, 'Happy Path');
+$result = Predicate::compile($predicateJsonBool, $schema, 'Happy Path');
 assertTrue($result instanceof CompilationResult);
 $predicate = $result->value();
 assertSame('update_available', $predicate->receiver()->value());
 assertSame('equals', $predicate->operator()->name());
 assertSame(true, $predicate->argument()->value());
+
+$predicateJsonFloat = array(
+    'field' => 'temperature',
+    'operator' => 'lessThan',
+    'value' => 42.5,
+);
+
+$result = Predicate::compile($predicateJsonFloat, $schema, 'Happy Path');
+assertTrue($result instanceof CompilationResult);
+$predicate = $result->value();
+assertSame('temperature', $predicate->receiver()->value());
+assertSame('lessThan', $predicate->operator()->name());
+assertSame(42.5, $predicate->argument()->value());
 
 $invalidPredicateJson = array(
     'operator' => 'equals',
@@ -96,7 +109,7 @@ $invalidPredicateJson = array(
     'operator' => 'equals',
     'value' => array(),
 );
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.equals: array incompatible with boolean');
+assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.value: unsupported value_type: array');
 
 $invalidPredicateJson = array(
     'field' => 'update_available',

@@ -12,7 +12,7 @@ function assertSame($expected, $actual, $message = '') {
 }
 
 function assertDifferent($expected, $actual, $message = '') {
-    if ($expected == $actual) {
+    if ($expected === $actual) {
         throw new AssertionFailed(
             "Different assertion failed" . ($message === '' ? '' : ": " . $message) . "\n" .
             "Expected: " . var_export($expected, true) . "\n" .
@@ -97,6 +97,12 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
     }
 }
 
+function assert_compile_success($result) {
+    assertTrue($result instanceof CompilationResult, 'CompilationResult expected');
+    assertTrue($result->isSuccess());
+    assertDifferent(null, $result->value());
+}
+
 function assert_compile_error($result, $message) {
     assertSame(null, $result->value());
     assertDifferent(0, count($result->errors()));
@@ -108,6 +114,9 @@ function test_schema() {
        'uptime' => array(
            'value_type' => 'integer'
        ),
+       'temperature' => array(
+           'value_type' => 'float'
+       ),
        'free_memory' => array(
            'value_type' => 'integer'
        ),
@@ -115,7 +124,7 @@ function test_schema() {
            'value_type' => 'string'
        ),
        'update_available' => array(
-            'valueType' => 'boolean'
+            'value_type' => 'boolean'
        )
     );
 }

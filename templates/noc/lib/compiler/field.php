@@ -49,7 +49,7 @@ class Field implements Compilable {
         $format = $compiledParts['format']->value();
         $format_name = $format->name();
         $value_type = $compiledParts['value_type']->value();
-        if(!isset($format->valueTypes()[$value_type])) {
+        if(!isset($format->value_types()[$value_type])) {
             return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type"));
         }
 

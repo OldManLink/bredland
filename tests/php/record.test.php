@@ -49,34 +49,34 @@ $runner->test('loads a record schema', function () use ($nocRoot) {
                 'const' => TELEMETRY_SCHEMA_VERSION,
             ),
             'ts' => array(
-                'valueType' => 'string',
+                'value_type' => 'string',
             ),
             'host' => array(
                 'const' => 'bredland',
             ),
             'uptime' => array(
-                'valueType' => 'integer',
+                'value_type' => 'integer',
             ),
             'temperature' => array(
-                'valueType' => 'float',
+                'value_type' => 'float',
             ),
             'throttled' => array(
-                'valueType' => 'string',
+                'value_type' => 'string',
             ),
             'free_memory' => array(
-                'valueType' => 'integer',
+                'value_type' => 'integer',
             ),
             'total_memory' => array(
-                'valueType' => 'integer',
+                'value_type' => 'integer',
             ),
             'root_free' => array(
-                'valueType' => 'integer',
+                'value_type' => 'integer',
             ),
             'root_total' => array(
-                'valueType' => 'integer',
+                'value_type' => 'integer',
             ),
             'remote_addr' => array(
-                'valueType' => 'string',
+                'value_type' => 'string',
             ),
         ),
         $schema
@@ -118,19 +118,19 @@ $runner->test('builds a typed record', function () {
             'const' => TELEMETRY_SCHEMA_VERSION,
         ),
         'ts' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
         'host' => array(
             'const' => 'bredland',
         ),
         'temperature' => array(
-            'valueType' => 'float',
+            'value_type' => 'float',
         ),
         'throttled' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
         'update_available' => array(
-            'valueType' => 'boolean',
+            'value_type' => 'boolean',
         ),
     );
 
@@ -163,16 +163,16 @@ $runner->test('rejects an invalid float field', function () {
             'const' => TELEMETRY_SCHEMA_VERSION,
         ),
         'ts' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
         'host' => array(
             'const' => 'bredland',
         ),
         'temperature' => array(
-            'valueType' => 'float',
+            'value_type' => 'float',
         ),
         'throttled' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
     );
 
@@ -198,16 +198,16 @@ $runner->test('rejects a missing schema field', function () {
             'const' => TELEMETRY_SCHEMA_VERSION,
         ),
         'ts' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
         'host' => array(
             'const' => 'bredland',
         ),
         'temperature' => array(
-            'valueType' => 'float',
+            'value_type' => 'float',
         ),
         'throttled' => array(
-            'valueType' => 'string',
+            'value_type' => 'string',
         ),
     );
 

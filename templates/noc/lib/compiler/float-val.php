@@ -3,15 +3,15 @@ require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 
-class IntVal implements Compilable {
+class FloatVal implements Compilable {
     private $value;
 
     public static function compile($definition, $schema, $path) {
-        if (!is_int($definition)) {
-            return CompilationResult::failure(array("$path must be an integer"));
+        if (!is_float($definition)) {
+            return CompilationResult::failure(array("$path must be a float"));
         }
 
-        return CompilationResult::success(new IntVal($definition));
+        return CompilationResult::success(new FloatVal($definition));
     }
 
     public function __construct($value) {
@@ -23,6 +23,6 @@ class IntVal implements Compilable {
     }
 
     public function value_type() {
-        return 'integer';
+        return 'float';
     }
 }

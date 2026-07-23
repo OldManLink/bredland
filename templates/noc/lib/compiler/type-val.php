@@ -20,7 +20,7 @@ class TypeVal implements Compilable {
         }
 
         if (!isset(TypeVal::value_types()[$definition])) {
-            return CompilationResult::failure(array("$path: unsupported valueType: $definition"));
+            return CompilationResult::failure(array("$path: unsupported value_type: $definition"));
         }
 
         return CompilationResult::success($definition);

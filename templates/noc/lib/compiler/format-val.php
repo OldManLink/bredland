@@ -7,7 +7,7 @@ require_once __DIR__ . '/str-val.php';
 
 class FormatVal implements Compilable {
     private $name;
-    private $valueTypes;
+    private $value_types;
 
 
     public static function compile($definition, $schema, $path) {
@@ -23,21 +23,21 @@ class FormatVal implements Compilable {
         return CompilationResult::success(
             new FormatVal(
                 $definition,
-                $formatters[$definition]['valueTypes']
+                $formatters[$definition]['value_types']
             )
         );
     }
 
-    public function __construct($name, $valueTypes) {
+    public function __construct($name, $value_types) {
         $this->name = $name;
-        $this->valueTypes = $valueTypes;
+        $this->value_types = $value_types;
     }
 
     public function name() {
         return $this->name;
     }
 
-    public function valueTypes() {
-        return $this->valueTypes;
+    public function value_types() {
+        return $this->value_types;
     }
 }

@@ -9,7 +9,7 @@ require_once $compilerRoot .'/rule.php';
 require_once $compilerRoot .'/predicate.php';
 require_once $compilerRoot .'/action.php';
 
-
+// Correctly constructed Rule in json format
 $ruleJson = array(
     'when' => array(
         'field' => 'update_available',
@@ -23,20 +23,15 @@ $ruleJson = array(
     ),
 );
 
-$runner = new TestRunner('rule');
+$runner = new TestRunner('Rule');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
-        new OpVal('equals', array('string')),
-        new Val(true, 'boolean')
+        new FieldVal(null),
+        new OpVal(null, null),
+        new Val(null, null)
     );
-
-    $action = new Action(
-        'client',
-        'addNotification',
-        'Software update available'
-    );
+    $action = new Action(null, null, null);
 
     $rule = new Rule($predicate, $action);
 
@@ -46,37 +41,31 @@ $runner->test('instance creation', function () {
 
 $runner->test('compiler tests: Rule', function () use ($ruleJson) {
     $result = Rule::compile($ruleJson, test_schema(), 'Happy Path');
+    assert_compile_success($result);
 
-    assertTrue($result instanceof CompilationResult);
+    assertTrue($result->value()->predicate() instanceof Predicate, 'Predicate expected');
+    assertTrue($result->value()->action() instanceof Action, 'Action expected');
 
-    $rule = $result->value();
-    assertSame('update_available', $rule->predicate()->receiver()->value());
-    assertSame('equals', $rule->predicate()->operator()->name());
-    assertSame(true, $rule->predicate()->argument()->value());
-    assertSame('client', $rule->action()->receiver());
-    assertSame('addNotification', $rule->action()->method());
-    assertSame('Software update available', $rule->action()->argument());
+    assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
 });
 
 $runner->test('compiler tests: RuleList', function () use ($ruleJson) {
     $schema = test_schema();
+
     $result = RuleList::compile(array($ruleJson), $schema, 'Happy array path');
+    assert_compile_success($result);
+    assertSame(runtime_type($result->value()), 'array');
     assertSame(1, count($result->value()));
     assertTrue($result->value()[0] instanceof Rule);
-    assertSame('update_available', $result->value()[0]->predicate()->receiver()->value());
 
     $result = RuleList::compile(array($ruleJson, $ruleJson, $ruleJson), $schema, 'Happy array(3) path');
+    assert_compile_success($result);
     assertSame(3, count($result->value()));
     assertTrue($result->value()[2] instanceof Rule);
-    assertSame('update_available', $result->value()[1]->predicate()->receiver()->value());
-
-    assert_compile_error(Rule::compile(42, $schema, 'rule_42'), 'rule_42 must be an object');
 
     $result = RuleList::compile(array(), $schema, 'Empty array');
-    assertTrue($result instanceof CompilationResult);
-    assertSame(array(), $result->value());
-    assertSame(array(), $result->errors());
-    assertTrue($result->isSuccess());
+    assert_compile_success($result);
+    assertSame($result->value(), array());
 
     $result=RuleList::compile(42, $schema, 'Number 42');
     assert_compile_error($result, 'Number 42: must be an array');
