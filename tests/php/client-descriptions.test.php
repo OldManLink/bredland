@@ -2,87 +2,98 @@
 <?php
 require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
+$testsRoot = dirname(__DIR__);
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
+require_once $nocRoot . '/lib/compiler/client.php';
 require_once $nocRoot . '/lib/client.php';
 
-$exports = require_once $nocRoot . '/lib/exports.php';
-$clientsDir = $nocRoot . '/clients';
-$schemasDir = $nocRoot . '/schemas';
+$runner = new TestRunner('client-descriptions');
 
-$clientFiles = glob($clientsDir . '/*.json');
+$runner->test('all client descriptions compile', function () use ($nocRoot, $testsRoot) {
+    $clientsDir = $nocRoot . '/clients';
+    $schemasDir = $nocRoot . '/schemas';
+    $fixturesDir = $testsRoot . '/fixtures/heartbeats';
 
-assertTrue(count($clientFiles) > 0, 'Expected at least one client definition');
+    $seenHosts = array();
 
-$seenHosts = array();
-foreach ($clientFiles as $clientFile) {
-    $client = read_client_file($clientFile);
-    $host = required_string($client, 'host', $clientFile);
-    assertIdentifier($host, "$clientFile field $host must be a valid identifier");
-    $expectedHost = pathinfo($clientFile, PATHINFO_FILENAME);
-    assertSame($expectedHost, $host, "$clientFile host must match filename");
-    assertFalse(isset($seenHosts[$host]), "Duplicate host: $host");
-    $seenHosts[$host] = true;
+    foreach (glob($clientsDir . '/*.json') as $clientFile) {
+        $name = basename($clientFile);
 
-    $schemaFile = $schemasDir . '/' . $host . '.json';
-    assertTrue(file_exists($schemaFile), "Missing heartbeat schema for $host");
-
-    $schema = read_client_file($schemaFile);
-    assertTrue($schema !== null, "Unable to load heartbeat schema for $host");
-
-    assertTrue(isset($client['title']), "$clientFile must define title");
-    assertTrue(isset($client['fields']) && is_array($client['fields']), "$clientFile must define fields array");
-
-    $definedFields = array();
-
-    foreach ($client['fields'] as $fieldDef) {
-        $fieldName = required_string($fieldDef, 'field', $clientFile);
-        assertIdentifier($fieldName, "$clientFile field $fieldName must be a valid identifier");
-
-        $definedFields[$fieldName] = true;
-
-        assertTrue(isset($fieldDef['label']), "$clientFile field $fieldName must define label");
-
-        $valueType = required_string($fieldDef, 'valueType', $clientFile);
+        $schemaFile = $schemasDir . '/' . $name;
+        $fixtureFile = $fixturesDir . '/' . $name;
 
         assertTrue(
-            is_known_value_type($valueType),
-            "$clientFile field $fieldName has unknown valueType: $valueType"
+            file_exists($schemaFile),
+            "Missing schema: $schemaFile"
         );
 
         assertTrue(
-            array_key_exists($fieldName, $schema),
-            "$clientFile field $fieldName is not declared in $schemaFile"
+            file_exists($fixtureFile),
+            "Missing heartbeat fixture: $fixtureFile"
         );
 
-        assertTrue(
-            isset($schema[$fieldName]['valueType']),
-            "$clientFile field $fieldName refers to a constant schema field"
+        $clientJson = from_json_file($clientFile);
+        $schema = from_json_file($schemaFile);
+        $fixture = from_json_file($fixtureFile);
+
+        $result = Client::compile(
+            $clientJson,
+            $schema,
+            $clientFile
         );
+
+        assert_compile_success($result);
+
+        $client = $result->value();
+
+        $host = $client->host()->value();
 
         assertSame(
-            $schema[$fieldName]['valueType'],
-            $valueType,
-            "$clientFile field $fieldName valueType must match $schemaFile"
+            pathinfo($clientFile, PATHINFO_FILENAME),
+            $host,
+            "$clientFile host must match filename"
         );
 
-        if (isset($fieldDef['format'])) {
-            $format = required_string($fieldDef, 'format', $clientFile);
+        assertFalse(
+            isset($seenHosts[$host]),
+            "Duplicate host: $host"
+        );
 
-            assertTrue(
-                isset($exports['formatters'][$format]),
-                "Unknown formatter: $format"
-            );
+        $seenHosts[$host] = true;
 
+        assertTrue(
+            $client->title() !== null,
+            "$clientFile missing title"
+        );
+
+        assertTrue(
+            is_array($client->fields()),
+            "$clientFile fields must be an array"
+        );
+
+        assertTrue(
+            $client->order() !== null,
+            "$clientFile missing order"
+        );
+
+        $fields = array();
+
+        foreach ($client->fields() as $field) {
+            $fields[$field->field()->value()] = true;
+        }
+
+        assertTrue(
+            isset($fields['uptime']),
+            "$clientFile must define uptime"
+        );
+
+        foreach ($fixture as $field => $value) {
             assertTrue(
-                in_array($valueType, $exports['formatters'][$format]['valueTypes'], true),
-                "Formatter $format is not compatible with valueType $valueType"
+                isset($schema[$field]),
+                "$fixtureFile field '$field' missing from schema"
             );
         }
     }
+});
 
-    assertTrue(isset($definedFields['uptime']), "$clientFile must define mandatory uptime field");
-
-    assertTrue(isset($client['order']), "$clientFile must define order");
-    assertTrue(is_int($client['order']), "$clientFile order must be an integer");
-}
-
+$runner->finish();

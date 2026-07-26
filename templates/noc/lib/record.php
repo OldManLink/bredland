@@ -67,7 +67,7 @@ function build_record($schema, $source) {
             throw new InvalidArgumentException("missing field: $field_name");
         }
 
-        $value_type = $rule['valueType'];
+        $value_type = $rule['value_type'];
         $value = convert_field_value($source[$field_name], $value_type);
 
         if ($value === null) {

@@ -3,33 +3,33 @@
     "const": 1
   },
   "ts": {
-    "valueType": "string"
+    "value_type": "string"
   },
   "host": {
     "const": "mikrotik"
   },
   "uptime": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "version": {
-    "valueType": "string"
+    "value_type": "string"
   },
   "model": {
-    "valueType": "string"
+    "value_type": "string"
   },
   "cpu_load": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "free_memory": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "total_memory": {
-    "valueType": "integer"
+    "value_type": "integer"
   },
   "update_available": {
-    "valueType": "boolean"
+    "value_type": "boolean"
   },
   "remote_addr": {
-    "valueType": "string"
+    "value_type": "string"
   }
 }

@@ -55,11 +55,11 @@ foreach ($schemaFiles as $schemaFile) {
         );
 
         $hasConst = array_key_exists('const', $rule);
-        $hasType = array_key_exists('valueType', $rule);
+        $hasType = array_key_exists('value_type', $rule);
 
         assertTrue(
             $hasConst xor $hasType,
-            "$schemaFile field $fieldName must define exactly one of const or valueType"
+            "$schemaFile field $fieldName must define exactly one of const or value_type"
         );
 
         if ($hasConst) {
@@ -72,21 +72,21 @@ foreach ($schemaFiles as $schemaFile) {
             continue;
         }
 
-        $valueType = $rule['valueType'];
+        $value_type = $rule['value_type'];
 
         assertTrue(
-            is_string($valueType),
+            is_string($value_type),
             "$schemaFile field $fieldName type must be a string"
         );
 
         assertTrue(
-            is_known_value_type($valueType),
-            "$schemaFile field $fieldName has unknown valueType: $valueType"
+            is_known_value_type($value_type),
+            "$schemaFile field $fieldName has unknown value_type: $value_type"
         );
 
         assertTrue(
-            value_matches_type($heartbeat[$fieldName], $valueType),
-            "$fixtureFile field $fieldName does not match valueType $valueType"
+            value_matches_type($heartbeat[$fieldName], $value_type),
+            "$fixtureFile field $fieldName does not match value_type $value_type"
         );
     }
 }

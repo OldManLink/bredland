@@ -64,7 +64,7 @@ function compare_client_order($a, $b) {
 }
 
 function display_client_field($client, $field) {
-    if (!isset($field['valueType']) || !is_known_value_type($field['valueType'])) {
+    if (!isset($field['value_type']) || !is_known_value_type($field['value_type'])) {
         return 'unavailable';
     }
 
@@ -74,7 +74,7 @@ function display_client_field($client, $field) {
         return $value;
     }
 
-    if (!value_matches_type($value, $field['valueType'])) {
+    if (!value_matches_type($value, $field['value_type'])) {
         return 'unavailable';
     }
 

@@ -54,7 +54,7 @@ file_put_contents(
             array(
                 'label' => 'Uptime',
                 'field' => 'uptime',
-                'valueType' => 'integer',
+                'value_type' => 'integer',
                 'format' => 'display_uptime',
             ),
         ),
@@ -106,7 +106,7 @@ $client = array(
 $field = array(
     'label' => 'Uptime',
     'field' => 'uptime',
-    'valueType' => 'integer',
+    'value_type' => 'integer',
     'format' => 'display_uptime',
 );
 
@@ -115,7 +115,7 @@ assertSame('1w6d11:48:47', display_client_field($client, $field));
 $field = array(
     'label' => 'Uptime',
     'field' => 'old_uptime',
-    'valueType' => 'integer',
+    'value_type' => 'integer',
     'format' => 'display_uptime',
 );
 
@@ -124,7 +124,7 @@ assertSame('unavailable', display_client_field($client, $field));
 $field = array(
     'label' => 'Uptime',
     'field' => 'old_uptime',
-    'valueType' => 'string',
+    'value_type' => 'string',
 );
 
 assertSame('1w6d11:48:47', display_client_field($client, $field));
@@ -139,7 +139,7 @@ assertSame('unavailable', display_client_field($client, $field));
 $field = array(
     'label' => 'Free memory',
     'field' => 'free_memory',
-    'valueType' => 'integer',
+    'value_type' => 'integer',
     'format' => 'display_memory',
 );
 
@@ -148,7 +148,7 @@ assertSame('1.0 GiB', display_client_field($client, $field));
 $field = array(
     'label' => 'OS Version',
     'field' => 'version',
-    'valueType' => 'string',
+    'value_type' => 'string',
 );
 
 assertSame('7.23.1 (stable)', display_client_field($client, $field));
@@ -156,7 +156,7 @@ assertSame('7.23.1 (stable)', display_client_field($client, $field));
 $field = array(
     'label' => 'Hacker',
     'field' => 'missing',
-    'valueType' => 'array',
+    'value_type' => 'array',
     'format' => 'inject_vulnerablility',
 );
 
