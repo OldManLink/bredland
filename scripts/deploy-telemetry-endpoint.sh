@@ -42,7 +42,7 @@ scripts/render-template.sh templates/noc/telemetry.config.template.php "$config_
 
 echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
-rsync -a templates/noc/lib/*.php "$libdir_local/"
+rsync -a templates/noc/lib/ "$libdir_local/"
 
 echo "Copying heartbeat schemas"
 mkdir -p "$schemas_local"

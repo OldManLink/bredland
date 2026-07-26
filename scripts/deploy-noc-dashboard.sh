@@ -56,7 +56,7 @@ cp templates/noc/static/* "$static_local/"
 
 echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
-rsync -a templates/noc/lib/*.php "$libdir_local/"
+rsync -a templates/noc/lib/ "$libdir_local/"
 
 echo "Copying heartbeat schemas"
 mkdir -p "$schemas_local"
