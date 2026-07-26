@@ -8,7 +8,7 @@ class FloatVal implements Compilable {
 
     public static function compile($definition, $schema, $path) {
         if (!is_float($definition)) {
-            return CompilationResult::failure(array("$path must be a float"));
+            return CompilationResult::failure(array("$path: must be a float"));
         }
 
         return CompilationResult::success(new FloatVal($definition));

@@ -19,14 +19,12 @@ assertSame('addNotification', $action->method());
 assertSame('Software update available', $action->argument());
 
 // Compiler tests
-$schema = test_schema();
-
 $actionJson = array(
     'receiver' => 'client',
     'method' => 'addNotification',
     'argument' => 'Software update available.',
 );
-$result = Action::compile($actionJson, $schema, 'Happy addNotification path');
+$result = Action::compile($actionJson, test_schema(), 'Happy addNotification path');
 assertTrue($result instanceof CompilationResult);
 assertTrue($result->isSuccess());
 $action = $result->value();
@@ -39,7 +37,7 @@ $actionJson = array(
     'method' => 'setHealth',
     'argument' => 'healthy',
 );
-$result = Action::compile($actionJson, $schema, 'Happy setHealth path');
+$result = Action::compile($actionJson, test_schema(), 'Happy setHealth path');
 assertTrue($result instanceof CompilationResult);
 assertTrue($result->isSuccess());
 $action = $result->value();
@@ -51,7 +49,7 @@ $invalidActionJson = array(
     'receiver' => 'client',
     'argument' => 'Software update available.',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then: expected method');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: expected method');
 
 $invalidActionJson = array(
     'receiver' => 'noc',
@@ -59,7 +57,7 @@ $invalidActionJson = array(
     'fubar' => 'message',
     'argument' => 'Software update available.',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then: unsupported attribute: fubar');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported attribute: fubar');
 
 $invalidActionJson = array(
     'receiver' => 'noc',
@@ -67,35 +65,35 @@ $invalidActionJson = array(
     'methöd' => 'addNotification',
     'argument' => 'Software update available.',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then: invalid identifier: methöd');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: invalid identifier: methöd');
 
 $invalidActionJson = array(
     'receiver' => 'client',
     'method' => '',
     'argument' => 'Software update available.',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then.method: must be a non-empty string');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.method: must be a non-empty string');
 
 $invalidActionJson = array(
     'receiver' => 'noc',
     'method' => 'clickAction',
     'argument' => 'clicked',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then: unsupported method clickAction');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported method clickAction');
 
 $invalidActionJson = array(
     'receiver' => 'client',
     'method' => 'addNotification',
     'argyment' => 'Software update available.',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then: unsupported attribute: argyment');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported attribute: argyment');
 
 $invalidActionJson = array(
     'receiver' => 'client',
     'method' => 'setHealth',
     'argument' => 42,
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then.argument: must be a non-empty string');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.argument: must be a non-empty string');
 
 $invalidActionJson = array(
     'receiver' => 'client',
@@ -103,11 +101,11 @@ $invalidActionJson = array(
     'argument' => '',
 );
 
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then.argument: must be a non-empty string');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.argument: must be a non-empty string');
 
 $invalidActionJson = array(
     'receiver' => 'client',
     'method' => 'setHealth',
     'argument' => 'hungover',
 );
-assert_compile_error(Action::compile($invalidActionJson, $schema, 'rule.then'), 'rule.then.setHealth: unsupported argument hungover');
+assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.setHealth: unsupported argument hungover');

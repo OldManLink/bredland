@@ -26,6 +26,13 @@ class Client implements Compilable {
         );
     }
 
+    public static function compilable_methods() {
+        return array(
+            'addNotification' => SlotVal::class,
+            'setHealth' => HealthVal::class
+        );
+    }
+
     public static function compile($definition, $schema, $path) {
         if (!is_array($definition)) {
             return CompilationResult::failure(array("$path must be an object"));

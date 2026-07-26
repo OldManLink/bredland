@@ -8,7 +8,7 @@ class BoolVal implements Compilable {
 
     public static function compile($definition, $schema, $path) {
         if (!is_bool($definition)) {
-            return CompilationResult::failure(array("$path must be a boolean"));
+            return CompilationResult::failure(array("$path: must be a boolean"));
         }
 
         return CompilationResult::success(new BoolVal($definition));

@@ -14,7 +14,7 @@ class SlotVal implements Compilable {
             return CompilationResult::failure(array("$path: must be a non-empty string"));
         }
 
-        $compiledPartsResult = SlotVal::compile_parts($definition, $schema, $path);
+        $compiledPartsResult = self::compile_parts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {
             return $compiledPartsResult;

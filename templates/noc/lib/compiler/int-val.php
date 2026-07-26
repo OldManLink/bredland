@@ -8,7 +8,7 @@ class IntVal implements Compilable {
 
     public static function compile($definition, $schema, $path) {
         if (!is_int($definition)) {
-            return CompilationResult::failure(array("$path must be an integer"));
+            return CompilationResult::failure(array("$path: must be an integer"));
         }
 
         return CompilationResult::success(new IntVal($definition));

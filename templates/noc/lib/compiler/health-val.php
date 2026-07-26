@@ -4,28 +4,27 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 
-class TypeVal implements Compilable {
+class HealthVal implements Compilable {
     private $value;
-    private static function value_types() {
+    private static function health_values() {
         return array(
-            'boolean' => true,
-            'integer' => true,
-            'float' => true,
-            'string' => true
+            'healthy' => true,
+            'warning' => true,
+            'critical' => true
         );
     }
 
     public static function compile($definition, $schema, $path) {
-        $strValResult = StrVal::compile($definition, $schema, "$path.type");
+        $strValResult = StrVal::compile($definition, $schema, "$path.health");
         if (!$strValResult->isSuccess()) {
             return $strValResult;
         }
 
-        if (!isset(self::value_types()[$definition])) {
-            return CompilationResult::failure(array("$path: unsupported value_type: $definition"));
+        if (!isset(self::health_values()[$definition])) {
+            return CompilationResult::failure(array("$path: unsupported health value: $definition"));
         }
 
-        return CompilationResult::success(new TypeVal($definition));
+        return CompilationResult::success(new HealthVal($definition));
     }
 
     public function __construct($value) {

@@ -11,7 +11,7 @@ class FormatVal implements Compilable {
 
 
     public static function compile($definition, $schema, $path) {
-        $strValResult = StrVal::compile($definition, $schema, "$path-function");
+        $strValResult = StrVal::compile($definition, $schema, "$path.function");
         if (!$strValResult->isSuccess()) {
             return $strValResult;
         }

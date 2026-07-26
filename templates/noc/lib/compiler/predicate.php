@@ -50,7 +50,7 @@ class Predicate implements Compilable {
         $operator_name = $operator->name();
         $field_type = $schema[$field->value()]['value_type'];
 
-        if(!isset($operator->operandTypes()[$field_type])) {
+        if(!isset($operator->operand_types()[$field_type])) {
             return CompilationResult::failure(array("$path.$operator_name: incompatible with $field_type"));
         }
         $valueValueType = $value->value_type();

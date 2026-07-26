@@ -2,10 +2,11 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/str-val.php';
 
 class OpVal implements Compilable {
     private $name;
-    private $operandTypes;
+    private $operand_types;
 
     private static function supportedOperands() {
         return array(
@@ -28,28 +29,28 @@ class OpVal implements Compilable {
             return $strValResult;
         }
 
-        if(!isset(OpVal::supportedOperands()[$definition])) {
+        if(!isset(self::supportedOperands()[$definition])) {
             return CompilationResult::failure(array("$path: unsupported operator: $definition"));
         }
 
         return CompilationResult::success(
             new OpVal(
                 $definition,
-                OpVal::supportedOperands()[$definition]
+                self::supportedOperands()[$definition]
             )
         );
     }
 
-    public function __construct($name, $operandTypes) {
+    public function __construct($name, $operand_types) {
         $this->name = $name;
-        $this->operandTypes = $operandTypes;
+        $this->operand_types = $operand_types;
     }
 
     public function name() {
         return $this->name;
     }
 
-    public function operandTypes() {
-        return $this->operandTypes;
+    public function operand_types() {
+        return $this->operand_types;
     }
 }

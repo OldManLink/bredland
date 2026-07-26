@@ -4,6 +4,7 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 
 class Action implements Compilable {
+    private $receiver;
     private $method;
     private $argument;
 
@@ -57,7 +58,7 @@ class Action implements Compilable {
             return CompilationResult::failure(array("$path.receiver: must be a non-empty string"));
         }
 
-        if (!isset(Action::receivers()[$receiver])) {
+        if (!isset(self::receivers()[$receiver])) {
             return CompilationResult::failure(array("$path: unsupported receiver $receiver"));
         }
 
@@ -66,7 +67,7 @@ class Action implements Compilable {
             return CompilationResult::failure(array("$path.method: must be a non-empty string"));
         }
 
-        if (!isset(Action::methods()[$method])) {
+        if (!isset(self::methods()[$method])) {
             return CompilationResult::failure(array("$path: unsupported method $method"));
         }
 
@@ -75,7 +76,7 @@ class Action implements Compilable {
             return CompilationResult::failure(array("$path.argument: must be a non-empty string"));
         }
 
-        if ($method == 'setHealth' && !isset(Action::healthValues()[$argument])) {
+        if ($method == 'setHealth' && !isset(self::healthValues()[$argument])) {
             return CompilationResult::failure(array("$path.$method: unsupported argument $argument"));
         }
 

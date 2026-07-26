@@ -111,6 +111,9 @@ function assert_compile_error($result, $message) {
 
 function test_schema() {
     return array(
+       'ts' => array(
+           'value_type' => 'integer'
+       ),
        'uptime' => array(
            'value_type' => 'integer'
        ),
@@ -126,6 +129,14 @@ function test_schema() {
        'update_available' => array(
             'value_type' => 'boolean'
        )
+    );
+}
+
+function test_methods() {
+    return array(
+       'addNotification' => SlotVal::class,
+       'setHealth' => HealthVal::class,
+       'setValue' => StrVal::class
     );
 }
 

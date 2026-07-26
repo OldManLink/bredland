@@ -26,7 +26,7 @@ class Field implements Compilable {
 
     public static function compile($definition, $schema, $path) {
         if (!is_array($definition)) {
-            return CompilationResult::failure(array("$path must be an object"));
+            return CompilationResult::failure(array("$path: must be an object"));
         }
 
         $validationResult = check_allowed_keys(
@@ -49,8 +49,9 @@ class Field implements Compilable {
         $format = $compiledParts['format']->value();
         $format_name = $format->name();
         $value_type = $compiledParts['value_type']->value();
-        if(!isset($format->value_types()[$value_type])) {
-            return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type"));
+        $value_type_value = $value_type->value();
+        if(!isset($format->value_types()[$value_type->value()])) {
+            return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type_value"));
         }
 
         return CompilationResult::success(
@@ -58,7 +59,7 @@ class Field implements Compilable {
                 $compiledParts['label']->value(),
                 $compiledParts['field']->value(),
                 $value_type,
-                $format_name
+                $format
             )
         );
     }

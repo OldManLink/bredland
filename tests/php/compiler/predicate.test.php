@@ -11,7 +11,7 @@ require_once $nocRoot . '/lib/compiler/predicate.php';
 $predicate = new Predicate(
     new FieldVal('update_available'),
     new OpVal('equals', array('string')),
-    new Val(true, 'boolean')
+    new BoolVal(true)
 );
 
 assertSame('update_available', $predicate->receiver()->value());
