@@ -36,6 +36,11 @@ $runner->test('compiles addNotification', function () {
     assertSame(SlotVal::class, $result->value()->argument_class());
 });
 
+$runner->test('rejects invalid method definition', function () {
+    $result = MethodVal::compile('broken', array('broken' => null), test_schema(), 'Happy Path');
+    assert_compile_error($result, "Happy Path: invalid method definition: broken");
+});
+
 $runner->test('rejects unsupported method', function () {
     assert_compile_error(MethodVal::compile('formatRoot', test_methods(), test_schema(), 'formatRoot'), 'formatRoot: unsupported method: formatRoot');
 });

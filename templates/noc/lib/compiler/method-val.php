@@ -15,8 +15,12 @@ class MethodVal {
             return $strValResult;
         }
 
-        if (!isset($methods[$definition])) {
+        if (!array_key_exists($definition, $methods)) {
             return CompilationResult::failure(array("$path: unsupported method: $definition"));
+        }
+
+        if (!is_string($methods[$definition])) {
+            return CompilationResult::failure(array("$path: invalid method definition: $definition"));
         }
 
         return CompilationResult::success(new MethodVal($definition, $methods[$definition]));

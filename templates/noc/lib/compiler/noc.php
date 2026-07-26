@@ -3,6 +3,12 @@
 class Noc {
     private $value;
 
+    /**
+     * Returns declarative method contracts only.
+     *
+     * Maps method names to argument compiler classes.
+     * Receivers must not implement compilation logic here.
+     */
     public static function compilable_methods() {
         return array(
             'setValue' => StrVal::class
