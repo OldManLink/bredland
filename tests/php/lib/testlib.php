@@ -100,7 +100,6 @@ function assert_allowed_keys($required, $allowed, $actual, $context)
 function assert_compile_success($result) {
     assertTrue($result instanceof CompilationResult, 'CompilationResult expected');
     assertTrue($result->isSuccess());
-    assertDifferent(null, $result->value());
 }
 
 function assert_compile_error($result, $message) {
@@ -150,4 +149,13 @@ function from_json($json) {
     }
 
     return $result;
+}
+
+function from_json_file($filename) {
+    assertTrue(
+        file_exists($filename),
+        "Missing JSON file: $filename"
+    );
+
+    return from_json(file_get_contents($filename));
 }

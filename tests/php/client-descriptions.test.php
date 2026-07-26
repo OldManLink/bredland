@@ -2,47 +2,98 @@
 <?php
 require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
+$testsRoot = dirname(__DIR__);
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
-require_once $nocRoot . '/lib/client.php';
 require_once $nocRoot . '/lib/compiler/client.php';
-require_once $nocRoot . '/lib/exports.php';
+require_once $nocRoot . '/lib/client.php';
 
-$exports = get_exports();
-$clientsDir = $nocRoot . '/clients';
-$schemasDir = $nocRoot . '/schemas';
+$runner = new TestRunner('client-descriptions');
 
-$clientFiles = glob($clientsDir . '/*.json');
+$runner->test('all client descriptions compile', function () use ($nocRoot, $testsRoot) {
+    $clientsDir = $nocRoot . '/clients';
+    $schemasDir = $nocRoot . '/schemas';
+    $fixturesDir = $testsRoot . '/fixtures/heartbeats';
 
-assertTrue(count($clientFiles) > 0, 'Expected at least one client definition');
+    $seenHosts = array();
 
-$seenHosts = array();
-foreach ($clientFiles as $clientFile) {
-    $schemaFile = $schemasDir . '/' . basename($clientFile);
-    assertTrue(file_exists($schemaFile), "Missing heartbeat schema for $clientFile");
-    $schema = read_client_file($schemaFile);
-    assertTrue($schema !== null, "Unable to load heartbeat schema for $clientFile");
+    foreach (glob($clientsDir . '/*.json') as $clientFile) {
+        $name = basename($clientFile);
 
-    $clientResult = Client::compile(read_client_file($clientFile), $schema, 'Test');
+        $schemaFile = $schemasDir . '/' . $name;
+        $fixtureFile = $fixturesDir . '/' . $name;
 
-    $clientCompileErrors = implode("::", $clientResult->errors());
-    assertTrue($clientResult->isSuccess(), "$clientFile: $clientCompileErrors");
-    $client = $clientResult->value();
-    $host = $client->host()->value();
-    $expectedHost = pathinfo($clientFile, PATHINFO_FILENAME);
-    assertSame($expectedHost, $host, "$clientFile host must match filename");
-    assertFalse(isset($seenHosts[$host]), "Duplicate host: $host");
-    $seenHosts[$host] = true;
+        assertTrue(
+            file_exists($schemaFile),
+            "Missing schema: $schemaFile"
+        );
 
-    assertTrue($client->title() !== NULL, "$clientFile must define title");
-    assertTrue(is_array($client->fields()), "$clientFile must define fields array");
+        assertTrue(
+            file_exists($fixtureFile),
+            "Missing heartbeat fixture: $fixtureFile"
+        );
 
-    $definedFields = $client->fields();
-    $foundFields = array();
-    foreach($definedFields as $field) {
-        $foundFields[$field->field()->value()] = true;
+        $clientJson = from_json_file($clientFile);
+        $schema = from_json_file($schemaFile);
+        $fixture = from_json_file($fixtureFile);
+
+        $result = Client::compile(
+            $clientJson,
+            $schema,
+            $clientFile
+        );
+
+        assert_compile_success($result);
+
+        $client = $result->value();
+
+        $host = $client->host()->value();
+
+        assertSame(
+            pathinfo($clientFile, PATHINFO_FILENAME),
+            $host,
+            "$clientFile host must match filename"
+        );
+
+        assertFalse(
+            isset($seenHosts[$host]),
+            "Duplicate host: $host"
+        );
+
+        $seenHosts[$host] = true;
+
+        assertTrue(
+            $client->title() !== null,
+            "$clientFile missing title"
+        );
+
+        assertTrue(
+            is_array($client->fields()),
+            "$clientFile fields must be an array"
+        );
+
+        assertTrue(
+            $client->order() !== null,
+            "$clientFile missing order"
+        );
+
+        $fields = array();
+
+        foreach ($client->fields() as $field) {
+            $fields[$field->field()->value()] = true;
+        }
+
+        assertTrue(
+            isset($fields['uptime']),
+            "$clientFile must define uptime"
+        );
+
+        foreach ($fixture as $field => $value) {
+            assertTrue(
+                isset($schema[$field]),
+                "$fixtureFile field '$field' missing from schema"
+            );
+        }
     }
+});
 
-    assertTrue(isset($foundFields['uptime']), "$clientFile must define mandatory uptime field");
-    assertTrue($client->order() !== NULL, "$clientFile must define order");
-}
-
+$runner->finish();

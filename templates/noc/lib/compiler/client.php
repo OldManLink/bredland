@@ -35,7 +35,7 @@ class Client implements Compilable {
 
     public static function compile($definition, $schema, $path) {
         if (!is_array($definition)) {
-            return CompilationResult::failure(array("$path must be an object"));
+            return CompilationResult::failure(array("$path: must be an object"));
         }
 
         $validationResult = check_allowed_keys(
