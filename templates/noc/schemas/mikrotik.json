@@ -29,6 +29,9 @@
   "update_available": {
     "value_type": "boolean"
   },
+  "latest_version": {
+    "value_type": "string"
+  },
   "remote_addr": {
     "value_type": "string"
   }

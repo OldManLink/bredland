@@ -42,7 +42,7 @@ scripts/render-template.sh templates/noc/telemetry.config.template.php "$config_
 
 echo "Copying endpoint libraries"
 mkdir -p "$libdir_local"
-cp templates/noc/lib/*.php "$libdir_local/"
+rsync -a templates/noc/lib/*.php "$libdir_local/"
 
 echo "Copying heartbeat schemas"
 mkdir -p "$schemas_local"
@@ -53,14 +53,6 @@ echo "Deploying to ${oderland_user}@${oderland_host}..."
 echo "Synchronising libraries to $libdir_remote..."
 execute_remote_command "mkdir -p '$libdir_remote'"
 execute_rsync "$libdir_local/" "${oderland_user}@${oderland_host}:${libdir_remote}/"
-
-echo "Verifying libraries..."
-for lib_file in "$libdir_local"/*.php; do
-    lib_name="$(basename "$lib_file")"
-    echo -n "  $lib_name... "
-    execute_remote_command "test -s '${libdir_remote}/${lib_name}'"
-    echo "OK"
-done
 
 echo "Synchronising schemas to $schemas_remote..."
 execute_remote_command "mkdir -p '$schemas_remote'"
