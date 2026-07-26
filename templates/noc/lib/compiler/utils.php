@@ -38,8 +38,6 @@ function check_allowed_keys($definition, $allowedKeys, $path) {
         }
     }
 
-
-
     return CompilationResult::success(null);
 }
 

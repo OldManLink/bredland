@@ -10,17 +10,20 @@ require_once $compilerRoot .'/predicate.php';
 require_once $compilerRoot .'/action.php';
 
 // Correctly constructed Rule in json format
-$ruleJson = array(
-    'when' => array(
-        'field' => 'update_available',
-        'operator' => 'equals',
-        'value' => true,
-    ),
-    'then' => array(
-        'receiver' => 'client',
-        'method' => 'addNotification',
-        'argument' => 'Software update available',
-    ),
+$ruleJson = from_json(<<<'JSON'
+{
+    "when": {
+        "field": "update_available",
+        "operator": "equals",
+        "value": true
+    },
+    "then": {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": "Software update available"
+    }
+}
+JSON
 );
 
 $runner = new TestRunner('Rule');
@@ -81,17 +84,20 @@ $runner->test('compiler tests: RuleList', function () use ($ruleJson) {
 });
 
 $runner->test('unsupported operator: greaterThan', function () use ($ruleJson) {
-    $invalidRuleJson = array(
-        'when' => array(
-            'field' => 'update_available',
-            'operator' => 'greaterThan',
-            'value' => true,
-        ),
-        'then' => array(
-            'receiver' => 'client',
-            'method' => 'addNotification',
-            'argument' => 'Software update available',
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "when": {
+            "field": "update_available",
+            "operator": "greaterThan",
+            "value": true
+        },
+        "then": {
+            "receiver": "client",
+            "method": "addNotification",
+            "argument": "Software update available"
+        }
+    }
+JSON
     );
 
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule.when.operator: unsupported operator: greaterThan');
@@ -101,72 +107,87 @@ $runner->test('unsupported operator: greaterThan', function () use ($ruleJson) {
 });
 
 $runner->test('missing method noSuchMethod', function () {
-    $invalidRuleJson = array(
-        'when' => array(
-            'field' => 'update_available',
-            'operator' => 'equals',
-            'value' => true,
-        ),
-        'then' => array(
-            'receiver' => 'client',
-            'method' => 'noSuchMethod',
-            'argument' => 'Software update available',
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "when": {
+            "field": "update_available",
+            "operator": "equals",
+            "value": true
+        },
+        "then": {
+            "receiver": "client",
+            "method": "noSuchMethod",
+            "argument": "Software update available"
+        }
+    }
+JSON
     );
 
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule.then: unsupported method noSuchMethod');
 });
 
 $runner->test('invalid identifier: thén', function () {
-    $invalidRuleJson = array(
-        'thén' => array(
-            'receiver' => 'client',
-            'method' => 'notification',
-            'message' => 'Software update available',
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "thén": {
+            "receiver": "client",
+            "method": "notification",
+            "argument": "Software update available"
+        }
+    }
+JSON
     );
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: invalid identifier: thén');
 });
 
 $runner->test('missing when', function () {
-    $invalidRuleJson = array(
-        'then' => array(
-            'receiver' => 'client',
-            'method' => 'notification',
-            'message' => 'Software update available',
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "then": {
+            "receiver": "client",
+            "method": "notification",
+            "argument": "Software update available"
+        }
+    }
+JSON
     );
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: expected when');
 });
 
 $runner->test('missing then', function () {
-    $invalidRuleJson = array(
-        'when' => array(
-            'field' => 'update_available',
-            'operator' => 'equals',
-            'value' => true,
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "when": {
+            "field": "update_available",
+            "operator": "equals",
+            "value": true
+        }
+    }
+JSON
     );
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: expected then');
 });
 
 $runner->test('unsupported attribute: else', function () {
-    $invalidRuleJson = array(
-        'when' => array(
-            'field' => 'update_available',
-            'operator' => 'equals',
-            'value' => true,
-        ),
-        'then' => array(
-            'receiver' => 'client',
-            'method' => 'notification',
-            'message' => 'Software update available',
-        ),
-        'else' => array(
-            'receiver' => 'client',
-            'method' => 'notification',
-            'message' => 'Software update available',
-        ),
+    $invalidRuleJson = from_json(<<<'JSON'
+    {
+        "when": {
+            "field": "update_available",
+            "operator": "equals",
+            "value": true
+        },
+        "then": {
+            "receiver": "update_available",
+            "method": "equals",
+            "message": true
+        },
+        "else": {
+            "receiver": "update_available",
+            "method": "equals",
+            "message": true
+        }
+    }
+JSON
     );
     assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule: unsupported attribute: else');
 });
