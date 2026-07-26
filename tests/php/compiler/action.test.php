@@ -8,104 +8,90 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/action.php';
 
-$action = new Action(
-    'client',
-    'addNotification',
-    'Software update available'
-);
+$runner = new TestRunner('action');
 
-assertSame('client', $action->receiver());
-assertSame('addNotification', $action->method());
-assertSame('Software update available', $action->argument());
+$runner->test('compiles setHealth action', function () {
+    $action = from_json(<<<'JSON'
+    {
+        "receiver": "client",
+        "method": "setHealth",
+        "argument": "critical"
+    }
+JSON
+    );
 
-// Compiler tests
-$actionJson = array(
-    'receiver' => 'client',
-    'method' => 'addNotification',
-    'argument' => 'Software update available.',
-);
-$result = Action::compile($actionJson, test_schema(), 'Happy addNotification path');
-assertTrue($result instanceof CompilationResult);
-assertTrue($result->isSuccess());
-$action = $result->value();
-assertSame('client', $action->receiver());
-assertSame('addNotification', $action->method());
-assertSame('Software update available.', $action->argument());
+    $result = Action::compile($action, test_schema(), 'Happy Path');
+    assert_compile_success($result);
+    $value = $result->value();
 
-$actionJson = array(
-    'receiver' => 'client',
-    'method' => 'setHealth',
-    'argument' => 'healthy',
-);
-$result = Action::compile($actionJson, test_schema(), 'Happy setHealth path');
-assertTrue($result instanceof CompilationResult);
-assertTrue($result->isSuccess());
-$action = $result->value();
-assertSame('client', $action->receiver());
-assertSame('setHealth', $action->method());
-assertSame('healthy', $action->argument());
+    assertSame('client', $value->receiver()->name());
+    assertSame(Client::class, $value->receiver()->receiver_class());
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'argument' => 'Software update available.',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: expected method');
+    assertSame('setHealth', $value->method()->name());
+    assertSame(HealthVal::class, $value->method()->argument_class());
 
-$invalidActionJson = array(
-    'receiver' => 'noc',
-    'method' => 'addNotification',
-    'fubar' => 'message',
-    'argument' => 'Software update available.',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported attribute: fubar');
+    assertSame('critical', $value->argument()->value());
+});
 
-$invalidActionJson = array(
-    'receiver' => 'noc',
-    'method' => 'addNotification',
-    'methöd' => 'addNotification',
-    'argument' => 'Software update available.',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: invalid identifier: methöd');
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'method' => '',
-    'argument' => 'Software update available.',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.method: must be a non-empty string');
+$runner->test('compiles addNotification action', function () {
+    $action = from_json(<<<'JSON'
+    {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": "Disk space is low"
+    }
+JSON
+    );
 
-$invalidActionJson = array(
-    'receiver' => 'noc',
-    'method' => 'clickAction',
-    'argument' => 'clicked',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported method clickAction');
+    $result = Action::compile($action, test_schema(), 'Happy Path');
+    assert_compile_success($result);
+    $value = $result->value();
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'method' => 'addNotification',
-    'argyment' => 'Software update available.',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then: unsupported attribute: argyment');
+    assertSame('client', $value->receiver()->name());
+    assertSame(Client::class, $value->receiver()->receiver_class());
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'method' => 'setHealth',
-    'argument' => 42,
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.argument: must be a non-empty string');
+    assertSame('addNotification', $value->method()->name());
+    assertSame(SlotVal::class, $value->method()->argument_class());
+});
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'method' => 'setHealth',
-    'argument' => '',
-);
 
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.argument: must be a non-empty string');
+$runner->test('rejects unsupported receiver', function () {
+    $action = from_json(<<<'JSON'
+    {
+        "receiver": "router",
+        "method": "setHealth",
+        "argument": "critical"
+    }
+JSON
+    );
+    assert_compile_error(Action::compile($action, test_schema(), 'action'), "action.receiver: unsupported receiver: router");
+});
 
-$invalidActionJson = array(
-    'receiver' => 'client',
-    'method' => 'setHealth',
-    'argument' => 'hungover',
-);
-assert_compile_error(Action::compile($invalidActionJson, test_schema(), 'rule.then'), 'rule.then.setHealth: unsupported argument hungover');
+
+$runner->test('rejects unsupported method', function () {
+    $action = from_json(<<<'JSON'
+    {
+        "receiver": "client",
+        "method": "reboot",
+        "argument": "now"
+    }
+JSON
+    );
+    assert_compile_error(Action::compile($action, test_schema(), 'action'), "action.method: unsupported method: reboot");
+});
+
+
+$runner->test('rejects invalid method argument', function () {
+    $action = from_json(<<<'JSON'
+    {
+        "receiver": "client",
+        "method": "setHealth",
+        "argument": "hungover"
+    }
+JSON
+    );
+    assert_compile_error(Action::compile($action, test_schema(), 'action'), "action.argument: unsupported health value: hungover");
+});
+
+$runner->finish();

@@ -53,9 +53,9 @@ $runner->test('compiler tests: Rule', function () use ($ruleJson) {
     assertSame('equals', $rule->predicate()->operator()->name());
     assertSame(true, $rule->predicate()->argument()->value());
 
-    assertSame('client', $rule->action()->receiver());
-    assertSame('addNotification', $rule->action()->method());
-    assertSame('Software update available', $rule->action()->argument());
+    assertSame('client', $rule->action()->receiver()->name());
+    assertSame('addNotification', $rule->action()->method()->name());
+    assertSame('Software update available', $rule->action()->argument()->parts()[0]->value());
 
     assert_compile_error(Rule::compile(42, test_schema(), '42'), '42: must be an object');
 });
@@ -123,7 +123,7 @@ $runner->test('missing method noSuchMethod', function () {
 JSON
     );
 
-    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule.then: unsupported method noSuchMethod');
+    assert_compile_error(Rule::compile($invalidRuleJson, test_schema(), 'rule'), 'rule.then.method: unsupported method: noSuchMethod');
 });
 
 $runner->test('invalid identifier: thén', function () {
