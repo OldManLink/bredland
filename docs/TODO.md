@@ -1,70 +1,67 @@
-# BRD-016 TODO
+# BRD-022 TODO
 
-Remaining work before the declarative rules compiler is considered complete.
+Remaining work before dashboard notifications are considered complete.
 
-## Language closure
+## Runtime polish
 
-### Rule
+### Client
 
-- ✅ Reject unknown rule attributes (only `when` and `then` are permitted).
-- ✅ Add regression tests for unsupported rule attributes (e.g. `else`).
+- ✅ Review PHPDoc for the runtime API.
+- ✅ Review exception messages for consistency and clarity.
+- ✅ Remove any remaining dead execute-era code.
+- [ ] Add any missing regression tests discovered during cleanup.
 
-### Predicate
+### Rules
 
-- ✅ Reject unknown predicate attributes.
-- ✅ Validate that the predicate receiver exists in the client schema.
-- ✅ Validate that the selected comparator is compatible with the receiver's declared `valueType`.
-- ✅ Add regression tests for all of the above.
+- ✅ Add an end-to-end regression test covering multiple rules evaluated during a single render.
 
-### Action
+## Dashboard integration
 
-- ✅ Reject unknown action attributes.
-- [ ] Validate notification message placeholders (`{{field}}`) against the client schema.
-- [ ] Add regression tests for placeholder validation.
-- ✅ Add regression tests for unknown action attributes.
+### Health
 
-## Client compilation
+- ✅ Populate client health during rendering.
+- [ ] Expose client health to the dashboard.
 
-- ✅ Refactor `client-descriptions.test.php` to use the production compiler.
-- ✅ Replace duplicated validation logic with compiler diagnostics.
-- ✅ Assert that valid client descriptions compile without warnings or errors.
+### Notifications
 
-## Compiler architecture
-
-- ✅ Introduce `compile_client()`.
-- ✅ Pass the client schema into the compiler (loaded by the caller, not by the compiler itself).
-- ✅ Keep the compiler completely independent of filesystem I/O.
+- ✅ Populate notifications during rendering.
+- [ ] Expose notifications to the dashboard.
+- [ ] Render notification badges.
+- [ ] Implement notification popover.
+- [ ] Ensure notifications clear automatically when their conditions are no longer true.
 
 ## Polish
 
-- [ ] Remove any remaining duplicated validation logic from tests.
-- [ ] Review compiler diagnostics for consistency and readability.
-- [ ] Add any missing regression tests discovered during implementation.
+- ✅ Review naming and documentation throughout the runtime/compiler boundary.
+- ✅ Remove any obsolete comments referring to the old execute phase.
+- ✅ Review the public runtime API for consistency.
 
 ---
 
-## Future work (not part of BRD-016)
+## Future work (not part of BRD-022)
 
 These ideas intentionally remain out of scope for this slice.
 
-- [ ] Introduce `compile_schema()`, if the schema itself develops behaviour beyond being a validated data structure.
-- [ ] Support additional predicate comparators (`greaterThan`, `notEquals`, etc.) as real use cases emerge.
-- [ ] Support richer predicate composition (`and`, `or`) if the language genuinely requires it.
-- [ ] Extend notification placeholders with formatting helpers (for example `{{free_memory_human}}`).
+- [ ] Generalise the health evaluation pipeline for future health rules.
+- [ ] Support multiple notification severities.
+- [ ] Support richer notification presentation (icons, timestamps, grouping) if genuine use cases emerge.
+- [ ] Consider notification history once the history endpoint exists.
 
 ---
 
 ## Notes
 
-### Compiler philosophy
+### Runtime philosophy
 
-- Keep the compiler pure: JSON + Schema → CompilationResult.
-- Keep all filesystem access outside the compiler.
-- Prefer many small compiler stages (`compile_rule`, `compile_predicate`, `compile_action`) over one large function.
-- Every compiler stage should either produce a valid domain object or a diagnostic, never both.
+- Compile once.
+- Render lazily.
+- Evaluate rules eagerly.
+- Keep heartbeat rendering side-effect free except for explicitly modelled runtime state (health and notifications).
 
 ### Design rule
 
-Resist adding language features until the domain genuinely requires them.
+The compiler owns structure.
 
-One predicate → one action has proven to be expressive, simple and easy to reason about. Keep it that way unless real-world requirements demonstrate otherwise.
+The runtime owns behaviour.
+
+Avoid introducing new execution phases unless the domain genuinely requires them.

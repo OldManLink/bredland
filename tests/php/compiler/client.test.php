@@ -81,6 +81,49 @@ $clientJson2 = from_json(<<<'JSON'
 JSON
 );
 
+$clientJson3 = from_json(<<<'JSON'
+{
+  "host": "test",
+  "title": "Test",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "value_type": "integer",
+      "format": "display_uptime"
+    }
+  ],
+  "rules": [
+      {
+        "when": {
+          "field": "free_memory",
+          "operator": "lessThan",
+          "value": 1073741824
+        },
+        "then": {
+          "receiver": "client",
+          "method": "setHealth",
+          "argument": "warning"
+        }
+      },
+      {
+        "when": {
+          "field": "update_available",
+          "operator": "equals",
+          "value": true
+        },
+        "then": {
+          "receiver": "client",
+          "method": "addNotification",
+          "argument": "Software update available:\nVersion: {{latest_version}} (stable)."
+        }
+      }
+    ],
+  "order": 42
+}
+JSON
+);
+
 $heartbeatJson = from_json(<<<'JSON'
 {
   "schema": 1,
@@ -143,6 +186,17 @@ $runner->test('render tests: Client action not triggered', function () use ($cli
 $runner->test('render tests: Client setHealth triggered', function () use ($clientJson2, $heartbeatJson) {
     $client = Client::compile($clientJson2, test_schema(), 'Happy Path')->value();
     assertSame("warning", $client->render($heartbeatJson)->health());
+});
+
+$runner->test('render tests: multiple Client rules triggered', function () use ($clientJson3, $heartbeatJson) {
+    $client = Client::compile($clientJson3, test_schema(), 'Happy Path')->value();
+
+    assertSame("warning", $client->render($heartbeatJson)->health());
+
+    assertSame(1, $client->notification_count());
+    assertSame("Software update available:\nVersion: 7.23.2 (stable).",
+        $client->notifications()[0]->text()
+    );
 });
 
 $runner->test('compiler tests: Client', function () use ($clientJson) {

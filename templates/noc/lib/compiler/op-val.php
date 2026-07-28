@@ -65,9 +65,7 @@ class OpVal implements Compilable, Renderable {
             case 'lessThan':
                 return function ($left, $right) {
                     if (gettype($left) !== gettype($right)) {
-                        throw new Exception(
-                            'lessThan requires operands of the same type'
-                        );
+                        throw new Exception("Programming error: 'lessThan' requires operands of the same type");
                     }
 
                     return $left < $right;

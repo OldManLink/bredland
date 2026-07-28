@@ -136,7 +136,9 @@ class Client implements Compilable {
     }
 
     public function get($fieldName) {
-       if ($this->heartbeat === null) { throw new Exception('Programming error: Client has not been rendered');};
+       if ($this->heartbeat === null) {
+           throw new Exception('Programming error: Client has not been rendered');
+       }
         return $this->fields
             ->get($fieldName)
             ->render($this->heartbeat);
