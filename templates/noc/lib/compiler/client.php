@@ -19,6 +19,7 @@ class Client implements Compilable {
     private $order;
     private $notifications = array();
     private $heartbeat = null;
+    private $health = null;
 
     private static function partClasses() {
         return array(
@@ -109,6 +110,14 @@ class Client implements Compilable {
         return $this->notifications;
     }
 
+    public function health() {
+        return $this->health;
+    }
+
+    public function setHealth($health) {
+        $this->health = $health;
+    }
+
     public function notification_count() {
         return count($this->notifications);
     }
@@ -123,6 +132,7 @@ class Client implements Compilable {
         foreach ($this->rules() as $rule) {
             $rule->render($heartbeat, array($this));
         }
+        return $this;
     }
 
     public function get($fieldName) {

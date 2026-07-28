@@ -50,6 +50,37 @@ $clientJson = from_json(<<<'JSON'
 JSON
 );
 
+$clientJson2 = from_json(<<<'JSON'
+{
+  "host": "test",
+  "title": "Test",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "value_type": "integer",
+      "format": "display_uptime"
+    }
+  ],
+  "rules": [
+      {
+        "when": {
+          "field": "free_memory",
+          "operator": "lessThan",
+          "value": 1073741824
+        },
+        "then": {
+          "receiver": "client",
+          "method": "setHealth",
+          "argument": "warning"
+        }
+      }
+    ],
+  "order": 42
+}
+JSON
+);
+
 $heartbeatJson = from_json(<<<'JSON'
 {
   "schema": 1,
@@ -88,6 +119,7 @@ JSON
 
 $runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
     $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+    assertSame(null, $client->health());
     assertThrows('Exception', 'Programming error: Client has not been rendered',
         function () use ($client) {
             $client->get('uptime');
@@ -97,12 +129,20 @@ $runner->test('render tests: Client action triggered', function () use ($clientJ
     assertSame(display_uptime(2673306), $client->get('uptime'));
     assertSame(1, count($client->notifications()));
     assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
+    assertSame(null, $client->health());
 });
 
 $runner->test('render tests: Client action not triggered', function () use ($clientJson, $heartbeatJson2) {
     $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+    assertSame(null, $client->health());
     $client->render($heartbeatJson2);
     assertSame(0, count($client->notifications()));
+    assertSame(null, $client->health());
+});
+
+$runner->test('render tests: Client setHealth triggered', function () use ($clientJson2, $heartbeatJson) {
+    $client = Client::compile($clientJson2, test_schema(), 'Happy Path')->value();
+    assertSame("warning", $client->render($heartbeatJson)->health());
 });
 
 $runner->test('compiler tests: Client', function () use ($clientJson) {
