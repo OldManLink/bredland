@@ -8,112 +8,264 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/predicate.php';
 
-$predicate = new Predicate(
-    new FieldVal('update_available'),
-    new OpVal('equals', array('string')),
-    new BoolVal(true)
-);
+$runner = new TestRunner('predicate');
 
-assertSame('update_available', $predicate->receiver()->value());
-assertSame('equals', $predicate->operator()->name());
-assertSame(true, $predicate->argument()->value());
+$runner->test('instance creation', function () {
+    $predicate = new Predicate(
+        new FieldVal('update_available'),
+        new OpVal('equals', array('string')),
+        new BoolVal(true)
+    );
+
+    assertSame('update_available', $predicate->receiver()->value());
+    assertSame('equals', $predicate->operator()->name());
+    assertSame(true, $predicate->argument()->value());
+});
+
+$runner->test('renders true predicate', function () {
+    $predicate = new Predicate(
+        new FieldVal('update_available'),
+        new OpVal('equals', array('boolean')),
+        new BoolVal(true)
+    );
+    assertTrue($predicate->render(array('update_available' => true)));
+});
+
+$runner->test('renders false predicate', function () {
+    $predicate = new Predicate(
+        new FieldVal('update_available'),
+        new OpVal('equals', array('boolean')),
+        new BoolVal(true)
+    );
+    assertFalse($predicate->render(array('update_available' => false)));
+});
 
 // Compiler tests
-$schema = test_schema();
+$runner->test('compiles boolean predicate', function () {
+    $schema = test_schema();
 
-$predicateJsonBool = array(
-    'field' => 'update_available',
-    'operator' => 'equals',
-    'value' => true,
-);
+    $predicateJson = from_json(<<<'JSON'
+    {
+        "field": "update_available",
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
 
-$result = Predicate::compile($predicateJsonBool, $schema, 'Happy Path');
-assertTrue($result instanceof CompilationResult);
-$predicate = $result->value();
-assertSame('update_available', $predicate->receiver()->value());
-assertSame('equals', $predicate->operator()->name());
-assertSame(true, $predicate->argument()->value());
+    $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
 
-$predicateJsonFloat = array(
-    'field' => 'temperature',
-    'operator' => 'lessThan',
-    'value' => 42.5,
-);
+    assertTrue($result instanceof CompilationResult);
 
-$result = Predicate::compile($predicateJsonFloat, $schema, 'Happy Path');
-assertTrue($result instanceof CompilationResult);
-$predicate = $result->value();
-assertSame('temperature', $predicate->receiver()->value());
-assertSame('lessThan', $predicate->operator()->name());
-assertSame(42.5, $predicate->argument()->value());
+    $predicate = $result->value();
 
-$invalidPredicateJson = array(
-    'operator' => 'equals',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when: expected field');
+    assertSame('update_available', $predicate->receiver()->value());
+    assertSame('equals', $predicate->operator()->name());
+    assertSame(true, $predicate->argument()->value());
+});
 
-$invalidPredicateJson = array(
-    'feild' => '',
-    'operator' => 'equals',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when: unsupported attribute: feild');
+$runner->test('compiles float predicate', function () {
+    $schema = test_schema();
 
-$invalidPredicateJson = array(
-    'field' => 'uptime',
-    'operator' => 'equals',
-    'fubar' => array(),
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when: unsupported attribute: fubar');
+    $predicateJson = from_json(<<<'JSON'
+    {
+        "field": "temperature",
+        "operator": "lessThan",
+        "value": 42.5
+    }
+JSON
+    );
 
-$invalidPredicateJson = array(
-    'field' => 'uptime',
-    'operator' => 'equals',
-    'fübar' => array(),
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when: invalid identifier: fübar');
+    $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
 
-$invalidPredicateJson = array(
-    'field' => '',
-    'operator' => 'equals',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.field: must be a non-empty string');
+    assertTrue($result instanceof CompilationResult);
 
-$invalidPredicateJson = array(
-    'field' => 42,
-    'operator' => 'equals',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.field: must be a non-empty string');
+    $predicate = $result->value();
 
-$invalidPredicateJson = array(
-    'field' => false,
-    'operator' => 'equals',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.field: must be a non-empty string');
+    assertSame('temperature', $predicate->receiver()->value());
+    assertSame('lessThan', $predicate->operator()->name());
+    assertSame(42.5, $predicate->argument()->value());
+});
 
-$invalidPredicateJson = array(
-    'field' => 'update_available',
-    'operator' => 'equals',
-    'value' => null,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.value: must not be undefined');
+$runner->test('rejects missing field', function () {
+    $schema = test_schema();
 
-$invalidPredicateJson = array(
-    'field' => 'update_available',
-    'operator' => 'equals',
-    'value' => array(),
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.value: unsupported value_type: array');
+    $json = from_json(<<<'JSON'
+    {
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
 
-$invalidPredicateJson = array(
-    'field' => 'update_available',
-    'operator' => 'lessThan',
-    'value' => true,
-);
-assert_compile_error(Predicate::compile($invalidPredicateJson, $schema, 'rule.when'), 'rule.when.lessThan: incompatible with boolean');
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when: expected field'
+    );
+});
+
+$runner->test('rejects unsupported attribute', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "feild": "",
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when: unsupported attribute: feild'
+    );
+});
+
+$runner->test('rejects additional unsupported attribute', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "uptime",
+        "operator": "equals",
+        "fubar": [],
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when: unsupported attribute: fubar'
+    );
+});
+
+$runner->test('rejects invalid attribute identifier', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "uptime",
+        "operator": "equals",
+        "fübar": [],
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when: invalid identifier: fübar'
+    );
+});
+
+$runner->test('rejects empty field', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "",
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.field: must be a non-empty string'
+    );
+});
+
+$runner->test('rejects non-string numeric field', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": 42,
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.field: must be a non-empty string'
+    );
+});
+
+$runner->test('rejects non-string boolean field', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": false,
+        "operator": "equals",
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.field: must be a non-empty string'
+    );
+});
+
+$runner->test('rejects undefined value', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "update_available",
+        "operator": "equals",
+        "value": null
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.value: must not be undefined'
+    );
+});
+
+$runner->test('rejects unsupported value type', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "update_available",
+        "operator": "equals",
+        "value": []
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.value: unsupported value_type: array'
+    );
+});
+
+$runner->test('rejects incompatible operator', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "update_available",
+        "operator": "lessThan",
+        "value": true
+    }
+JSON
+    );
+
+    assert_compile_error(
+        Predicate::compile($json, $schema, 'rule.when'),
+        'rule.when.lessThan: incompatible with boolean'
+    );
+});
+
+$runner->finish();

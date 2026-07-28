@@ -4,9 +4,9 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 require_once __DIR__ . '/field-val.php';
+require_once __DIR__ . '/runtime-val.php';
 
-
-class SlotVal implements Compilable {
+class SlotVal implements Compilable, RuntimeVal {
     private $parts;
 
     public static function compile($definition, $schema, $path) {
@@ -102,5 +102,15 @@ class SlotVal implements Compilable {
 
     public function parts() {
         return $this->parts;
+    }
+
+    public function render($heartbeat) {
+        $result = '';
+
+        foreach ($this->parts as $part) {
+            $result .= $part->render($heartbeat);
+        }
+
+        return $result;
     }
 }

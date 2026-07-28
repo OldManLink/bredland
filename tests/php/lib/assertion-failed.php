@@ -1,5 +1,4 @@
 <?php
 
-class AssertionFailed extends Exception
-{
+class AssertionFailed extends Exception {
 }

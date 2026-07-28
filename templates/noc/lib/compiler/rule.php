@@ -61,6 +61,12 @@ class Rule implements Compilable {
     public function action() {
         return $this->action;
     }
+
+    public function render($heartbeat, $receivers) {
+        if ($this->predicate->render($heartbeat)) {
+            $this->action->render($heartbeat, $receivers);
+        }
+    }
 }
 
 class RuleList implements Compilable {

@@ -67,4 +67,13 @@ class Action implements Compilable {
     public function argument() {
         return $this->argument;
     }
+
+    public function render($heartbeat, $receivers) {
+        foreach ($this->receiver->render($receivers) as $receiver) {
+            $method = $this->method->render();
+            $argument = $this->argument->render($heartbeat);
+
+            $receiver->$method($argument);
+        }
+    }
 }

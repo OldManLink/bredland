@@ -2,8 +2,7 @@
 
 require_once __DIR__ . '/assertion-failed.php';
 
-class TestRunner
-{
+class TestRunner {
     private $suiteName;
     private $passed = 0;
     private $failed = 0;

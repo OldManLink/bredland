@@ -3,8 +3,9 @@ require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
+require_once __DIR__ . '/runtime-val.php';
 
-class HealthVal implements Compilable {
+class HealthVal implements Compilable, RuntimeVal {
     private $value;
     private static function health_values() {
         return array(
@@ -33,5 +34,9 @@ class HealthVal implements Compilable {
 
     public function value() {
         return $this->value;
+    }
+
+    public function render($heartbeat) {
+        return $this->value();
     }
 }

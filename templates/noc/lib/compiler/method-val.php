@@ -4,8 +4,9 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/slot-val.php';
 require_once __DIR__ . '/health-val.php';
+require_once __DIR__ . '/renderable.php';
 
-class MethodVal {
+class MethodVal implements Renderable {
     private $name;
     private $argument_class;
 
@@ -37,5 +38,9 @@ class MethodVal {
 
     public function argument_class() {
         return $this->argument_class;
+    }
+
+    public function render() {
+        return $this->name();
     }
 }

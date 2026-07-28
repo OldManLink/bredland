@@ -22,6 +22,12 @@ $runner->test('instance creation', function () {
     assertSame(SlotVal::class, $add_notification->argument_class());
 });
 
+$runner->test('renders method name', function () {
+    $method = new MethodVal('addNotification', SlotVal::class);
+
+    assertSame('addNotification', $method->render());
+});
+
 $runner->test('compiles setHealth', function () {
     $result = MethodVal::compile('setHealth', test_methods(), test_schema(), 'Happy Path');
     assert_compile_success($result);

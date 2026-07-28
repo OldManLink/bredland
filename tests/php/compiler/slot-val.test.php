@@ -20,7 +20,27 @@ $runner->test('instance creation', function () {
     assertSame($strVal, $slotVal->parts()[2]);
 });
 
-$runner->test('compiler tests: no placeholder', function () {
+$runner->test('renders string-only slot', function () {
+    $slotVal = new SlotVal(array(new StrVal('Software update available')));
+    assertSame('Software update available', $slotVal->render(array()));
+});
+
+$runner->test('renders field-only slot', function () {
+    $slotVal = new SlotVal(array(new FieldVal('latest_version')));
+    assertSame('7.23.2', $slotVal->render(array('latest_version' => '7.23.2')));
+});
+
+$runner->test('renders mixed slot', function () {
+    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')));
+    assertSame('RouterOS 7.23.2 is available.', $slotVal->render(array('latest_version' => '7.23.2')));
+});
+
+$runner->test('renders unavailable for missing field', function () {
+    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')));
+    assertSame('RouterOS unavailable is available.', $slotVal->render(array()));
+});
+
+$runner->test('compiler tests: SlotVal (no placeholder)', function () {
     $result = SlotVal::compile('Software update available', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();
@@ -29,7 +49,7 @@ $runner->test('compiler tests: no placeholder', function () {
     assertSame('Software update available', $slotVal->parts()[0]->value());
 });
 
-$runner->test('compiler tests: only placeholder', function () {
+$runner->test('only placeholder', function () {
     $result = SlotVal::compile('{{latest_version}}', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();
@@ -38,7 +58,7 @@ $runner->test('compiler tests: only placeholder', function () {
     assertSame('latest_version', $slotVal->parts()[0]->value());
 });
 
-$runner->test('compiler tests: one placeholder at the start', function () {
+$runner->test('one placeholder at the start', function () {
     $result = SlotVal::compile('{{latest_version}} update available.', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();
@@ -49,20 +69,20 @@ $runner->test('compiler tests: one placeholder at the start', function () {
     assertSame(' update available.', $slotVal->parts()[1]->value());
 });
 
-$runner->test('compiler tests: one placeholder in the middle', function () {
+$runner->test('one placeholder in the middle', function () {
     $result = SlotVal::compile('Update: {{latest_version}} available.', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();
     assertSame(3, count($slotVal->parts()));
     assertTrue($slotVal->parts()[0] instanceof StrVal);
     assertTrue($slotVal->parts()[1] instanceof FieldVal);
-    assertTrue($slotVal->parts()[0] instanceof StrVal);
+    assertTrue($slotVal->parts()[2] instanceof StrVal);
     assertSame('Update: ', $slotVal->parts()[0]->value());
     assertSame('latest_version', $slotVal->parts()[1]->value());
     assertSame(' available.', $slotVal->parts()[2]->value());
 });
 
-$runner->test('compiler tests: one placeholder at the end', function () {
+$runner->test('one placeholder at the end', function () {
     $result = SlotVal::compile('Update available: {{latest_version}}', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();
@@ -73,7 +93,7 @@ $runner->test('compiler tests: one placeholder at the end', function () {
     assertSame('latest_version', $slotVal->parts()[1]->value());
 });
 
-$runner->test('compiler tests: two placeholders', function () {
+$runner->test('two placeholders', function () {
     $result = SlotVal::compile('Update version: {{latest_version}}, ts: {{ts}} available.', test_schema(), 'Happy Path');
     assert_compile_success($result);
     $slotVal = $result->value();

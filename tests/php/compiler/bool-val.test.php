@@ -17,6 +17,11 @@ $runner->test('instance creation', function () {
     assertSame(false, $bool->value());
 });
 
+$runner->test('renders its value unchanged', function () {
+    $true = new BoolVal(true);
+    assertTrue($true->render(array()));
+});
+
 $runner->test('compiler tests: BoolVal', function () {
     $result = BoolVal::compile(true, test_schema(), 'Happy Path');
     assert_compile_success($result);

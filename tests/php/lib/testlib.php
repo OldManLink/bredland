@@ -21,8 +21,7 @@ function assertDifferent($expected, $actual, $message = '') {
     }
 }
 
-function assertThrows($exceptionClass, $expectedMessage, $operation)
-{
+function assertThrows($exceptionClass, $expectedMessage, $operation) {
     try {
         call_user_func($operation);
     } catch (Exception $e) {
@@ -78,8 +77,7 @@ function required_string($array, $key, $context) {
     return $array[$key];
 }
 
-function assert_allowed_keys($required, $allowed, $actual, $context)
-{
+function assert_allowed_keys($required, $allowed, $actual, $context) {
     $actualKeys = array_keys($actual);
 
     foreach ($required as $key) {

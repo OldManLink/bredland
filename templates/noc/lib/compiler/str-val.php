@@ -26,4 +26,8 @@ class StrVal implements Compilable, SlotPart {
     public function value_type() {
         return 'string';
     }
+
+    public function render($heartbeat) {
+        return $this->value();
+    }
 }

@@ -13,16 +13,14 @@ require_once "$base_dir/lib/auth.php";
 require_once "$base_dir/lib/record.php";
 require_once "$base_dir/lib/storage.php";
 
-function respond($status, $message)
-{
+function respond($status, $message) {
     http_response_code($status);
     header('Content-Type: text/plain; charset=utf-8');
     echo $message . "\n";
     exit;
 }
 
-function param($name)
-{
+function param($name) {
     if (!isset($_POST[$name]) || $_POST[$name] === '') {
         respond(400, 'missing parameter: ' . $name);
     }

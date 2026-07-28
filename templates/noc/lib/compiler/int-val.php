@@ -2,8 +2,9 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/runtime-val.php';
 
-class IntVal implements Compilable {
+class IntVal implements Compilable, RuntimeVal {
     private $value;
 
     public static function compile($definition, $schema, $path) {
@@ -24,5 +25,9 @@ class IntVal implements Compilable {
 
     public function value_type() {
         return 'integer';
+    }
+
+    public function render($heartbeat) {
+        return $this->value();
     }
 }

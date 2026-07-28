@@ -4,9 +4,11 @@ require_once __DIR__ . '/part-compiler.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/field.php';
+require_once __DIR__ . '/field-list.php';
 require_once __DIR__ . '/rule.php';
 require_once __DIR__ . '/int-val.php';
 require_once __DIR__ . '/str-val.php';
+require_once dirname(__DIR__) . '/notification.php';
 
 class Client implements Compilable {
     use PartCompiler;
@@ -15,6 +17,8 @@ class Client implements Compilable {
     private $fields;
     private $rules;
     private $order;
+    private $notifications = array();
+    private $heartbeat = null;
 
     private static function partClasses() {
         return array(
@@ -99,5 +103,32 @@ class Client implements Compilable {
 
     public function order() {
         return $this->order;
+    }
+
+    public function notifications() {
+        return $this->notifications;
+    }
+
+    public function notification_count() {
+        return count($this->notifications);
+    }
+
+    public function addNotification($text) {
+        $this->notifications[] = new Notification($text);
+    }
+
+    public function render($heartbeat) {
+        $this->heartbeat = $heartbeat;
+
+        foreach ($this->rules() as $rule) {
+            $rule->render($heartbeat, array($this));
+        }
+    }
+
+    public function get($fieldName) {
+       if ($this->heartbeat === null) { throw new Exception('Programming error: Client has not been rendered');};
+        return $this->fields
+            ->get($fieldName)
+            ->render($this->heartbeat);
     }
 }

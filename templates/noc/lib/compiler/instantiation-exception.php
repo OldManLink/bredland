@@ -1,5 +1,4 @@
 <?php
 
-class InstantiationException extends Exception
-{
+class InstantiationException extends Exception {
 }

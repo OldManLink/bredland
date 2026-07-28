@@ -6,8 +6,9 @@ require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/field-val.php';
 require_once __DIR__ . '/op-val.php';
 require_once __DIR__ . '/val.php';
+require_once __DIR__ . '/runtime-val.php';
 
-class Predicate implements Compilable {
+class Predicate implements Compilable, RuntimeVal {
     use PartCompiler;
     private $receiver;
     private $operator;
@@ -79,6 +80,15 @@ class Predicate implements Compilable {
 
     public function argument() {
         return $this->argument;
+    }
+
+    public function render($heartbeat) {
+        $operator = $this->operator->render();
+
+        return $operator(
+            $this->receiver->render($heartbeat),
+            $this->argument->render($heartbeat)
+        );
     }
 }
 

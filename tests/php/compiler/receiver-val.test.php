@@ -22,6 +22,18 @@ $runner->test('instance creation', function () {
     assertSame(Noc::class, $noc->receiver_class());
 });
 
+$runner->test('renders matching receiver', function () {
+    $receiver = new ReceiverVal('client', Client::class);
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+    assertSame(array($client), $receiver->render(array($client)));
+});
+
+$runner->test('renders non-matching receiver as array()', function () {
+    $receiver = new ReceiverVal('noc', Noc::class);
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+    assertSame(array(), $receiver->render(array($client)));
+});
+
 $runner->test('compiles client', function () {
     $result = ReceiverVal::compile('client', test_schema(), 'Happy Path');
     assert_compile_success($result);

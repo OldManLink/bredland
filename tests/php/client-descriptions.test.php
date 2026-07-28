@@ -61,31 +61,10 @@ $runner->test('all client descriptions compile', function () use ($nocRoot, $tes
 
         $seenHosts[$host] = true;
 
-        assertTrue(
-            $client->title() !== null,
-            "$clientFile missing title"
-        );
-
-        assertTrue(
-            is_array($client->fields()),
-            "$clientFile fields must be an array"
-        );
-
-        assertTrue(
-            $client->order() !== null,
-            "$clientFile missing order"
-        );
-
-        $fields = array();
-
-        foreach ($client->fields() as $field) {
-            $fields[$field->field()->value()] = true;
-        }
-
-        assertTrue(
-            isset($fields['uptime']),
-            "$clientFile must define uptime"
-        );
+        assertTrue($client->title() instanceof StrVal, "$clientFile.title StrVal expected");
+        assertTrue($client->fields() instanceof FieldList, "$clientFile.fields FieldList expected");
+        assertTrue($client->order() instanceof IntVal, "$clientFile.order IntVal expected");
+        assertTrue($client->fields()->fields()['uptime'] !== null, "$clientFile must define uptime");
 
         foreach ($fixture as $field => $value) {
             assertTrue(

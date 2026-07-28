@@ -2,8 +2,9 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/runtime-val.php';
 
-class BoolVal implements Compilable {
+class BoolVal implements Compilable, RuntimeVal {
     private $value;
 
     public static function compile($definition, $schema, $path) {
@@ -24,5 +25,9 @@ class BoolVal implements Compilable {
 
     public function value_type() {
         return 'boolean';
+    }
+
+    public function render($heartbeat) {
+        return $this->value();
     }
 }

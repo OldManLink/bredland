@@ -2,13 +2,11 @@
 require_once __DIR__ . '/telemetry.php';
 require_once __DIR__ . '/storage.php';
 
-function known_value_types()
-{
+function known_value_types() {
     return array('integer', 'float', 'boolean', 'string');
 }
 
-function is_known_value_type($value_type)
-{
+function is_known_value_type($value_type){
     return in_array($value_type, known_value_types(), true);
 }
 
