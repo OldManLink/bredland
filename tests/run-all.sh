@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Keep this image aligned with the PHP version supported by Oderland.
+date +"%T"
 PHP_TEST_IMAGE="bredland/php55-test"
 
 set -euo pipefail
@@ -35,4 +36,7 @@ docker run --rm \
   -v "$repo_root:/app" \
   -w /app \
   "$PHP_TEST_IMAGE" \
-  bash tests/in-container.sh
+  bash tests/in-container.sh "$@"
+
+  date +"%T"
+

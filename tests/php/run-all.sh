@@ -52,7 +52,7 @@ for test in "${test_scripts[@]}"; do
     echo "==> $name"
 
     set +e
-    php "$test"
+    php "$test" "$@"
     rc=$?
     set -e
 

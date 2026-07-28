@@ -6,24 +6,32 @@ class TestRunner {
     private $suiteName;
     private $passed = 0;
     private $failed = 0;
+    private $quiet = false;
 
     public function __construct($suiteName)
     {
         $this->suiteName = $suiteName;
+        $this->quiet = in_array('-q', $_SERVER['argv'], true);
     }
 
     public function test($description, $test)
     {
-        fwrite(STDOUT, "→ $description\n");
-
+        $this->output("→ $description\n");
         try {
             call_user_func($test);
             ++$this->passed;
-            fwrite(STDOUT, "✅ $description\n");
+            $this->output("✅ $description\n");
         } catch (AssertionFailed $e) {
             ++$this->failed;
             fwrite(STDOUT, "❌ $description\n");
             fwrite(STDOUT, $e->getMessage() . "\n");
+        }
+    }
+
+    private function output($message)
+    {
+        if (!$this->quiet) {
+            fwrite(STDOUT, $message);
         }
     }
 
