@@ -39,7 +39,7 @@ $runner->test('renders lessThan operator', function () {
 $runner->test('lessThan rejects operands of different types', function () {
     $lessThan = (new OpVal('lessThan', array('integer' => true, 'float' => true)))->render();
 
-    assertThrows('Exception', 'lessThan requires operands of the same type',
+    assertThrows('Exception', "Programming error: 'lessThan' requires operands of the same type",
         function () use ($lessThan) {
             $lessThan(42, 43.0);
         }
