@@ -9,7 +9,6 @@ echo -n "Testing rendered NOC index ... "
 
 cat > "$tmpdir/noc-index.env" <<EOF
 TELEMETRY_CONFIG_FILE="$tmpdir/telemetry.config.php"
-STATIC_VERSION=42
 EOF
 
 mkdir -p "$tmpdir/data"
@@ -47,7 +46,6 @@ if grep -q '__[A-Z0-9_]\+__' "$tmpdir/index.php"; then
 fi
 
 grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
-grep -q 'STATIC_VERSION' "$tmpdir/index.php" || true
 
 #
 # Test that the rendered index.php actually executes.
@@ -62,6 +60,7 @@ cp "$tmpdir/telemetry.config.php" "$site_dir/telemetry.config.php"
 
 cp -R templates/noc/lib "$site_dir/"
 cp -R templates/noc/clients "$site_dir/"
+cp -R templates/noc/static "$site_dir/"
 
 php "$site_dir/index.php" > "$tmpdir/index.html" 2> "$tmpdir/index.err"
 

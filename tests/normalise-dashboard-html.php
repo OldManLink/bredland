@@ -15,12 +15,6 @@ $html = preg_replace(
 );
 
 $html = preg_replace(
-    '/\?v=\d+/',
-    '?v=__STATIC_VERSION__',
-    $html
-);
-
-$html = preg_replace(
     '/\b(?:green|amber|red)\b/',
     '__HEALTH__',
     $html

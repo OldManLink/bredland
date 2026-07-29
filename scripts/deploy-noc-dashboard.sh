@@ -45,8 +45,6 @@ next="$((current + 1))"
 # asset version for the next manual coding session.
 printf '%s\n' "$next" > "$version_file"
 
-export STATIC_VERSION="$next"
-
 echo "Rendering NOC dashboard..."
 scripts/render-template.sh templates/noc/index.template.php "$dashboard_local"
 
