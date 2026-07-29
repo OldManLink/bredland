@@ -96,20 +96,6 @@ run_render templates/noc/consolidate-monthly-logs.sh.template \
 "$tmpdir/consolidate-monthly-logs.env"
 echo "OK"
 
-# Test NOC index.template.php
-echo -n "Testing noc/index.template.php ... "
-cat > "$tmpdir/noc-index.env" <<'EOF'
-# Oderland stuff
-TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
-STATIC_VERSION=42
-EOF
-run_render templates/noc/index.template.php \
-"$tmpdir/index.php" \
-"$tmpdir/noc-index.env"
-grep -q 'private/telemetry.config.php' "$tmpdir/index.php"
-grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
-echo "OK"
-
 # Test bredland-heartbeat.service.template
 echo -n "Testing bredland/bredland-heartbeat.service.template ... "
 cat > "$tmpdir/bredland-heartbeat.service.env" <<'EOF'

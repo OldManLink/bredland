@@ -133,7 +133,7 @@ function test_methods() {
     return array(
        'addNotification' => SlotVal::class,
        'setHealth' => HealthVal::class,
-       'setValue' => StrVal::class
+       'setPartyMode' => BoolVal::class
     );
 }
 

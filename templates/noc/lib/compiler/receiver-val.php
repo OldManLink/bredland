@@ -2,7 +2,7 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
-require_once __DIR__ . '/noc.php';
+require_once dirname(__DIR__) . '/noc.php';
 require_once __DIR__ . '/client.php';
 
 class ReceiverVal implements Compilable {

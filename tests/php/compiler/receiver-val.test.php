@@ -4,10 +4,12 @@
 require_once getenv('TEST_CONFIG');
 $phpTestRoot = dirname(__DIR__);
 require_once $phpTestRoot . '/lib/testlib.php';
-$compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
+$nocLibRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib';
+require_once $nocLibRoot .'/noc.php';
+
+$compilerRoot = $nocLibRoot . '/compiler';
 require_once $compilerRoot .'/client.php';
-require_once $compilerRoot .'/noc.php';
 require_once $compilerRoot .'/receiver-val.php';
 
 $runner = new TestRunner('ReceiverVal');
@@ -50,7 +52,7 @@ $runner->test('compiles noc', function () {
     assertSame('noc', $result->value()->name());
     assertSame(Noc::class, $result->value()->receiver_class());
     $methods = $result->value()->compilable_methods();
-    assertSame(StrVal::class, $methods['setValue']);
+    assertSame(BoolVal::class, $methods['setPartyMode']);
 });
 
 $runner->test('rejects unsupported receiver', function () {
