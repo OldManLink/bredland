@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/php/lib/testlib.php';
 
 $html = file_get_contents($argv[1]);
 
@@ -32,6 +33,6 @@ $html = preg_replace(
     $html
 );
 
-$html = preg_replace('/\s+/', ' ', $html);
+$html = canonicalise_html($html);
 
-echo trim($html), PHP_EOL;
+echo $html, PHP_EOL;

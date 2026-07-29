@@ -157,3 +157,7 @@ function from_json_file($filename) {
 
     return from_json(file_get_contents($filename));
 }
+
+function canonicalise_html($html) {
+    return preg_replace('/>\s*</', ">\n<", trim($html));
+}
