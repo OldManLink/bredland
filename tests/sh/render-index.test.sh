@@ -75,6 +75,43 @@ normalise_dashboard()
     '
 }
 
+centre()
+{
+    local width="$1"
+    local text="$2"
+
+    while [ "${#text}" -lt "$width" ]; do
+        text=" $text"
+        [ "${#text}" -lt "$width" ] && text="$text "
+    done
+
+    printf '%s' "$text"
+}
+
+compare_artifact()
+{
+    local title="$1"
+    local production="$2"
+    local local="$3"
+
+    local diff_file="$tmpdir/${title}.diff"
+
+    if diff -u "$production" "$local" > "$diff_file"; then
+        return 0
+    fi
+
+    printf '%b' "${red}"
+    printf '========================================================================\n'
+    printf '========================= %s =============================\n' \
+      "$(centre 16 "$title")"
+    printf '========================================================================\n\n'
+
+    tail -n +3 "$diff_file" | head -n -1
+
+    printf '%b' "${reset}"
+    return 1
+}
+
 set -euo pipefail
 
 tmpdir="$(mktemp -d)"
@@ -162,27 +199,83 @@ grep -q 'cards-row' "$tmpdir/index.html"
 #
 
 if [ "${COMPARE_WITH_PRODUCTION:-0}" = "1" ]; then
-green='\033[0;32m'
-reset='\033[0m'
+    green='\033[0;32m'
+    red='\033[0;31m'
+    reset='\033[0m'
 
-echo
-printf "${green}========================================================================\n"
-printf "==> Deployment gate: verifying rendered dashboard against production <==\n"
-printf "========================================================================${reset}\n"
+    echo
+    printf '%b' "${green}"
+    printf '%s\n' \
+        '========================================================================' \
+        '==> Deployment gate: verifying rendered dashboard against production <==' \
+        '========================================================================'
+    printf '%b' "${reset}"
 
+#
+# Fetch production UI files
+#
     curl --fail --silent --show-error \
         https://noc.arcanel.se/ \
         > "$tmpdir/production.html"
 
-normalise_dashboard "$tmpdir/index.html" \
-    > "$tmpdir/local.normalised.html"
+    curl --fail --silent --show-error \
+        https://noc.arcanel.se/static/style.css \
+        > "$tmpdir/production.css"
 
-normalise_dashboard "$tmpdir/production.html" \
-    > "$tmpdir/production.normalised.html"
+    curl --fail --silent --show-error \
+        https://noc.arcanel.se/static/dashboard.js \
+        > "$tmpdir/production.js"
+#
+# Normalise html files
+#
+    normalise_dashboard "$tmpdir/index.html" \
+        > "$tmpdir/local.normalised.html"
 
-diff -u \
-    "$tmpdir/production.normalised.html" \
-    "$tmpdir/local.normalised.html"
+    normalise_dashboard "$tmpdir/production.html" \
+        > "$tmpdir/production.normalised.html"
+
+    any_differences=false
+#
+# Compare html files
+#
+    compare_artifact \
+        "index.html" \
+        "$tmpdir/production.normalised.html" \
+        "$tmpdir/local.normalised.html" || any_differences=true
+#
+# Compare css files
+#
+    compare_artifact \
+        "style.css" \
+        "$tmpdir/production.css" \
+        templates/noc/static/style.css || any_differences=true
+
+#
+# Compare js files
+#
+    compare_artifact \
+        "dashboard.js" \
+        "$tmpdir/production.js" \
+        templates/noc/static/dashboard.js || any_differences=true
+
+    if ! $any_differences; then
+
+        printf '%b' "${green}"
+        printf '%s\n' \
+            '========================================================================' \
+            '=======================> 👍  GATE PASSED  👍 <==========================' \
+            '========================================================================'
+        printf '%b' "${reset}"
+    else
+        printf '%b' "${red}"
+        printf '%s\n' \
+            '========================================================================' \
+            '====================== ⚠️  CHECK THE CHANGES ABOVE  ⚠️  ==================' \
+            '========================================================================'
+        printf '%b' "${reset}"
+
+        exit 1
+    fi
 fi
 
 echo "OK"

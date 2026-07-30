@@ -34,8 +34,10 @@ body {
 .card.yellow { background: #fffdf2; }
 .card.red { background: #fff7f9; }
 
-.card h2 {
+.card h1 {
     margin: 0 0 0.5rem 0;
+    font-size: 1.3em;
+    font-weight: bold;
 }
 
 .card p {

@@ -7,10 +7,10 @@
         <div class="card-slot">
             <div class="card-container">
                 <div class="card <?= heartbeat_health_colour($client['age']) ?>">
-                    <h2>
+                    <h1>
                         <span class="led <?= heartbeat_health_colour($client['age']) ?>"></span>
                         <?= htmlspecialchars($client['title'], ENT_QUOTES, 'UTF-8') ?>
-                    </h2>
+                    </h1>
 
                     <p>Last heartbeat: <?= htmlspecialchars(format_heartbeat_age($client['age']), ENT_QUOTES, 'UTF-8') ?></p>
                     <?php foreach ($client['fields'] as $field): ?>
