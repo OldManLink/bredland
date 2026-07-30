@@ -6,33 +6,28 @@ require_once __DIR__ . '/lib/testlib.php';
 
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/page-head.php';
+require_once $nocRoot . '/lib/text-renderable.php';
 
 $runner = new TestRunner('page-head');
 
-$tmpdir = sys_get_temp_dir() . '/page-head-test-' . getmypid();
-mkdir($tmpdir);
-
-$runner->test('replaces static version placeholders', function () use($tmpdir, $nocRoot) {
-    $placeholder = '_STATIC_VERSION__';
-    $clients = array();
-    $template_file = "$tmpdir/page-head-template.php";
-    $test_contents = <<<'PHP'
-<link rel="stylesheet" href="static/style.css?v=__STATIC_VERSION__">
-<script src="static/dashboard.js?v=__STATIC_VERSION__"></script>
-PHP
-;
-    if (file_put_contents($template_file, "$test_contents", FILE_APPEND | LOCK_EX) === false) {
-        throw new RuntimeException('failed to create template: ' . $template_file);
-    }
-
-    $page_head = new PageHead($template_file);
-    $html = $page_head->render();
+$runner->test('render() renders the required set of tags', function () use ($nocRoot){
+    $page_head = new PageHead(1);
+    assertStringStartsWith(indentation(1, "<meta charset=\"utf-8\">\n"), $page_head->render());
+    assertStringContains("<meta name=\"viewport\"", $page_head->render());
+    assertStringContains("<meta name=\"mobile-web-app-capable\"", $page_head->render());
+    assertStringContains("<meta name=\"theme-color\"", $page_head->render());
+    assertStringContains("<link rel=\"manifest\"", $page_head->render());
+    assertStringContains("<link rel=\"apple-touch-icon\"", $page_head->render());
+    assertStringContains("<link rel=\"icon\"", $page_head->render());
+    assertStringContains("type=\"image/png\"", $page_head->render());
+    assertStringContains("sizes=\"32x32\"", $page_head->render());
+    assertStringContains("sizes=\"16x16\"", $page_head->render());
+    assertStringContains("<link rel=\"stylesheet\"", $page_head->render());
+    assertStringContains("<script src=\"static/dashboard.js", $page_head->render());
+    assertStringContains("</script>", $page_head->render());
+    assertStringContains(indentation(1, "<title>\n") . indentation(2, "Network Operations Centre\n") . indentation(1, "</title>"), $page_head->render());
     $expected = trim(file_get_contents("$nocRoot/static/static.version"));
-
-    assertSame(0, substr_count($html, $placeholder));
-    assertSame(2, substr_count($html, $expected));
-    unlink($template_file);
+    assertSame(2, substr_count($page_head->render(), $expected));
 });
 
-rmdir($tmpdir);
 $runner->finish();

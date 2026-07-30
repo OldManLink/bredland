@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/test-runner.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/html-renderable.php';
 
 function assertSame($expected, $actual, $message = '') {
     if ($expected !== $actual) {
@@ -7,6 +8,38 @@ function assertSame($expected, $actual, $message = '') {
             "Same assertion failed" . ($message === '' ? '' : ": " . $message) . "\n" .
             "Expected: " . var_export($expected, true) . "\n" .
             "Actual:   " . var_export($actual, true) . "\n"
+        );
+    }
+}
+
+function assertStringStartsWith($expectedPrefix, $actual, $message = '') {
+    assertTrue(
+        is_string($actual),
+        'Actual value must be a string'
+    );
+
+    if (strncmp($actual, $expectedPrefix, strlen($expectedPrefix)) !== 0) {
+        throw new AssertionFailed(
+            "String-starts-with assertion failed" .
+            ($message === '' ? '' : ": " . $message) . "\n" .
+            "Expected prefix: " . var_export($expectedPrefix, true) . "\n" .
+            "Actual:          " . var_export($actual, true) . "\n"
+        );
+    }
+}
+
+function assertStringContains($expectedSubstring, $actual, $message = '') {
+    assertTrue(
+        is_string($actual),
+        'Actual value must be a string'
+    );
+
+    if (strpos($actual, $expectedSubstring) === false) {
+        throw new AssertionFailed(
+            "String-contains assertion failed" .
+            ($message === '' ? '' : ": " . $message) . "\n" .
+            "Expected substring: " . var_export($expectedSubstring, true) . "\n" .
+            "Actual:             " . var_export($actual, true) . "\n"
         );
     }
 }
@@ -158,6 +191,6 @@ function from_json_file($filename) {
     return from_json(file_get_contents($filename));
 }
 
-function canonicalise_html($html) {
-    return preg_replace('/>\s*</', ">\n<", trim($html));
+function indentation($level, $str = '') {
+    return str_repeat(' ', HtmlRenderable::SPACES_PER_LEVEL * $level) . $str;
 }

@@ -1,5 +1,80 @@
 #!/usr/bin/env bash
 
+#
+# Canonicalise rendered dashboard HTML before comparing it with production.
+#
+# hxnormalize removes insignificant formatting differences, after which we
+# normalise a handful of remaining HTML constructs and mask dynamic content
+# (health, timestamps, telemetry, etc.). This keeps the diff focused on
+# genuine structural or rendering regressions.
+#
+normalise_dashboard()
+{
+    hxnormalize "$1" |
+    sed -E \
+        -e '/<script /{
+                N
+                s/<script([^>]*)>\n[[:space:]]*<\/script>/<script\1><\/script>/
+            }' \
+        -e 's/<title>[[:space:]]*/<title>/' \
+        -e 's/(card )(green|yellow|red)/\1__HEALTH__/g' \
+        -e 's/(led )(green|yellow|red)/\1__HEALTH__/g' \
+        -e 's/^([[:space:]]*<p>Last heartbeat:).*/\1 __DYNAMIC__/' \
+        -e 's/^([[:space:]]*<p>Uptime:).*/\1 __DYNAMIC__/' \
+        -e 's/^([[:space:]]*<p>Free memory:).*/\1 __DYNAMIC__<\/p>/' |
+    # Replace telemetry payloads with a placeholder so live values do not
+    # affect the comparison.
+    awk '
+        function emit_telemetry_placeholder(line) {
+            match(line, /^[[:space:]]*/)
+            indentation = substr(line, 1, RLENGTH)
+
+            print indentation \
+                "<pre class=telemetry>" \
+                "__DYNAMIC_TELEMETRY__" \
+                "</pre>"
+        }
+
+        !inside_telemetry && /<pre class=telemetry/ {
+            emit_telemetry_placeholder($0)
+
+            if ($0 ~ /<\/pre[[:space:]]*>/) {
+                next
+            }
+
+            inside_telemetry = 1
+            closing_tag_started = ($0 ~ /<\/pre/)
+            next
+        }
+
+        inside_telemetry {
+            if (closing_tag_started) {
+                if ($0 ~ /^[[:space:]]*>/) {
+                    inside_telemetry = 0
+                    closing_tag_started = 0
+                }
+
+                next
+            }
+
+            if ($0 ~ /<\/pre[[:space:]]*>/) {
+                inside_telemetry = 0
+                next
+            }
+
+            if ($0 ~ /<\/pre/) {
+                closing_tag_started = 1
+            }
+
+            next
+        }
+
+        {
+            print
+        }
+    '
+}
+
 set -euo pipefail
 
 tmpdir="$(mktemp -d)"
@@ -87,22 +162,27 @@ grep -q 'cards-row' "$tmpdir/index.html"
 #
 
 if [ "${COMPARE_WITH_PRODUCTION:-0}" = "1" ]; then
+green='\033[0;32m'
+reset='\033[0m'
+
+echo
+printf "${green}========================================================================\n"
+printf "==> Deployment gate: verifying rendered dashboard against production <==\n"
+printf "========================================================================${reset}\n"
 
     curl --fail --silent --show-error \
         https://noc.arcanel.se/ \
         > "$tmpdir/production.html"
 
-    php tests/normalise-dashboard-html.php \
-        "$tmpdir/index.html" \
-        > "$tmpdir/local.normalised.html"
+normalise_dashboard "$tmpdir/index.html" \
+    > "$tmpdir/local.normalised.html"
 
-    php tests/normalise-dashboard-html.php \
-        "$tmpdir/production.html" \
-        > "$tmpdir/production.normalised.html"
+normalise_dashboard "$tmpdir/production.html" \
+    > "$tmpdir/production.normalised.html"
 
-    diff -u \
-        "$tmpdir/production.normalised.html" \
-        "$tmpdir/local.normalised.html"
+diff -u \
+    "$tmpdir/production.normalised.html" \
+    "$tmpdir/local.normalised.html"
 fi
 
 echo "OK"

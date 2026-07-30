@@ -7,8 +7,7 @@ trap 'rm -f "$tmp"' EXIT
 cat >"$tmp" <<'PHP'
 <?php
 
-function collect(...$items)
-{
+function collect(...$items) {
 }
 PHP
 

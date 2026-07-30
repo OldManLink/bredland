@@ -1,30 +1,37 @@
 <?php
+require_once __DIR__ . '/html-renderable.php';
+require_once __DIR__ . '/text-renderable.php';
+
 /**
  * Renders the dashboard head.
  *
  * PageHead owns blablabla.
  */
-class PageHead {
-    private $template_file;
+class PageHead extends HtmlRenderable {
     private $static_version;
 
     private static function read_static_version() {
         return trim(file_get_contents(dirname(__DIR__) . '/static/static.version'));
     }
 
-    public function __construct($template_file) {
-        $this->template_file = $template_file;
+    public function __construct($indentation_level) {
+        parent::__construct($indentation_level);
         $this->static_version = self::read_static_version();
     }
 
-    public function render()
-    {
-        $html = file_get_contents($this->template_file);
+    public function render_html(){
+        $html = $this->tag('meta', array('charset' => 'utf-8'), array());
+        $html .= $this->tag('meta', array('name' => 'viewport', 'content' => 'width=device-width, initial-scale=1'), array());
+        $html .= $this->tag('meta', array('name' => 'mobile-web-app-capable', 'content' => 'yes'), array());
+        $html .= $this->tag('meta', array('name' => 'theme-color', 'content' => '#ffffff'), array());
+        $html .= $this->tag('link', array('rel' => 'manifest', 'href' => 'manifest.json'), array());
+        $html .= $this->tag('link', array('rel' => 'apple-touch-icon', 'href' => 'icons/apple-touch-icon.png'), array());
+        $html .= $this->tag('link', array('rel' => 'icon', 'type' => 'image/png', 'sizes' => '32x32', 'href' => 'icons/favicon-32x32.png'), array());
+        $html .= $this->tag('link', array('rel' => 'icon', 'type' => 'image/png', 'sizes' => '16x16', 'href' => 'icons/favicon-16x16.png'), array());
+        $html .= $this->tag('link', array('rel' => 'stylesheet', 'href' => "static/style.css?v=$this->static_version"), array());
+        $html .= $this->tag('script', array('src' => "static/dashboard.js?v=$this->static_version"), array());
+        $html .= $this->tag('title', array(), array(new TextRenderable($this->child_indentation_level(), 'Network Operations Centre')));
 
-        if ($html === false) {
-            throw new RuntimeException('failed to read template: ' . $this->template_file);
-        }
-
-        return str_replace('__STATIC_VERSION__', $this->static_version, $html);
+        return $html;
     }
 }

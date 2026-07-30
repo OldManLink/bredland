@@ -4,11 +4,11 @@
 
 ### Guardrails
 
-- [ ] Confirm the complete test suite is green before starting.
-- [ ] Add characterisation coverage for the current dashboard HTML where needed.
+- ✅ Confirm the complete test suite is green before starting.
+- ✅ Add characterisation coverage for the current dashboard HTML where needed.
 - [ ] Add endpoint-level coverage for the current telemetry request and response behaviour where needed.
-- [ ] Preserve PHP 5.5 compatibility throughout.
-- [ ] Preserve the current rendered HTML, telemetry format and HTTP behaviour unless deliberately changed by BRD-022.
+- ✅ Preserve PHP 5.5 compatibility throughout.
+- ✅ Preserve the current rendered HTML, telemetry format and HTTP behaviour unless deliberately changed by BRD-022.
 - [ ] Keep each refactoring step small enough to leave the complete test suite green.
 - [ ] Do not introduce classes that merely reproduce incidental HTML wrapper elements.
 - [ ] Ensure that neither production entry point calls standalone functions when the refactoring is complete.
@@ -17,11 +17,11 @@
 
 ## 1. Establish the NOC orchestration boundary
 
-- [ ] Define the responsibility of `Noc`.
-- [ ] Make `Noc` responsible for coordinating dashboard construction and rendering.
-- [ ] Decide which dependencies `Noc` receives explicitly.
+- ✅ Define the responsibility of `Noc`.
+- ✅ Make `Noc` responsible for coordinating dashboard construction and rendering.
+- ✅ Decide which dependencies `Noc` receives explicitly.
 - [ ] Add focused tests for `Noc`.
-- [ ] Change `index.template.php` to construct and invoke `Noc`.
+- ✅ Change `index.template.php` to construct and invoke `Noc`.
 - [ ] Ensure that `index.template.php` no longer calls standalone functions.
 
 Target shape:
@@ -93,7 +93,7 @@ Identify responsibilities currently hidden behind functions such as:
 - `display_client_field()`.
 
 - [ ] Move heartbeat age and health presentation out of `index.template.php`.
-- [ ] Move client-field rendering out of `index.template.php`.
+- ✅ Move client-field rendering out of `index.template.php`.
 - [ ] Prefer behaviour on an existing domain object when it naturally belongs there.
 - [ ] Introduce a dedicated presenter or renderer only where the behaviour does not belong on the domain object.
 - [ ] Preserve existing escaping at the final HTML boundary.
@@ -108,7 +108,7 @@ Create rendering classes for dashboard concepts, not for every DOM wrapper.
 
 Likely candidates:
 
-- [ ] `Dashboard`
+- ✅ `Dashboard`
 - [ ] `ClientCard`
 - [ ] `TelemetryDrawer`
 - [ ] `RefreshIndicator`, only if it has enough behaviour to justify a class
@@ -125,7 +125,7 @@ Those elements may be emitted internally by a semantic renderer.
 ### Dashboard
 
 - [ ] Render the dashboard body from a collection of clients.
-- [ ] Own dashboard-level composition.
+- ✅ Own dashboard-level composition.
 - [ ] Render clients in their configured order.
 - [ ] Add tests for an empty dashboard and a dashboard containing multiple clients.
 
@@ -161,7 +161,7 @@ Those elements may be emitted internally by a semantic renderer.
 - [ ] Remove direct field formatting.
 - [ ] Remove calls to all standalone application functions.
 - [ ] Retain only bootstrap/configuration code and static document framing.
-- [ ] Render the dashboard through `Noc`.
+- ✅ Render the dashboard through `Noc`.
 
 Desired body shape:
 
