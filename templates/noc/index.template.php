@@ -12,14 +12,5 @@ require_once "$base_dir/lib/page-head.php";
 $clients = load_clients("$base_dir/clients", $DATA_DIR);
 $dashboard = new Dashboard($clients, "$base_dir/lib/views/dashboard.php");
 $noc = new Noc($dashboard);
-$page_head = new PageHead(1)
+echo $noc->render();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<?= $page_head->render(); ?>
-</head>
-<body>
-<?= $noc->render(); ?>
-</body>
-</html>

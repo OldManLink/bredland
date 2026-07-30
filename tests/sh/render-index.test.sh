@@ -157,8 +157,6 @@ if grep -q '__[A-Z0-9_]\+__' "$tmpdir/index.php"; then
     exit 1
 fi
 
-grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
-
 #
 # Test that the rendered index.php actually executes.
 #

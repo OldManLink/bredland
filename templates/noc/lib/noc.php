@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/html-renderable.php';
+require_once __DIR__ . '/page-head.php';
+require_once __DIR__ . '/html-tag.php';
 /**
  * Coordinates the construction and rendering of the Network Operations Centre.
  *
@@ -6,10 +9,9 @@
  * collaboration between the classes required to load client state and render
  * the dashboard, but delegates each responsibility to specialised objects.
  */
-class Noc {
+class Noc extends HtmlRenderable {
     private $party_mode;
-    private $dashboard;
-
+    private $html;
     /**
      * Returns declarative method contracts only.
      *
@@ -23,7 +25,13 @@ class Noc {
     }
 
     public function __construct($dashboard) {
-        $this->dashboard = $dashboard;
+        parent::__construct(0);
+
+        $head = new HtmlTag(
+            $this->child_indentation_level(),
+            'head', array(new PageHead($this->child_indentation_level() + 1)));
+        $body = new HtmlTag($this->child_indentation_level(), 'body', array($dashboard));
+        $this->html = new HtmlTag(0, 'html', array($head, $body), array('lang' => 'en'));
     }
 
     public function party_mode() {
@@ -34,7 +42,8 @@ class Noc {
         $this->party_mode = $party_mode;
     }
 
-    public function render() {
-        return $this->dashboard->render();
+    public function render_html() {
+        return $this->tag('!DOCTYPE html', array(), array()) .
+            $this->html->render();
     }
 }

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/html-renderable.php';
 /**
  * Renders the dashboard body for a collection of clients.
  *
@@ -6,7 +7,7 @@
  * rendering of individual dashboard concepts to specialised renderers as
  * they are introduced.
  */
-class Dashboard {
+class Dashboard extends HtmlRenderable {
     private $clients;
     private $template_file;
 
@@ -15,7 +16,7 @@ class Dashboard {
         $this->template_file = $template_file;
     }
 
-    public function render() {
+    public function render_html() {
         $clients = $this->clients;
 
         ob_start();

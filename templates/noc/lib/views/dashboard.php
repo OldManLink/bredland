@@ -1,3 +1,4 @@
+<!-- Start of dashboard snapshot -->
 <div id="refresh-indicator">
     <div class="spinner"></div>
 </div>
@@ -26,3 +27,4 @@
         <?php endforeach; ?>
     </div>
 </div>
+<!-- End of dashboard snapshot -->

@@ -5,6 +5,7 @@ abstract class HtmlRenderable {
     private $indentation_level;
 
     private static $void_elements = array(
+        '!DOCTYPE html',
         'meta',
         'link'
     );

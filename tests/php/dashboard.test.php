@@ -9,8 +9,8 @@ require_once $nocRoot . '/lib/dashboard.php';
 
 $runner = new TestRunner('dashboard');
 
-$tmpdir = sys_get_temp_dir() . '/dashboard-test-' . getmypid();
-mkdir($tmpdir);
+$tmpdir = sys_get_temp_dir() . '/noc-test-' . uniqid('', true);
+if (!mkdir($tmpdir)) throw new RuntimeException('failed to create temporary directory');
 
 $runner->test('returns constructor text', function () use($tmpdir) {
     $clients = array();
