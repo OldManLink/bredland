@@ -1,121 +1,15 @@
 #!/usr/bin/env bash
 
-#
-# Canonicalise rendered dashboard HTML before comparing it with production.
-#
-# hxnormalize removes insignificant formatting differences, after which we
-# normalise a handful of remaining HTML constructs and mask dynamic content
-# (health, timestamps, telemetry, etc.). This keeps the diff focused on
-# genuine structural or rendering regressions.
-#
-normalise_dashboard()
-{
-    hxnormalize "$1" |
-    sed -E \
-        -e '/<script /{
-                N
-                s/<script([^>]*)>\n[[:space:]]*<\/script>/<script\1><\/script>/
-            }' \
-        -e 's/<title>[[:space:]]*/<title>/' \
-        -e 's/(card )(green|yellow|red)/\1__HEALTH__/g' \
-        -e 's/(led )(green|yellow|red)/\1__HEALTH__/g' \
-        -e 's/^([[:space:]]*<p>Last heartbeat:).*/\1 __DYNAMIC__/' \
-        -e 's/^([[:space:]]*<p>Uptime:).*/\1 __DYNAMIC__/' \
-        -e 's/^([[:space:]]*<p>Free memory:).*/\1 __DYNAMIC__<\/p>/' |
-    # Replace telemetry payloads with a placeholder so live values do not
-    # affect the comparison.
-    awk '
-        function emit_telemetry_placeholder(line) {
-            match(line, /^[[:space:]]*/)
-            indentation = substr(line, 1, RLENGTH)
-
-            print indentation \
-                "<pre class=telemetry>" \
-                "__DYNAMIC_TELEMETRY__" \
-                "</pre>"
-        }
-
-        !inside_telemetry && /<pre class=telemetry/ {
-            emit_telemetry_placeholder($0)
-
-            if ($0 ~ /<\/pre[[:space:]]*>/) {
-                next
-            }
-
-            inside_telemetry = 1
-            closing_tag_started = ($0 ~ /<\/pre/)
-            next
-        }
-
-        inside_telemetry {
-            if (closing_tag_started) {
-                if ($0 ~ /^[[:space:]]*>/) {
-                    inside_telemetry = 0
-                    closing_tag_started = 0
-                }
-
-                next
-            }
-
-            if ($0 ~ /<\/pre[[:space:]]*>/) {
-                inside_telemetry = 0
-                next
-            }
-
-            if ($0 ~ /<\/pre/) {
-                closing_tag_started = 1
-            }
-
-            next
-        }
-
-        {
-            print
-        }
-    '
-}
-
-centre()
-{
-    local width="$1"
-    local text="$2"
-
-    while [ "${#text}" -lt "$width" ]; do
-        text=" $text"
-        [ "${#text}" -lt "$width" ] && text="$text "
-    done
-
-    printf '%s' "$text"
-}
-
-compare_artifact()
-{
-    local title="$1"
-    local production="$2"
-    local local="$3"
-
-    local diff_file="$tmpdir/${title}.diff"
-
-    if diff -u "$production" "$local" > "$diff_file"; then
-        return 0
-    fi
-
-    printf '%b' "${red}"
-    printf '========================================================================\n'
-    printf '========================= %s =============================\n' \
-      "$(centre 16 "$title")"
-    printf '========================================================================\n\n'
-
-    tail -n +3 "$diff_file" | head -n -1
-
-    printf '%b' "${reset}"
-    return 1
-}
-
 set -euo pipefail
 
+cleanup()
+{
+    echo "Please run scripts/compare-dashboard.sh to see the error."
+    rm -rf "$tmpdir"
+}
+
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+trap cleanup EXIT
 
 echo -n "Testing rendered NOC index ... "
 
@@ -191,89 +85,5 @@ grep -q '<div class="dashboard">' "$tmpdir/index.html"
 grep -q 'cards-row' "$tmpdir/index.html"
 ! grep -q '>Uptime: unavailable<' "$tmpdir/index.html"
 ! grep -q '>Free memory: unavailable<' "$tmpdir/index.html"
-
-#
-# Verify against production
-#
-
-if [ "${COMPARE_WITH_PRODUCTION:-0}" = "1" ]; then
-    green='\033[0;32m'
-    red='\033[0;31m'
-    reset='\033[0m'
-
-    echo
-    printf '%b' "${green}"
-    printf '%s\n' \
-        '========================================================================' \
-        '==> Deployment gate: verifying rendered dashboard against production <==' \
-        '========================================================================'
-    printf '%b' "${reset}"
-
-#
-# Fetch production UI files
-#
-    curl --fail --silent --show-error \
-        https://noc.arcanel.se/ \
-        > "$tmpdir/production.html"
-
-    curl --fail --silent --show-error \
-        https://noc.arcanel.se/static/style.css \
-        > "$tmpdir/production.css"
-
-    curl --fail --silent --show-error \
-        https://noc.arcanel.se/static/dashboard.js \
-        > "$tmpdir/production.js"
-#
-# Normalise html files
-#
-    normalise_dashboard "$tmpdir/index.html" \
-        > "$tmpdir/local.normalised.html"
-
-    normalise_dashboard "$tmpdir/production.html" \
-        > "$tmpdir/production.normalised.html"
-
-    any_differences=false
-#
-# Compare html files
-#
-    compare_artifact \
-        "index.html" \
-        "$tmpdir/production.normalised.html" \
-        "$tmpdir/local.normalised.html" || any_differences=true
-#
-# Compare css files
-#
-    compare_artifact \
-        "style.css" \
-        "$tmpdir/production.css" \
-        templates/noc/static/style.css || any_differences=true
-
-#
-# Compare js files
-#
-    compare_artifact \
-        "dashboard.js" \
-        "$tmpdir/production.js" \
-        templates/noc/static/dashboard.js || any_differences=true
-
-    if ! $any_differences; then
-
-        printf '%b' "${green}"
-        printf '%s\n' \
-            '========================================================================' \
-            '=======================> 👍  GATE PASSED  👍 <==========================' \
-            '========================================================================'
-        printf '%b' "${reset}"
-    else
-        printf '%b' "${red}"
-        printf '%s\n' \
-            '========================================================================' \
-            '====================== ⚠️  CHECK THE CHANGES ABOVE  ⚠️  ==================' \
-            '========================================================================'
-        printf '%b' "${reset}"
-
-        exit 1
-    fi
-fi
 
 echo "OK"

@@ -10,7 +10,7 @@ require_once "$base_dir/lib/noc.php";
 require_once "$base_dir/lib/page-head.php";
 
 $clients = load_clients("$base_dir/clients", $DATA_DIR);
-$dashboard = new Dashboard($clients, "$base_dir/lib/views/dashboard.php");
+$dashboard = new Dashboard(1, $clients, "$base_dir/lib/views/dashboard.php");
 $noc = new Noc($dashboard);
 echo $noc->render();
 ?>

@@ -7,7 +7,7 @@ require_once __DIR__ . '/html-tag.php';
  *
  * Noc forms the application boundary for the dashboard. It owns the
  * collaboration between the classes required to load client state and render
- * the dashboard, but delegates each responsibility to specialised objects.
+ * the page, while delegating each responsibility to specialised objects.
  */
 class Noc extends HtmlRenderable {
     private $party_mode;
@@ -29,7 +29,7 @@ class Noc extends HtmlRenderable {
 
         $head = new HtmlTag(
             $this->child_indentation_level(),
-            'head', array(new PageHead($this->child_indentation_level() + 1)));
+            'head', array(new PageHead($this->child_indentation_level(1))));
         $body = new HtmlTag($this->child_indentation_level(), 'body', array($dashboard));
         $this->html = new HtmlTag(0, 'html', array($head, $body), array('lang' => 'en'));
     }
@@ -42,7 +42,7 @@ class Noc extends HtmlRenderable {
         $this->party_mode = $party_mode;
     }
 
-    public function render_html() {
+    public function render_html($compact) {
         return $this->tag('!DOCTYPE html', array(), array()) .
             $this->html->render();
     }

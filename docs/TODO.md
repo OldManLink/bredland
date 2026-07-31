@@ -20,7 +20,7 @@
 - ✅ Define the responsibility of `Noc`.
 - ✅ Make `Noc` responsible for coordinating dashboard construction and rendering.
 - ✅ Decide which dependencies `Noc` receives explicitly.
-- [ ] Add focused tests for `Noc`.
+- ✅ Add focused tests for `Noc`.
 - ✅ Change `index.template.php` to construct and invoke `Noc`.
 - [ ] Ensure that `index.template.php` no longer calls standalone functions.
 

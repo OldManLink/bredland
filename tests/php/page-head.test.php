@@ -9,25 +9,25 @@ require_once $nocRoot . '/lib/page-head.php';
 require_once $nocRoot . '/lib/text-renderable.php';
 
 $runner = new TestRunner('page-head');
+$static_version = trim(file_get_contents("$nocRoot/static/static.version"));
 
-$runner->test('render() renders the required set of tags', function () use ($nocRoot){
+$runner->test('render() renders the required set of tags', function () use ($static_version){
     $page_head = new PageHead(1);
-    assertStringStartsWith(indentation(1, "<meta charset=\"utf-8\">\n"), $page_head->render());
-    assertStringContains("<meta name=\"viewport\"", $page_head->render());
-    assertStringContains("<meta name=\"mobile-web-app-capable\"", $page_head->render());
-    assertStringContains("<meta name=\"theme-color\"", $page_head->render());
-    assertStringContains("<link rel=\"manifest\"", $page_head->render());
-    assertStringContains("<link rel=\"apple-touch-icon\"", $page_head->render());
-    assertStringContains("<link rel=\"icon\"", $page_head->render());
-    assertStringContains("type=\"image/png\"", $page_head->render());
-    assertStringContains("sizes=\"32x32\"", $page_head->render());
-    assertStringContains("sizes=\"16x16\"", $page_head->render());
-    assertStringContains("<link rel=\"stylesheet\"", $page_head->render());
-    assertStringContains("<script src=\"static/dashboard.js", $page_head->render());
-    assertStringContains("</script>", $page_head->render());
-    assertStringContains(indentation(1, "<title>\n") . indentation(2, "Network Operations Centre\n") . indentation(1, "</title>"), $page_head->render());
-    $expected = trim(file_get_contents("$nocRoot/static/static.version"));
-    assertSame(2, substr_count($page_head->render(), $expected));
+    $html = $page_head->render();
+
+    assertStringStartsWith(indentation(1, "<meta charset=\"utf-8\">\n"), $html);
+    assertStringContains("<meta name=\"viewport\"", $html);
+    assertStringContains("<meta name=\"mobile-web-app-capable\"", $html);
+    assertStringContains("<meta name=\"theme-color\"", $html);
+    assertStringContains("<link rel=\"manifest\"", $html);
+    assertStringContains("<link rel=\"apple-touch-icon\"", $html);
+    assertStringContains("<link rel=\"icon\"", $html);
+    assertStringContains("type=\"image/png\"", $html);
+    assertStringContains("sizes=\"32x32\"", $html);
+    assertStringContains("sizes=\"16x16\"", $html);
+    assertStringContains("<link rel=\"stylesheet\" href=\"static/style.css?v=$static_version\">", $html);
+    assertStringContains("<script src=\"static/dashboard.js?v=$static_version\"></script>", $html);
+    assertStringContains("<title>Network Operations Centre</title>", $html);
 });
 
 $runner->finish();

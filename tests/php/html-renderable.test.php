@@ -10,8 +10,7 @@ require_once $nocRoot . '/lib/html-renderable.php';
 require_once $nocRoot . '/lib/text-renderable.php';
 
 class DummyRenderable extends HtmlRenderable {
-    protected function render_html()
-    {
+    protected function render_html($compact) {
         return "Hello\n";
     }
 }

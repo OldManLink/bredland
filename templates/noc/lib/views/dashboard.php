@@ -1,7 +1,4 @@
 <!-- Start of dashboard snapshot -->
-<div id="refresh-indicator">
-    <div class="spinner"></div>
-</div>
 <div class="dashboard">
     <div class="cards-row">
         <?php foreach ($clients as $client): ?>

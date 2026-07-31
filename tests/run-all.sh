@@ -33,7 +33,6 @@ fi
 echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
 docker run --rm \
   --platform linux/amd64 \
-  -e COMPARE_WITH_PRODUCTION \
   -v "$repo_root:/app" \
   -w /app \
   "$PHP_TEST_IMAGE" \

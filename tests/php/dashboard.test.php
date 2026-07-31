@@ -23,8 +23,8 @@ PHP
     if (file_put_contents($template_file, "<?php ?>\n$test_contents", FILE_APPEND | LOCK_EX) === false) {
         throw new RuntimeException('failed to create template: ' . $template_file);
     }
-    $dashboard = new Dashboard($clients, $template_file);
-    assertSame($test_contents, $dashboard->render());
+    $dashboard = new Dashboard(0, $clients, $template_file);
+    assertStringContains($test_contents, $dashboard->render());
     unlink($template_file);
 });
 

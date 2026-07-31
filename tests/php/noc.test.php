@@ -29,7 +29,7 @@ PHP
     if (file_put_contents($template_file, "<?php ?>\n$test_contents", LOCK_EX) === false) {
         throw new RuntimeException('failed to create template: ' . $template_file);
     }
-    $dashboard = new Dashboard($clients, $template_file);
+    $dashboard = new Dashboard(1, $clients, $template_file);
     $noc = new Noc($dashboard);
     $html = $noc->render();
 

@@ -60,7 +60,7 @@ for test in "${test_scripts[@]}"; do
         0)  echo "✅ $name"; ((++passed)) ;;
         77) echo "⚠️ $name"; ((++skipped)) ;;
         1)  echo "❌ $name"; ((++failed)) ;;
-        *)  echo "💥 $name (exit $rc)"; ((++crashed)) ;;
+        *)  echo "❌💥 $name (exit $rc)"; ((++crashed)) ;;
     esac
 
     echo
