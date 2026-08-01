@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/html-renderable.php';
+require_once __DIR__ . '/html-tag.php';
 /**
  * Renders the dashboard body for a cards row.
  *

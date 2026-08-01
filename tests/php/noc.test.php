@@ -39,6 +39,7 @@ PHP
     assertStringContains('<head>', $html);
     assertStringContains('</head>', $html);
     assertStringContains('<body>', $html);
+    assertStringContains('<div id="refresh-indicator">', $html);
     assertStringContains('<div class="dashboard">', $html);
     assertStringContains('<div class="cards-row">', $html);
     assertStringContains('<div id="card-slot-test">', $html);
@@ -47,18 +48,29 @@ PHP
 
     assertSame(1, substr_count($html, '<!DOCTYPE html>'));
     assertSame(1, substr_count($html, '<html lang="en">'));
+    assertSame(1, substr_count($html, '<div id="refresh-indicator">'));
     assertSame(1, substr_count($html, '<div class="dashboard">'));
     assertSame(1, substr_count($html, '<div class="cards-row">'));
     assertSame(1, substr_count($html, '<div id="card-slot-test">'));
 
-    assertTrue(strpos($html, '<head>') < strpos($html, '</head>'));
-    assertTrue(strpos($html, '</head>') < strpos($html, '<body>'));
-    assertTrue(strpos($html, '<body>') < strpos($html, '<div class="dashboard">'));
-    assertTrue(strpos($html, 'div class="dashboard">') < strpos($html, '<div class="cards-row">'));
-    assertTrue(strpos($html, '<div class="cards-row">') < strpos($html, '<div id="card-slot-test">'));
-    assertTrue(strpos($html, '<div id="card-slot-test">') < strpos($html, '</body>'));
-    assertTrue(strpos($html, '</body>') < strpos($html, '</html>'));
-}
+    $head_start = strpos($html, '<head>');
+    $head_end = strpos($html, '</head>');
+    $body_start = strpos($html, '<body>');
+    $refresh_indicator = strpos($html, '<div id="refresh-indicator">');
+    $dashboard = strpos($html, '<div class="dashboard">');
+    $cards_row = strpos($html, '<div class="cards-row">');
+    $card_slot = strpos($html, '<div id="card-slot-test">');
+    $body_end = strpos($html, '</body>');
+    $html_end = strpos($html, '</html>');
+
+    assertTrue($head_start < $head_end);
+    assertTrue($head_end < $body_start);
+    assertTrue($body_start < $refresh_indicator);
+    assertTrue($refresh_indicator < $dashboard);
+    assertTrue($dashboard < $cards_row);
+    assertTrue($cards_row < $card_slot);
+    assertTrue($card_slot < $body_end);
+    assertTrue($body_end < $html_end);}
 finally {
     if (file_exists($template_file)) {
         unlink($template_file);
