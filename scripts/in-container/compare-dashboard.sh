@@ -24,7 +24,7 @@ keep_tmpdir=0
 #
 normalise_dashboard()
 {
-    hxnormalize "$1" |
+    hxnormalize -c "snapshot" "$1" |
     sed -E \
         -e '/<script /{
                 N
@@ -110,8 +110,20 @@ compare_artifact()
 
     local diff_file="$tmpdir/${title}.diff"
 
-    if diff -u "$production" "$local" > "$diff_file"; then
-        return 0
+    local wide_terminal=0
+
+    if (( ${COLUMNS:-80} >= 180 )); then
+        wide_terminal=1
+    fi
+
+    if (( wide_terminal )); then
+        if diff -y "$production" "$local" > "$diff_file"; then
+            return 0
+        fi
+    else
+        if diff -u "$production" "$local" > "$diff_file"; then
+            return 0
+        fi
     fi
 
     printf '%b' "${red}"
@@ -120,9 +132,18 @@ compare_artifact()
       "$(centre 16 "$title")"
     printf '========================================================================\n'
 
-    tail -n +3 "$diff_file"
+    if (( wide_terminal )); then
+        cat "$diff_file"
+    else
+        tail -n +3 "$diff_file"
+    fi
 
     printf '%b' "${reset}"
+
+    if (( !wide_terminal )); then
+        echo "Tip: maximize or widen your terminal and rerun for a side-by-side comparison."
+    fi
+
     return 1
 }
 

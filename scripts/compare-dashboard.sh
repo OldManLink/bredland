@@ -14,6 +14,7 @@ docker build \
 
 docker run --rm \
     --platform linux/amd64 \
+    -e COLUMNS="${COLUMNS:-80}" \
     -v "$repo_root:/app" \
     -w /app \
     "$PHP_TEST_IMAGE" \
