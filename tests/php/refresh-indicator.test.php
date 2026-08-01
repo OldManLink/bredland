@@ -9,7 +9,7 @@ require_once $nocRoot . '/lib/refresh-indicator.php';
 
 $runner = new TestRunner('refresh-indicator');
 
-$runner->test('render() renders the required set of tags', function () use ($nocRoot){
+$runner->test('render() renders the required set of tags', function () {
     $refresh_indicator = new RefreshIndicator(1);
     $html = $refresh_indicator->render();
 

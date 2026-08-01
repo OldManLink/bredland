@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/html-renderable.php';
 require_once __DIR__ . '/page-head.php';
+require_once __DIR__ . '/refresh-indicator.php';
 require_once __DIR__ . '/html-tag.php';
 /**
  * Coordinates the construction and rendering of the Network Operations Centre.
@@ -30,7 +31,7 @@ class Noc extends HtmlRenderable {
         $head = new HtmlTag(
             $this->child_indentation_level(),
             'head', array(new PageHead($this->child_indentation_level(1))));
-        $body = new HtmlTag($this->child_indentation_level(), 'body', array($dashboard));
+        $body = new HtmlTag($this->child_indentation_level(), 'body', array(new RefreshIndicator($this->child_indentation_level(1)), $dashboard));
         $this->html = new HtmlTag(0, 'html', array($head, $body), array('lang' => 'en'));
     }
 
