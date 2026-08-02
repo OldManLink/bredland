@@ -111,7 +111,12 @@ if (( php_rc != 0 )); then
     fi
 
     echo
-    echo "Please run scripts/compare-dashboard.sh for full diagnostics."
+
+    if [[ -n "${RENDER_INDEX_NEXT_STEP:-}" ]]; then
+        echo "$RENDER_INDEX_NEXT_STEP"
+    else
+        echo "Please run scripts/compare-dashboard.sh for full diagnostics."
+    fi
     exit "$php_rc"
 fi
 
