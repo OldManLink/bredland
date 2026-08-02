@@ -13,6 +13,8 @@ function is_known_value_type($value_type){
 function load_clients($clients_dir, $data_dir) {
     $client_files = glob($clients_dir . '/*.json');
     $clients = array();
+    $now = noc_now();
+    $date = gmdate('Y-m-d', strtotime($now));
 
     foreach ($client_files as $client_file) {
         $client = read_client_file($client_file);
@@ -23,9 +25,9 @@ function load_clients($clients_dir, $data_dir) {
 
         $host = $client['host'];
 
-        $heartbeat_file = daily_jsonl_filename($data_dir, $host, gmdate('Y-m-d'));
+        $heartbeat_file = daily_jsonl_filename($data_dir, $host, $date);
         $heartbeat = heartbeat_from_jsonl($heartbeat_file);
-        $age = heartbeat_age_seconds($heartbeat, gmdate('c'));
+        $age = heartbeat_age_seconds($heartbeat, $now);
 
         $client['heartbeat_file'] = $heartbeat_file;
         $client['heartbeat'] = $heartbeat;

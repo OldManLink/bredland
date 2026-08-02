@@ -11,6 +11,7 @@ RUN apt-get update \
         html-xml-utils \
         libc6-dev \
         libxml2-dev \
+        jq \
         make \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +33,8 @@ RUN curl -fsSL \
     && rm -rf /tmp/php-src /tmp/php.tar.gz
 
 RUN command -v php \
-    && command -v hxnormalize
+    && command -v hxnormalize\
+    && command -v jq
 
 WORKDIR /app
 

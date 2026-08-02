@@ -1,6 +1,16 @@
 <?php
 date_default_timezone_set('UTC');
 
+function noc_now() {
+    $injected_now = getenv('NOC_NOW');
+
+    if ($injected_now !== false && $injected_now !== '') {
+        return $injected_now;
+    }
+
+    return gmdate('c');
+}
+
 function latest_jsonl_line($path) {
     if (!is_readable($path)) {
         return 'unavailable';
