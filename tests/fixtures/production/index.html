@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#ffffff">
+        <link rel="manifest" href="manifest.json">
+        <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+        <link rel="stylesheet" href="static/style.css?v=148">
+        <script src="static/dashboard.js?v=148"></script>
+        <title>Network Operations Centre</title>
+    </head>
+    <body>
+        <div id="refresh-indicator">
+            <div class="spinner"></div>
+        </div>
+    <div class="dashboard">
+        <div class="cards-row">
+                        <!-- Start of cards-row snapshot -->
+                        <div class="card-slot">
+                <div class="card-container">
+                    <div class="card green">
+                        <h1>
+                            <span class="led green"></span>
+                            MikroTik                        </h1>
+
+                        <p>Last heartbeat: 3m 21s ago</p>
+                                                <p>Uptime: 5w2d13:20:06</p>
+                                                <p>Free memory: 838.8 MiB</p>
+                                                <button class="drawer-handle" type="button" data-telemetry-toggle="mikrotik">=</button>
+                    </div>
+                </div>
+                <template id="mikrotik-telemetry-template">
+                    <pre class="telemetry">{&quot;schema&quot;:1,&quot;ts&quot;:&quot;2026-08-02T12:08:04Z&quot;,&quot;host&quot;:&quot;mikrotik&quot;,&quot;uptime&quot;:3244806,&quot;version&quot;:&quot;7.23.1 (stable)&quot;,&quot;model&quot;:&quot;RB4011iGS+&quot;,&quot;cpu_load&quot;:0,&quot;free_memory&quot;:879566848,&quot;total_memory&quot;:1073741824,&quot;update_available&quot;:true,&quot;latest_version&quot;:&quot;7.23.2&quot;,&quot;remote_addr&quot;:&quot;91.128.129.6&quot;}</pre>
+                </template>
+            </div>
+                        <div class="card-slot">
+                <div class="card-container">
+                    <div class="card green">
+                        <h1>
+                            <span class="led green"></span>
+                            Bredland                        </h1>
+
+                        <p>Last heartbeat: 1m 25s ago</p>
+                                                <p>Uptime: 5w0d01:32:06</p>
+                                                <p>Free memory: 3.5 GiB</p>
+                                                <button class="drawer-handle" type="button" data-telemetry-toggle="bredland">=</button>
+                    </div>
+                </div>
+                <template id="bredland-telemetry-template">
+                    <pre class="telemetry">{&quot;schema&quot;:1,&quot;ts&quot;:&quot;2026-08-02T12:10:00Z&quot;,&quot;host&quot;:&quot;bredland&quot;,&quot;uptime&quot;:3029526,&quot;temperature&quot;:34,&quot;throttled&quot;:&quot;0x0&quot;,&quot;free_memory&quot;:3749179392,&quot;total_memory&quot;:3980185600,&quot;root_free&quot;:56396087296,&quot;root_total&quot;:62515544064,&quot;remote_addr&quot;:&quot;91.128.129.6&quot;}</pre>
+                </template>
+            </div>
+                        <!-- End of cards-row snapshot -->
+        </div>
+    </div>
+    </body>
+</html>

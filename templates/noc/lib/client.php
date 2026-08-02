@@ -89,7 +89,7 @@ function value_matches_type($value, $value_type) {
     }
 
     if ($value_type === 'float') {
-        return is_float($value);
+        return is_float($value) || is_int($value);
     }
 
     if ($value_type === 'boolean') {
