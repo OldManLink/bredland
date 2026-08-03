@@ -7,14 +7,10 @@ REQUIRED_FRESHNESS_SECONDS=30
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
-# shellcheck source=scripts/lib/utils.sh
-source "$(dirname "$0")/lib/utils.sh"
-
 load_bredland_secrets
 
 command -v curl >/dev/null
 command -v jq >/dev/null
-command -v ssh >/dev/null
 
 force=false
 
@@ -127,30 +123,15 @@ staged_production="$tmpdir/production"
 mkdir -p "$staged_heartbeats" "$staged_production"
 mkdir -p "$staged_production/static"
 
-date_utc="$(date -u +%Y-%m-%d)"
+fetch_latest_heartbeat="$(dirname "$0")/fetch-latest-heartbeat.sh"
 dashboard_url="${NOC_DASHBOARD_URL:?Missing NOC_DASHBOARD_URL}"
 dashboard_url="${dashboard_url%/}"
 
 for host in "${hosts[@]}"; do
-    remote_file="${NOC_DATA_DIR:?Missing NOC_DATA_DIR}/${host}-${date_utc}.jsonl"
     staged_file="$staged_heartbeats/${host}.json"
 
     echo -n "Fetching latest ${host} heartbeat... "
-
-    execute_remote_command "tail -n 1 '$remote_file'" |
-        jq . > "$staged_file"
-
-    actual_host="$(jq -er '.host' "$staged_file")"
-
-    if [[ "$actual_host" != "$host" ]]; then
-        echo
-        echo "Expected host '$host', got '$actual_host'." >&2
-        exit 1
-    fi
-
-    # Confirm that the timestamp exists and is parseable.
-    jq -er '.ts | fromdateiso8601' "$staged_file" >/dev/null
-
+    "$fetch_latest_heartbeat" "$host" > "$staged_file"
     echo "OK"
 done
 

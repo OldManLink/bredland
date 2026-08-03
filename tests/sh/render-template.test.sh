@@ -66,8 +66,6 @@ BREDLAND_NOC_HOST=bredland-test
 BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
-# Remove placeholder from config file
-SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
 run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \
