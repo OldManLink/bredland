@@ -38,5 +38,5 @@ docker run --rm \
   "$PHP_TEST_IMAGE" \
   bash tests/in-container.sh "$@"
 
-  date +"%T"
+date +"%T"
 
