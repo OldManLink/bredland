@@ -21,16 +21,18 @@ if [[ "${CHECK_LOCAL_SECRETS:-0}" == "1" ]]; then
     echo
 fi
 
-echo "==> Building Linux test environment ($PHP_TEST_IMAGE)"
-docker build \
-  --platform linux/amd64 \
-  -t "$PHP_TEST_IMAGE" \
-  tests/docker/php55
+if [[ "${SKIP_DOCKER_BUILD:-0}" != "1" ]]; then
+    echo "==> Building Linux test environment ($PHP_TEST_IMAGE)"
+    docker build \
+      --platform linux/amd64 \
+      -t "$PHP_TEST_IMAGE" \
+      tests/docker/php55
+fi
 
 echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
 docker run --rm \
   --platform linux/amd64 \
   -v "$repo_root:/app" \
   -w /app \
-  $PHP_TEST_IMAGE \
+  "$PHP_TEST_IMAGE" \
   bash tests/in-container.sh

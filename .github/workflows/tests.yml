@@ -26,11 +26,6 @@ jobs:
           cache-to: type=gha,mode=max,scope=php55-test
 
       - name: Run tests
-        run: |
-          docker run --rm \
-            --platform linux/amd64 \
-            -v "$GITHUB_WORKSPACE:/app" \
-            -w /app \
-            bredland/php55-test:latest \
-            bash tests/in-container.sh
-          
+        env:
+          SKIP_DOCKER_BUILD: "1"
+        run: ./tests/run-all.sh
