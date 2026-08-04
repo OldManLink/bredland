@@ -1,5 +1,4 @@
-<!-- Start of card-slot snapshot -->
-                <div class="card-container">
+<!-- Start of card snapshot -->
                     <div class="card <?= heartbeat_health_colour($client['age']) ?>">
                         <h1>
                             <span class="led <?= heartbeat_health_colour($client['age']) ?>"></span>
@@ -10,8 +9,4 @@
 <p><?= htmlspecialchars($field['label'], ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars(display_client_field($client, $field), ENT_QUOTES, 'UTF-8') ?></p>
                         <?php endforeach; ?><button class="drawer-handle" type="button" data-telemetry-toggle="<?= htmlspecialchars($client['host'], ENT_QUOTES, 'UTF-8') ?>">=</button>
                     </div>
-                </div>
-                <template id="<?= htmlspecialchars($client['host'], ENT_QUOTES, 'UTF-8') ?>-telemetry-template">
-                    <pre class="telemetry"><?= htmlspecialchars(latest_jsonl_line($client['heartbeat_file']), ENT_QUOTES, 'UTF-8') ?></pre>
-                </template>
-                <!-- End of card-slot snapshot -->
+                    <!-- End of card snapshot -->

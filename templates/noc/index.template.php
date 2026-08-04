@@ -10,7 +10,7 @@ require_once "$base_dir/lib/dashboard.php";
 require_once "$base_dir/lib/noc.php";
 
 $clients = load_clients("$base_dir/clients", $DATA_DIR);
-$cards_row = new CardsRow(2, $clients, "$base_dir/lib/views/card-slot.php");
+$cards_row = new CardsRow(2, $clients, "$base_dir/lib/views/card.php");
 $noc = new Noc(new Dashboard(1, $cards_row));
 echo $noc->render();
 ?>

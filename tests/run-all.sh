@@ -65,7 +65,7 @@ run_tests()
           "$PHP_TEST_IMAGE" \
           bash tests/in-container.sh
     fi
-    
+
     date +"%T"
 }
 
