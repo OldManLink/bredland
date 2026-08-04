@@ -3,7 +3,7 @@
 set -euo pipefail
 
 HEARTBEAT_CADENCE_SECONDS=300
-DEPLOYMENT_SAFETY_MARGIN_SECONDS=60
+DEPLOYMENT_SAFETY_MARGIN_SECONDS=45
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"

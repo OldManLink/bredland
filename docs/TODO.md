@@ -111,7 +111,7 @@ Likely candidates:
 - ✅ `Dashboard`
 - [ ] `ClientCard`
 - [ ] `TelemetryDrawer`
-- [ ] `RefreshIndicator`, only if it has enough behaviour to justify a class
+- ✅ `RefreshIndicator`, only if it has enough behaviour to justify a class
 
 Do not create classes solely because the current CSS contains elements such as:
 
@@ -148,8 +148,8 @@ Those elements may be emitted internally by a semantic renderer.
 
 ### Refresh indicator
 
-- [ ] Leave the current markup in the entry-point body unless extracting it makes the design clearer.
-- [ ] Extract it only if it gains behaviour or meaning beyond a fixed fragment.
+- ✅ Leave the current markup in the entry-point body unless extracting it makes the design clearer.
+- ✅ Extract it only if it gains behaviour or meaning beyond a fixed fragment.
 
 ---
 

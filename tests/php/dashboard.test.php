@@ -23,6 +23,7 @@ PHP
     if (file_put_contents($template_file, "<?php ?>\n$test_contents", FILE_APPEND | LOCK_EX) === false) {
         throw new RuntimeException('failed to create template: ' . $template_file);
     }
+    $clients = array(array(), array());
     $cards_row = new CardsRow(0, $clients, $template_file);
     $dashboard = new Dashboard(0, $cards_row);
     assertStringContains($test_contents, $dashboard->render());

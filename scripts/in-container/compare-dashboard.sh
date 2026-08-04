@@ -23,7 +23,7 @@ mkdir -p "$compare_dir"
 #
 normalise_dashboard()
 {
-    hxnormalize -c "snapshot" "$1"
+    cat "$1" #hxnormalize -c "snapshot" "$1"
 }
 
 centre()

@@ -20,10 +20,10 @@ if (!mkdir($tmpdir)) {
 
 $runner->test('render() renders the complete noc', function () use ($tmpdir){
 try {
-    $clients = array();
-    $template_file = "$tmpdir/card-slot-template.php";
+    $clients = array(array(), array());
+    $template_file = "$tmpdir/card-container-template.php";
     $test_contents = <<<'PHP'
-<div id="card-slot-test">
+<div class="card-container-view">
 </div>
 PHP
 ;
@@ -42,7 +42,8 @@ PHP
     assertStringContains('<div id="refresh-indicator">', $html);
     assertStringContains('<div class="dashboard">', $html);
     assertStringContains('<div class="cards-row">', $html);
-    assertStringContains('<div id="card-slot-test">', $html);
+    assertStringContains('<div class="card-slot">', $html);
+    assertStringContains('<div class="card-container-view">', $html);
     assertStringContains('</body>', $html);
     assertStringContains('</html>', $html);
 
@@ -51,7 +52,8 @@ PHP
     assertSame(1, substr_count($html, '<div id="refresh-indicator">'));
     assertSame(1, substr_count($html, '<div class="dashboard">'));
     assertSame(1, substr_count($html, '<div class="cards-row">'));
-    assertSame(1, substr_count($html, '<div id="card-slot-test">'));
+    assertSame(2, substr_count($html, '<div class="card-slot">'));
+    assertSame(2, substr_count($html, '<div class="card-container-view">'));
 
     $head_start = strpos($html, '<head>');
     $head_end = strpos($html, '</head>');
@@ -59,7 +61,8 @@ PHP
     $refresh_indicator = strpos($html, '<div id="refresh-indicator">');
     $dashboard = strpos($html, '<div class="dashboard">');
     $cards_row = strpos($html, '<div class="cards-row">');
-    $card_slot = strpos($html, '<div id="card-slot-test">');
+    $card_slot = strpos($html, '<div class="card-slot">');
+    $card_slot = strpos($html, '<div class="card-container-view">');
     $body_end = strpos($html, '</body>');
     $html_end = strpos($html, '</html>');
 
