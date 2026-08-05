@@ -1,0 +1,38 @@
+log="$HOME/plex-import-$(date +%Y%m%d-%H%M%S).log"
+
+nohup sh -c '
+    set -e
+
+    printf "Movies import started: %s\n" "$(date)"
+
+    rsync -rtvh \
+        --stats \
+        --partial \
+        --info=progress2 \
+        --no-perms \
+        --no-owner \
+        --no-group \
+        /volumeUSB1/usbshare1-2/Movies/ \
+        /volume1/media/Movies/
+
+    printf "\nMovies import completed: %s\n" "$(date)"
+    printf "TV import started: %s\n" "$(date)"
+
+    rsync -rtvh \
+        --stats \
+        --partial \
+        --info=progress2 \
+        --no-perms \
+        --no-owner \
+        --no-group \
+        /volumeUSB1/usbshare1-2/TV/ \
+        /volume1/media/TV/
+
+    printf "\nTV import completed: %s\n" "$(date)"
+    printf "Entire import completed successfully: %s\n" "$(date)"
+' > "$log" 2>&1 < /dev/null &
+
+pid=$!
+
+printf 'Import PID: %s\n' "$pid"
+printf 'Log file:   %s\n' "$log"
