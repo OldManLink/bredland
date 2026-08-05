@@ -15,101 +15,89 @@ if (!mkdir($tmpdir)) {
     throw new RuntimeException('failed to create temporary directory');
 }
 
-$runner->test('render() renders no card slots for no clients', function () use ($tmpdir) {
-    $template_file = "$tmpdir/card-slot-view.php";
+function cards_row_test_client($tmpdir, $host) {
+    $heartbeat_file = "$tmpdir/$host.jsonl";
 
-    try {
-        if (file_put_contents($template_file, '', LOCK_EX) === false) {
-            throw new RuntimeException(
-                'failed to create template: ' . $template_file
-            );
-        }
-
-        $cards_row = new CardsRow(1, array(), $template_file);
-        $html = $cards_row->render();
-
-        assertStringStartsWith(
-            indentation(1, '<div class="cards-row">'),
-            $html
+    if (file_put_contents($heartbeat_file, "{\"status\":\"ready\"}\n", LOCK_EX) === false) {
+        throw new RuntimeException(
+            'failed to create heartbeat file: ' . $heartbeat_file
         );
-        assertSame(0, substr_count($html, '<div class="card-slot">'));
-    } finally {
-        if (file_exists($template_file)) {
-            unlink($template_file);
-        }
     }
+
+    return array(
+        'host' => $host,
+        'title' => $host,
+        'age' => 65,
+        'heartbeat_file' => $heartbeat_file,
+        'heartbeat' => array(
+            'status' => 'ready'
+        ),
+        'fields' => array(
+            array(
+                'label' => 'Status',
+                'field' => 'status',
+                'value_type' => 'string'
+            )
+        )
+    );
+}
+
+$runner->test('render() renders no card slots for no clients', function () {
+    $cards_row = new CardsRow(1, array());
+    $html = $cards_row->render();
+
+    assertStringStartsWith(
+        indentation(1, '<div class="cards-row">'),
+        $html
+    );
+    assertSame(0, substr_count($html, '<div class="card-slot">'));
+    assertSame(2, substr_count($html, "\n"));
+
 });
 
 $runner->test('render() renders one card slot for one client', function () use ($tmpdir) {
-    $template_file = "$tmpdir/card-slot-view.php";
+    $client = cards_row_test_client($tmpdir, 'first-client');
 
     try {
-        $test_contents = <<<'PHP'
-        <div class="client-marker"><?= $client['marker'] ?></div>
-PHP
-;
-
-        if (file_put_contents($template_file, $test_contents, LOCK_EX) === false) {
-            throw new RuntimeException(
-                'failed to create template: ' . $template_file
-            );
-        }
-
-        $clients = array(
-            array('marker' => 'first-client')
-        );
-
-        $cards_row = new CardsRow(1, $clients, $template_file);
+        $cards_row = new CardsRow(1, array($client));
         $html = $cards_row->render();
 
         assertSame(1, substr_count($html, '<div class="card-slot">'));
         assertStringContains('first-client', $html);
     } finally {
-        if (file_exists($template_file)) {
-            unlink($template_file);
-        }
+        unlink($client['heartbeat_file']);
     }
 });
 
 $runner->test('render() preserves client order', function () use ($tmpdir) {
-    $template_file = "$tmpdir/card-slot-view.php";
+    $first_client = cards_row_test_client($tmpdir, 'first-client');
+    $second_client = cards_row_test_client($tmpdir, 'second-client');
 
     try {
-        $test_contents = <<<'PHP'
-        <div class="client-marker"><?= $client['marker'] ?></div>
-PHP
-;
-
-        if (file_put_contents($template_file, $test_contents, LOCK_EX) === false) {
-            throw new RuntimeException(
-                'failed to create template: ' . $template_file
-            );
-        }
-
-        $clients = array(
-            array('marker' => 'first-client'),
-            array('marker' => 'second-client')
+        $cards_row = new CardsRow(
+            1,
+            array(
+                $first_client,
+                $second_client
+            )
         );
-
-        $cards_row = new CardsRow(1, $clients, $template_file);
         $html = $cards_row->render();
 
         assertSame(2, substr_count($html, '<div class="card-slot">'));
-        assertSame(1, substr_count($html, 'first-client'));
-        assertSame(1, substr_count($html, 'second-client'));
+        assertTrue(substr_count($html, 'first-client') >= 1);
+        assertTrue(substr_count($html, 'second-client') >= 1);
 
         $cards_row_start = strpos($html, '<div class="cards-row">');
-        $first_client = strpos($html, 'first-client');
-        $second_client = strpos($html, 'second-client');
+        $first_client_start = strpos($html, 'first-client');
+        $second_client_start = strpos($html, 'second-client');
         $cards_row_end = strrpos($html, '</div>');
 
-        assertTrue($cards_row_start < $first_client);
-        assertTrue($first_client < $second_client);
-        assertTrue($second_client < $cards_row_end);
+        assertTrue($cards_row_start < $first_client_start);
+        assertTrue($first_client_start < $second_client_start);
+        assertTrue($second_client_start < $cards_row_end);
     } finally {
-        if (file_exists($template_file)) {
-            unlink($template_file);
-        }
+        unlink($first_client['heartbeat_file']);
+        unlink($second_client['heartbeat_file']);
     }
 });
 

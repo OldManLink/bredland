@@ -10,25 +10,23 @@ require_once $nocRoot . '/lib/cards-row.php';
 
 $runner = new TestRunner('dashboard');
 
-$tmpdir = sys_get_temp_dir() . '/noc-test-' . uniqid('', true);
-if (!mkdir($tmpdir)) throw new RuntimeException('failed to create temporary directory');
-
-$runner->test('returns constructor text', function () use($tmpdir) {
-    $template_file = "$tmpdir/noc_template.php";
-    $test_contents = <<<'PHP'
-<div id="cards-row-test">
-</div>
-PHP
-;
-    if (file_put_contents($template_file, "<?php ?>\n$test_contents", FILE_APPEND | LOCK_EX) === false) {
-        throw new RuntimeException('failed to create template: ' . $template_file);
-    }
-    $clients = array(array(), array());
-    $cards_row = new CardsRow(0, $clients, $template_file);
+$runner->test('render() renders the cards row inside the dashboard', function () {
+    $cards_row = new CardsRow(1, array());
     $dashboard = new Dashboard(0, $cards_row);
-    assertStringContains($test_contents, $dashboard->render());
-    unlink($template_file);
+    $html = $dashboard->render();
+
+    assertSame(1, substr_count($html, '<div class="dashboard">'));
+    assertSame(1, substr_count($html, '<div class="cards-row">'));
+
+    $dashboard_start = strpos($html, '<div class="dashboard">');
+    $cards_row_start = strpos($html, '<div class="cards-row">');
+    $dashboard_end = strrpos($html, '</div>');
+
+    assertTrue($dashboard_start < $cards_row_start);
+    assertTrue($cards_row_start < $dashboard_end);
+
+    assertSame(4, substr_count($html, "\n"));
+
 });
 
-rmdir($tmpdir);
 $runner->finish();

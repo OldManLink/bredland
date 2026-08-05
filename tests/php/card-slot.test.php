@@ -16,23 +16,10 @@ if (!mkdir($tmpdir)) {
 }
 
 $runner->test('render() renders the card container and telemetry drawer in order', function () use ($tmpdir) {
-    $template_file = "$tmpdir/card-view.php";
     $heartbeat_file = "$tmpdir/test-client.jsonl";
 
     try {
-        $test_contents = <<<'PHP'
-<div class="card">
-</div>
-PHP
-;
-
-        if (file_put_contents($template_file, $test_contents, LOCK_EX) === false) {
-            throw new RuntimeException(
-                'failed to create template: ' . $template_file
-            );
-        }
-
-        if (file_put_contents($heartbeat_file, "{}\n", LOCK_EX) === false) {
+        if (file_put_contents($heartbeat_file, "{\"status\":\"ready\"}\n", LOCK_EX) === false) {
             throw new RuntimeException(
                 'failed to create heartbeat file: ' . $heartbeat_file
             );
@@ -40,15 +27,30 @@ PHP
 
         $client = array(
             'host' => 'test-client',
-            'heartbeat_file' => $heartbeat_file
+            'title' => 'Test client',
+            'age' => 65,
+            'heartbeat_file' => $heartbeat_file,
+            'heartbeat' => array(
+                'status' => 'ready'
+            ),
+            'fields' => array(
+                array(
+                    'label' => 'Status',
+                    'field' => 'status',
+                    'value_type' => 'string'
+                )
+            )
         );
 
-        $card_slot = new CardSlot(1, $client, $template_file);
+        $card_slot = new CardSlot(1, $client);
         $html = $card_slot->render();
 
         $card_slot_tag = '<div class="card-slot">';
         $card_container_tag = '<div class="card-container">';
-        $card_tag = '<div class="card">';
+        $card_tag =
+            '<div class="card ' .
+            heartbeat_health_colour($client['age']) .
+            '">';
         $template_tag = '<template id="test-client-telemetry-template">';
         $telemetry_tag = '<pre class="telemetry">';
 
@@ -57,6 +59,8 @@ PHP
         assertSame(1, substr_count($html, $card_tag));
         assertSame(1, substr_count($html, $template_tag));
         assertSame(1, substr_count($html, $telemetry_tag));
+        assertSame(16, substr_count($html, "\n"));
+
 
         $card_slot_start = strpos($html, $card_slot_tag);
         $card_container_start = strpos($html, $card_container_tag);
@@ -71,10 +75,6 @@ PHP
         assertTrue($template_start < $telemetry_start);
         assertTrue($telemetry_start < $card_slot_end);
     } finally {
-        if (file_exists($template_file)) {
-            unlink($template_file);
-        }
-
         if (file_exists($heartbeat_file)) {
             unlink($heartbeat_file);
         }

@@ -48,15 +48,14 @@ $runner->test('render() renders escaped heartbeat telemetry', function () use ($
         );
 
         assertStringContains($template, $html);
-        assertStringContains($pre, $html);
-        assertStringContains($escaped_heartbeat, $html);
-        assertStringContains('</pre>', $html);
+        assertStringContains("<pre class=\"telemetry\">$escaped_heartbeat</pre>", $html);
         assertStringContains('</template>', $html);
 
         assertSame(1, substr_count($html, $template));
         assertSame(1, substr_count($html, $pre));
         assertSame(1, substr_count($html, $escaped_heartbeat));
         assertSame(0, substr_count($html, $heartbeat));
+        assertSame(3, substr_count($html, "\n"));
 
         $template_start = strpos($html, $template);
         $pre_start = strpos($html, $pre);
