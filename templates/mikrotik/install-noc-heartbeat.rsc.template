@@ -14,8 +14,9 @@
 /system script add name=$scriptName policy=read,write,test source={
     :local endpoint "__TELEMETRY_ENDPOINT__"
 
-    :local token "__MIKROTIK_NOC_TOKEN__"
     :local host "__MIKROTIK_NOC_HOST__"
+    :local token "__MIKROTIK_NOC_TOKEN__"
+    :local ttl 300
     :local fields "version,model,cpu_load,free_memory,total_memory,update_available,latest_version"
     :local version [/system resource get version]
     :local model [/system resource get board-name]
@@ -33,8 +34,9 @@
             }
         }
     }
-    :set token [:convert $token to=url]
     :set host [:convert $host to=url]
+    :set token [:convert $token to=url]
+    :set ttl [:convert $ttl to=url]
     :set fields [:convert $fields to=url]
     :set version [:convert $version to=url]
     :set model [:convert $model to=url]
@@ -45,7 +47,7 @@
     :set updateAvailable [:convert $updateAvailable to=url]
     :set latestVersion [:convert $latestVersion to=url]
 
-    :local payload ("token=$token&host=$host&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&update_available=$updateAvailable&latest_version=$latestVersion")
+    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&update_available=$updateAvailable&latest_version=$latestVersion")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }

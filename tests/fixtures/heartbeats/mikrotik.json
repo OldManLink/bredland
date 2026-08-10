@@ -2,6 +2,7 @@
   "schema": 1,
   "ts": "2026-07-26T21:23:02Z",
   "host": "mikrotik",
+  "ttl": 300,
   "uptime": 2673306,
   "version": "7.23.1 (stable)",
   "model": "RB4011iGS+",

@@ -1,7 +1,7 @@
 <?php
 
 function reserved_fields() {
-    return array('schema', 'ts', 'host', 'token', 'uptime', 'fields', 'remote_addr');
+    return array('schema', 'ts', 'host', 'ttl', 'token', 'uptime', 'fields', 'remote_addr');
 }
 
 function select_fields($fields, $source) {

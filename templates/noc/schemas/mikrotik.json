@@ -8,6 +8,9 @@
   "host": {
     "const": "mikrotik"
   },
+  "ttl": {
+    "value_type": "integer"
+  },
   "uptime": {
     "value_type": "integer"
   },

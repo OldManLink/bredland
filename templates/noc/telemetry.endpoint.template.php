@@ -48,6 +48,7 @@ try {
         array(
             'ts' => gmdate('Y-m-d\TH:i:s\Z'),
             'uptime' => param('uptime'),
+            'ttl' => param('ttl'),
             'remote_addr' => isset($_SERVER['REMOTE_ADDR'])
                 ? $_SERVER['REMOTE_ADDR']
                 : '',

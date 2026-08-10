@@ -54,6 +54,9 @@ $runner->test('loads a record schema', function () use ($nocRoot) {
             'host' => array(
                 'const' => 'bredland',
             ),
+            'ttl' => array(
+                'value_type' => 'integer',
+            ),
             'uptime' => array(
                 'value_type' => 'integer',
             ),
