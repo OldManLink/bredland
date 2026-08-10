@@ -5,6 +5,7 @@ set -euo pipefail
 host="__BREDLAND_NOC_HOST__"
 token="__BREDLAND_NOC_TOKEN__"
 endpoint="__TELEMETRY_ENDPOINT__"
+ttl=300
 
 uptime="$(cut -d. -f1 /proc/uptime)"
 if command -v vcgencmd >/dev/null 2>&1; then
@@ -25,6 +26,7 @@ fields="temperature,throttled,free_memory,total_memory,root_free,root_total"
 curl --silent --show-error --fail \
   --data-urlencode "host=$host" \
   --data-urlencode "token=$token" \
+  --data-urlencode "ttl=$ttl" \
   --data-urlencode "uptime=$uptime" \
   --data-urlencode "fields=$fields" \
   --data-urlencode "temperature=$temperature" \

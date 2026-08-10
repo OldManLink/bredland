@@ -2,6 +2,7 @@
   "schema": 1,
   "ts": "2026-07-11T12:30:00Z",
   "host": "bredland",
+  "ttl": 300,
   "uptime": 1129926,
   "temperature": 32.6,
   "throttled": "0x0",
