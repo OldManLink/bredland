@@ -8,13 +8,14 @@ require_once __DIR__ . '/field-list.php';
 require_once __DIR__ . '/rule.php';
 require_once __DIR__ . '/int-val.php';
 require_once __DIR__ . '/str-val.php';
+require_once dirname(__DIR__) . '/noc.php';
 require_once dirname(__DIR__) . '/notification.php';
 
 class Client implements Compilable {
     use PartCompiler;
     private $host;
     private $title;
-    private $fields;
+    private $field_list;
     private $rules;
     private $order;
     private $notifications = array();
@@ -78,10 +79,10 @@ class Client implements Compilable {
         );
     }
 
-    public function __construct($host, $title, $fields, $rules, $order) {
+    public function __construct($host, $title, $field_list, $rules, $order) {
         $this->host = $host;
         $this->title = $title;
-        $this->fields = $fields;
+        $this->field_list = $field_list;
         $this->rules = $rules;
         $this->order = $order;
     }
@@ -94,8 +95,8 @@ class Client implements Compilable {
         return $this->title;
     }
 
-    public function fields() {
-        return $this->fields;
+    public function field_list() {
+        return $this->field_list;
     }
 
     public function rules() {
@@ -111,6 +112,10 @@ class Client implements Compilable {
     }
 
     public function health() {
+        if ($this->health === null) {
+            $this->health = $this->default_health();
+        }
+
         return $this->health;
     }
 
@@ -135,12 +140,93 @@ class Client implements Compilable {
         return $this;
     }
 
-    public function get($fieldName) {
+    public function get($field_name) {
        if ($this->heartbeat === null) {
            throw new Exception('Programming error: Client has not been rendered');
        }
-        return $this->fields
-            ->get($fieldName)
+        return $this->field_list
+            ->get($field_name)
             ->render($this->heartbeat);
+    }
+
+    public function get_order() {
+        return $this->order()->value();
+    }
+
+    public function get_title() {
+        return $this->title()->value();
+    }
+
+    public function heartbeat() {
+        return $this->heartbeat;
+    }
+
+    public function heartbeat_age() {
+        if ($this->heartbeat === null) {
+            throw new Exception('Programming error: Client has not been rendered');
+        }
+
+        return strtotime(Noc::now()) - strtotime($this->heartbeat['ts']);
+    }
+
+    private function default_health() {
+        $age = $this->heartbeat_age();
+        $ttl = $this->heartbeat['ttl'];
+
+        if ($age < $ttl + 60) {
+            return 'healthy';
+        }
+
+        if ($age < 4 * $ttl) {
+            return 'warning';
+        }
+
+        return 'critical';
+    }
+
+    public function health_colour() {
+        $colours = array(
+            'healthy' => 'green',
+            'warning' => 'yellow',
+            'critical' => 'red'
+        );
+
+        return $colours[$this->health()];
+    }
+
+    function formatted_heartbeat_age() {
+        $age_seconds = $this->heartbeat_age();
+        if ($age_seconds === null) {
+            return 'unavailable';
+        }
+
+        return $this->formatted_duration_seconds($age_seconds) . ' ago';
+    }
+
+    function formatted_duration_seconds($seconds) {
+        $seconds = (int)$seconds;
+
+        if ($seconds < 60) {
+            return $seconds . 's';
+        }
+
+        $minutes = floor($seconds / 60);
+        $seconds = $seconds % 60;
+
+        if ($minutes < 60) {
+            return $minutes . 'm ' . $seconds . 's';
+        }
+
+        $hours = floor($minutes / 60);
+        $minutes = $minutes % 60;
+
+        if ($hours < 24) {
+            return $hours . 'h ' . $minutes . 'm';
+        }
+
+        $days = floor($hours / 24);
+        $hours = $hours % 24;
+
+        return $days . 'd ' . $hours . 'h';
     }
 }

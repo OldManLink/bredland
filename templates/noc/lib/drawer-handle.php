@@ -5,7 +5,7 @@ require_once __DIR__ . '/text-renderable.php';
 class DrawerHandle extends HtmlTag {
     public function __construct($indentation_level, $client) {
         $host = htmlspecialchars(
-            $client['host'],
+            $client->host()->value(),
             ENT_QUOTES,
             'UTF-8'
         );

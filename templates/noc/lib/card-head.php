@@ -7,9 +7,9 @@ class CardHead extends HtmlTag {
     public function __construct($indentation_level, $client) {
         $child_level = $indentation_level + 1;
 
-        $health_colour = heartbeat_health_colour($client['age']);
+        $health_colour = $client->health_colour();
         $title = htmlspecialchars(
-            $client['title'],
+            $client->get_title(),
             ENT_QUOTES,
             'UTF-8'
         );

@@ -14,7 +14,7 @@ $runner->test('instance creation', function () {
 
     assertSame("test", $client->host()->value());
     assertSame("Test", $client->title()->value());
-    assertSame(array(), $client->fields());
+    assertSame(array(), $client->field_list());
     assertSame(array(), $client->rules());
     assertSame(42, $client->order()->value());
 });
@@ -27,7 +27,6 @@ $clientJson = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "value_type": "integer",
       "format": "display_uptime"
     }
   ],
@@ -58,7 +57,6 @@ $clientJson2 = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "value_type": "integer",
       "format": "display_uptime"
     }
   ],
@@ -89,7 +87,6 @@ $clientJson3 = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "value_type": "integer",
       "format": "display_uptime"
     }
   ],
@@ -129,6 +126,7 @@ $heartbeatJson = from_json(<<<'JSON'
   "schema": 1,
   "ts": "2026-07-26T21:23:02Z",
   "host": "test",
+  "ttl": 300,
   "uptime": 2673306,
   "version": "7.23.1 (stable)",
   "model": "RB4011iGS+",
@@ -147,6 +145,7 @@ $heartbeatJson2 = from_json(<<<'JSON'
   "schema": 1,
   "ts": "2026-07-26T21:23:02Z",
   "host": "test",
+  "ttl": 300,
   "uptime": 2673306,
   "version": "7.23.1 (stable)",
   "model": "RB4011iGS+",
@@ -161,26 +160,60 @@ JSON
 );
 
 $runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
-    $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
-    assertSame(null, $client->health());
-    assertThrows('Exception', 'Programming error: Client has not been rendered',
-        function () use ($client) {
-            $client->get('uptime');
-        }
-    );
-    $client->render($heartbeatJson);
-    assertSame(display_uptime(2673306), $client->get('uptime'));
-    assertSame(1, count($client->notifications()));
-    assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
-    assertSame(null, $client->health());
+    with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        assertThrows('Exception', 'Programming error: Client has not been rendered',
+            function () use ($client) {
+                $client->health();
+            }
+        );
+        assertThrows('Exception', 'Programming error: Client has not been rendered',
+            function () use ($client) {
+                $client->get('uptime');
+            }
+        );
+        $client->render($heartbeatJson);
+        assertSame(display_uptime(2673306), $client->get('uptime'));
+        assertSame(1, count($client->notifications()));
+        assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
+        assertSame('healthy', $client->health());
+    });
 });
 
 $runner->test('render tests: Client action not triggered', function () use ($clientJson, $heartbeatJson2) {
-    $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
-    assertSame(null, $client->health());
-    $client->render($heartbeatJson2);
-    assertSame(0, count($client->notifications()));
-    assertSame(null, $client->health());
+    with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson2) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson2);
+        assertSame(0, count($client->notifications()));
+        assertSame('healthy', $client->health());
+    });
+});
+
+$runner->test('health defaults to healthy while heartbeat is current', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:29:01Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('healthy', $client->health());
+    });
+});
+
+$runner->test('health defaults to warning when heartbeat is late', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:29:02Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('warning', $client->health());
+    });
+});
+
+$runner->test('health defaults to critical when heartbeat is very late', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:43:02Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('critical', $client->health());
+    });
 });
 
 $runner->test('render tests: Client setHealth triggered', function () use ($clientJson2, $heartbeatJson) {
@@ -206,14 +239,14 @@ $runner->test('compiler tests: Client', function () use ($clientJson) {
     $client = $result->value();
     assertTrue($client->host() instanceof StrVal, 'StrVal expected');
     assertTrue($client->title() instanceof StrVal, 'StrVal expected');
-    assertTrue($client->fields() instanceof FieldList, 'FieldList expected');
+    assertTrue($client->field_list() instanceof FieldList, 'FieldList expected');
     assertSame('array', runtime_type($client->rules()));
     assertTrue($client->order() instanceof IntVal, 'IntVal expected');
 
     assertSame('test', $client->host()->value());
     assertSame('Test', $client->title()->value());
-    assertSame(1, count($client->fields()));
-    assertTrue($client->fields()->fields()['uptime'] instanceof Field);
+    assertSame(1, count($client->field_list()));
+    assertTrue($client->field_list()->fields()['uptime'] instanceof Field);
     assertSame(1, count($client->rules()));
     assertTrue($client->rules()[0] instanceof Rule);
     assertSame(42, $client->order()->value());

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/test-runner.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/html-renderable.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/noc.php';
 
 function assertSame($expected, $actual, $message = '') {
     if ($expected !== $actual) {
@@ -144,8 +145,14 @@ function test_schema() {
        'ts' => array(
            'value_type' => 'integer'
        ),
+       'ttl' => array(
+           'value_type' => 'integer'
+       ),
        'uptime' => array(
            'value_type' => 'integer'
+       ),
+       'status' => array(
+           'value_type' => 'string'
        ),
        'temperature' => array(
            'value_type' => 'float'
@@ -193,4 +200,60 @@ function from_json_file($filename) {
 
 function indentation($level, $str = '') {
     return str_repeat(' ', HtmlRenderable::SPACES_PER_LEVEL * $level) . $str;
+}
+
+function with_noc_now($now, $callback) {
+    $previous_now = getenv('NOC_NOW');
+    putenv('NOC_NOW=' . $now);
+
+    try {
+        return $callback();
+    } finally {
+        if ($previous_now === false) {
+            putenv('NOC_NOW');
+        } else {
+            putenv('NOC_NOW=' . $previous_now);
+        }
+    }
+}
+
+function test_client(
+    $definition_overrides = array(),
+    $heartbeat_overrides = array()
+) {
+    require_once dirname(dirname(dirname(__DIR__))) .
+        '/templates/noc/lib/compiler/client.php';
+
+    $definition = array_merge(
+        array(
+            'host' => 'test-client',
+            'title' => 'Test client',
+            'fields' => array(),
+            'rules' => array(),
+            'order' => 1
+        ),
+        $definition_overrides
+    );
+
+    $heartbeat = array_merge(
+        array(
+            'schema' => 1,
+            'ts' => Noc::now(),
+            'host' => $definition['host'],
+            'ttl' => 300
+        ),
+        $heartbeat_overrides
+    );
+
+    $result = Client::compile(
+        $definition,
+        test_schema(),
+        'test client'
+    );
+
+    assert_compile_success($result);
+
+    return $result
+        ->value()
+        ->render($heartbeat);
 }

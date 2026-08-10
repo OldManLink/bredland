@@ -10,19 +10,19 @@ require_once $nocRoot . '/lib/card-container.php';
 $runner = new TestRunner('card-container');
 
 $runner->test('render() renders the card container structure in order', function () {
-    $client = array();
+    $client = test_client();
     $card_container = new CardContainer(1, $client);
     $html = $card_container->render();
 
     assertStringContains('<div class="card-container">', $html);
-    assertStringContains('<div class="card red">', $html);
+    assertStringContains('<div class="card green">', $html);
 
     assertSame(1, substr_count($html, '<div class="card-container">'));
-    assertSame(1, substr_count($html, '<div class="card red">'));
+    assertSame(1, substr_count($html, '<div class="card green">'));
     assertSame(10, substr_count($html, "\n"));
 
     $card_container_start = strpos($html, '<div class="card-container">');
-    $card_start = strpos($html, '<div class="card red">');
+    $card_start = strpos($html, '<div class="card green">');
     $card_end = strpos($html, '</div>', $card_start);
     $card_container_end = strrpos($html, '</div>');
 

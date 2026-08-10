@@ -10,7 +10,7 @@ class Card extends HtmlTag {
     public function __construct($indentation_level, $client) {
         $child_level = $indentation_level + 1;
 
-        $health_colour = heartbeat_health_colour($client['age']);
+        $health_colour = $client->health_colour();
 
         parent::__construct(
             $indentation_level,
@@ -26,8 +26,7 @@ class Card extends HtmlTag {
                 ),
                 new ClientFieldList(
                     $child_level,
-                    $client,
-                    $client['fields']
+                    $client
                 ),
                 new DrawerHandle(
                     $child_level,

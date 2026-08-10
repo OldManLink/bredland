@@ -69,6 +69,7 @@ file_put_contents(
         'schema' => 1,
         'ts' => gmdate('Y-m-d\TH:i:s\Z'),
         'host' => 'bredland',
+        'ttl' => 300,
         'uptime' => 123,
     )) . "\n"
 );
@@ -96,6 +97,7 @@ assertSame(0, compare_client_order($a, $a));
 
 $client = array(
     'heartbeat' => array(
+        'ttl' => 300,
         'uptime' => 1165727,
         'old_uptime' => '1w6d11:48:47',
         'free_memory' => 1073741824,

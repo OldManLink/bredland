@@ -63,6 +63,7 @@ fi
 
 cp -R templates/noc/lib "$build_dir/"
 cp -R templates/noc/clients "$build_dir/"
+cp -R templates/noc/schemas "$build_dir/"
 cp -R templates/noc/static/. "$static_dir/"
 
 timestamp_file="tests/fixtures/last-fetched.timestamp"

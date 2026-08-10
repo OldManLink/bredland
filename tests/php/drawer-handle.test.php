@@ -10,15 +10,15 @@ require_once $nocRoot . '/lib/drawer-handle.php';
 $runner = new TestRunner('drawer-handle');
 
 $runner->test('render() renders an escaped telemetry drawer handle', function () {
-    $client = array(
-        'host' => 'test<&"client'
+    $client = test_client(
+        array('host' => 'test<&"client')
     );
 
     $drawer_handle = new DrawerHandle(1, $client);
     $html = $drawer_handle->render();
 
     $escaped_host = htmlspecialchars(
-        $client['host'],
+        $client->host()->value(),
         ENT_QUOTES,
         'UTF-8'
     );
@@ -45,7 +45,7 @@ $runner->test('render() renders an escaped telemetry drawer handle', function ()
             'data-telemetry-toggle="' . $escaped_host . '"'
         )
     );
-    assertSame(0, substr_count($html, $client['host']));
+    assertSame(0, substr_count($html, $client->host()->value()));
     assertSame(1, substr_count($html, "\n"));
 
     $button_start = strpos($html, '<button ');

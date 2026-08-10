@@ -40,7 +40,7 @@ $sample_file = $tmpdir . '/sample.jsonl';
 
 file_put_contents(
     $sample_file,
-    "{\"ts\":\"2026-07-04T18:30:00Z\",\"host\":\"bredland\",\"uptime\":\"6d08:32:06\",\"free_memory\":123456}\n"
+    "{\"ts\":\"2026-07-04T18:30:00Z\",\"host\":\"bredland\",\"ttl\":300,\"uptime\":\"6d08:32:06\",\"free_memory\":123456}\n"
 );
 
 $heartbeat = heartbeat_from_jsonl($sample_file);
@@ -49,6 +49,7 @@ assertSame(
     [
         'ts' =>'2026-07-04T18:30:00Z',
         'host' => 'bredland',
+        'ttl' => 300,
         'uptime' => '6d08:32:06',
         'free_memory' => 123456,
     ],

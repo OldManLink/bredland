@@ -62,9 +62,9 @@ $runner->test('all client descriptions compile', function () use ($nocRoot, $tes
         $seenHosts[$host] = true;
 
         assertTrue($client->title() instanceof StrVal, "$clientFile.title StrVal expected");
-        assertTrue($client->fields() instanceof FieldList, "$clientFile.fields FieldList expected");
+        assertTrue($client->field_list() instanceof FieldList, "$clientFile.field_list FieldList expected");
         assertTrue($client->order() instanceof IntVal, "$clientFile.order IntVal expected");
-        assertTrue($client->fields()->fields()['uptime'] !== null, "$clientFile must define uptime");
+        assertTrue($client->field_list()->fields()['uptime'] !== null, "$clientFile must define uptime");
 
         foreach ($fixture as $field => $value) {
             assertTrue(

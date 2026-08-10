@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-HEARTBEAT_CADENCE_SECONDS=300
 DEPLOYMENT_SAFETY_MARGIN_SECONDS=45
 
 # shellcheck source=scripts/lib/bredland.sh
@@ -51,7 +50,8 @@ for host in "${hosts[@]}"; do
     echo "OK"
 
     heartbeat_epoch="$(jq -er '.ts | fromdateiso8601' "$heartbeat_file")"
-    expected_epoch=$((heartbeat_epoch + HEARTBEAT_CADENCE_SECONDS))
+    heartbeat_ttl="$(jq -er '.ttl | select(type == "number" and floor == . and . > 0)' "$heartbeat_file")"
+    expected_epoch=$((heartbeat_epoch + heartbeat_ttl))
 
     if [[ -z "$next_heartbeat_epoch" ]] || (( expected_epoch < next_heartbeat_epoch )); then
         next_heartbeat_epoch="$expected_epoch"

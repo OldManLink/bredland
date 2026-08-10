@@ -10,14 +10,11 @@ require_once $nocRoot . '/lib/client-field-list.php';
 $runner = new TestRunner('client-field-list');
 
 $runner->test('render() renders no client fields for an empty list', function () {
-    $client = array(
-        'heartbeat' => array()
-    );
+    $client = test_client();
 
     $client_field_list = new ClientFieldList(
         1,
-        $client,
-        array()
+        $client
     );
 
     $html = $client_field_list->render();
@@ -27,26 +24,22 @@ $runner->test('render() renders no client fields for an empty list', function ()
 });
 
 $runner->test('render() renders one client field', function () {
-    $client = array(
-        'heartbeat' => array(
-            'first' => 'first-value'
-        )
-    );
-
-    $fields = array(
+    $client = test_client(
         array(
-            'label' => 'First field',
-            'field' => 'first',
-            'value_type' => 'string'
+            'fields' => array(
+                array(
+                    'label' => 'First field',
+                    'field' => 'status',
+                    'format' => 'display_value'
+                )
+            )
+        ),
+        array(
+            'status' => 'first-value'
         )
     );
 
-    $client_field_list = new ClientFieldList(
-        1,
-        $client,
-        $fields
-    );
-
+    $client_field_list = new ClientFieldList(1, $client);
     $html = $client_field_list->render();
 
     assertSame(1, substr_count($html, '<p>'));
@@ -55,32 +48,28 @@ $runner->test('render() renders one client field', function () {
 });
 
 $runner->test('render() preserves client field order', function () {
-    $client = array(
-        'heartbeat' => array(
-            'first' => 'first-value',
-            'second' => 'second-value'
-        )
-    );
-
-    $fields = array(
+    $client = test_client(
         array(
-            'label' => 'First field',
-            'field' => 'first',
-            'value_type' => 'string'
+            'fields' => array(
+                array(
+                    'label' => 'First field',
+                    'field' => 'status',
+                    'format' => 'display_value'
+                ),
+                array(
+                    'label' => 'Second field',
+                    'field' => 'latest_version',
+                    'format' => 'display_value'
+                )
+            )
         ),
         array(
-            'label' => 'Second field',
-            'field' => 'second',
-            'value_type' => 'string'
+            'status' => 'first-value',
+            'latest_version' => 'second-value'
         )
     );
 
-    $client_field_list = new ClientFieldList(
-        1,
-        $client,
-        $fields
-    );
-
+    $client_field_list = new ClientFieldList(1, $client);
     $html = $client_field_list->render();
 
     assertSame(2, substr_count($html, '<p>'));

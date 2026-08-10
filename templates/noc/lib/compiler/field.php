@@ -21,7 +21,6 @@ class Field implements Compilable, RuntimeVal {
         return array(
             'label' => StrVal::class,
             'field' => FieldVal::class,
-            'value_type' => TypeVal::class,
             'format' => FormatVal::class,
         );
     }
@@ -48,9 +47,19 @@ class Field implements Compilable, RuntimeVal {
         }
 
         $compiledParts = $compiledPartsResult->value();
+
+        $field = $compiledParts['field']->value();
+        $field_name = $field->value();
+
+        $value_type_result = TypeVal::compile(
+            $schema[$field_name]['value_type'],
+            $schema,
+            "$path.value_type"
+        );
+
         $format = $compiledParts['format']->value();
         $format_name = $format->name();
-        $value_type = $compiledParts['value_type']->value();
+        $value_type = $value_type_result->value();
         $value_type_value = $value_type->value();
         if(!isset($format->value_types()[$value_type->value()])) {
             return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type_value"));

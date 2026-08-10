@@ -151,4 +151,12 @@ function display_uptime($seconds) {
 
     return sprintf('%ds', $seconds);
 }
+
+function display_value($value) {
+    if (is_bool($value)) {
+        return $value ? 'true' : 'false';
+    }
+
+    return (string) $value;
+}
 ?>

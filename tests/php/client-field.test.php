@@ -10,29 +10,31 @@ require_once $nocRoot . '/lib/client-field.php';
 $runner = new TestRunner('client-field');
 
 $runner->test('render() renders an escaped client field', function () {
-    $client = array(
-        'heartbeat' => array(
-            'status' => '<ready> & "waiting"'
-        )
+    $client = test_client(
+        array(
+            'fields' => array(
+                array(
+                    'label' => 'State & mode',
+                    'field' => 'status',
+                    'format' => 'display_value'
+                )
+            )
+        ),
+        array('status' => '<ready> & "waiting"')
     );
 
-    $field = array(
-        'label' => 'State & mode',
-        'field' => 'status',
-        'value_type' => 'string'
-    );
-
+    $field = $client->field_list()->fields()['status'];
     $client_field = new ClientField(1, $client, $field);
     $html = $client_field->render();
 
     $escaped_label = htmlspecialchars(
-        $field['label'],
+        $field->label()->value(),
         ENT_QUOTES,
         'UTF-8'
     );
 
     $escaped_value = htmlspecialchars(
-        $client['heartbeat']['status'],
+        $client->get('status'),
         ENT_QUOTES,
         'UTF-8'
     );
@@ -46,8 +48,8 @@ $runner->test('render() renders an escaped client field', function () {
 
     assertSame(1, substr_count($html, '<p>'));
     assertSame(1, substr_count($html, '</p>'));
-    assertSame(0, substr_count($html, $field['label']));
-    assertSame(0, substr_count($html, $client['heartbeat']['status']));
+    assertSame(0, substr_count($html, 'State & mode'));
+    assertSame(0, substr_count($html, '<ready> & "waiting"'));
     assertSame(1, substr_count($html, "\n"));
 
     $paragraph_start = strpos($html, '<p>');

@@ -7,9 +7,10 @@ class TelemetryDrawer extends HtmlTag {
     public function __construct($indentation_level, $client) {
         $child_level = $indentation_level + 1;
         $grandchild_level = $indentation_level + 2;
-        $heartbeat = latest_jsonl_line($client['heartbeat_file']);
+
+        $heartbeat_json = json_encode($client->heartbeat());
         $escaped_heartbeat = htmlspecialchars(
-            $heartbeat,
+            $heartbeat_json,
             ENT_QUOTES,
             'UTF-8'
         );
@@ -33,7 +34,7 @@ class TelemetryDrawer extends HtmlTag {
             array($telemetry),
             array(
                 'id' => htmlspecialchars(
-                    $client['host'],
+                    $client->host()->value(),
                     ENT_QUOTES,
                     'UTF-8'
                 ) . '-telemetry-template'

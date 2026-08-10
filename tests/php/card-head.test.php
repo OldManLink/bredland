@@ -10,17 +10,18 @@ require_once $nocRoot . '/lib/card-head.php';
 $runner = new TestRunner('card-head');
 
 $runner->test('render() renders the health indicator and escaped title', function () {
-    $client = array(
-        'age' => 65,
-        'title' => 'Test <&" client'
+    $client = test_client(
+        array(
+            'title' => 'Test <&" client'
+        )
     );
 
     $card_head = new CardHead(1, $client);
     $html = $card_head->render();
 
-    $health_colour = heartbeat_health_colour($client['age']);
+    $health_colour = $client->health_colour();
     $escaped_title = htmlspecialchars(
-        $client['title'],
+        $client->get_title(),
         ENT_QUOTES,
         'UTF-8'
     );
@@ -42,7 +43,7 @@ $runner->test('render() renders the health indicator and escaped title', functio
     assertSame(1, substr_count($html, '</h1>'));
     assertSame(1, substr_count($html, $indicator_tag));
     assertSame(1, substr_count($html, $escaped_title));
-    assertSame(0, substr_count($html, $client['title']));
+    assertSame(0, substr_count($html, $client->get_title()));
     assertSame(4, substr_count($html, "\n"));
 
     $heading_start = strpos($html, $heading_tag);

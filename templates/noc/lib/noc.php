@@ -25,6 +25,16 @@ class Noc extends HtmlRenderable {
         );
     }
 
+    public static function now() {
+        $now = getenv('NOC_NOW');
+
+        if ($now !== false && $now !== '') {
+            return $now;
+        }
+
+        return gmdate('c');
+    }
+
     public function __construct($dashboard) {
         parent::__construct(0);
 

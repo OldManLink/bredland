@@ -13,7 +13,6 @@ $fieldJson = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "uptime",
-    "value_type": "integer",
     "format": "display_uptime"
 }
 JSON
@@ -23,7 +22,6 @@ $fieldJson2 = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "ts",
-    "value_type": "integer",
     "format": "display_uptime"
 }
 JSON
@@ -32,7 +30,6 @@ $fieldJson3 = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "temperature",
-    "value_type": "integer",
     "format": "display_uptime"
 }
 JSON
@@ -101,26 +98,11 @@ $runner->test('rejects non-object field', function () {
 });
 
 
-$runner->test('unsupported value_type: array', function () use ($fieldJson) {
-    $invalidFieldJson = from_json(<<<'JSON'
-    {
-        "label": "Uptime",
-        "field": "uptime",
-        "value_type": "array",
-        "format": "display_uptime"
-    }
-JSON
-    );
-
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.value_type: unsupported value_type: array');
-});
-
 $runner->test('invalid identifier: fiéld', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "label": "Uptime",
         "fiéld": "uptime",
-        "value_type": "array",
         "format": "display_uptime"
     }
 JSON
@@ -132,7 +114,6 @@ $runner->test('missing label', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "field": "uptime",
-        "value_type": "array",
         "format": "display_uptime"
     }
 JSON
@@ -144,7 +125,6 @@ $runner->test('missing field', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "label": "Uptime",
-        "value_type": "array",
         "format": "display_uptime"
     }
 JSON
@@ -152,24 +132,11 @@ JSON
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected field');
 });
 
-$runner->test('missing value_type', function () {
-    $invalidFieldJson = from_json(<<<'JSON'
-    {
-        "label": "Uptime",
-        "field": "uptime",
-        "format": "display_uptime"
-    }
-JSON
-    );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected value_type');
-});
-
 $runner->test('missing format', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "label": "Uptime",
-        "field": "uptime",
-        "value_type": "array"
+        "field": "uptime"
     }
 JSON
     );
@@ -181,7 +148,6 @@ $runner->test('non-existent format', function () {
     {
         "label": "Uptime",
         "field": "uptime",
-        "value_type": "integer",
         "format": "no_such_function"
     }
 JSON
@@ -189,25 +155,11 @@ JSON
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.format: no_such_function must exist in exports');
 });
 
-$runner->test('incompatible value_type format', function () {
-    $invalidFieldJson = from_json(<<<'JSON'
-    {
-        "label": "Uptime",
-        "field": "uptime",
-        "value_type": "string",
-        "format": "display_uptime"
-    }
-JSON
-    );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.display_uptime: incompatible with string');
-});
-
 $runner->test('unsupported attribute: size', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "label": "Uptime",
         "field": "uptime",
-        "value_type": "string",
         "format": "display_uptime",
         "size": "42"
     }

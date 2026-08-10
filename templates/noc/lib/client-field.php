@@ -1,18 +1,17 @@
 <?php
 require_once __DIR__ . '/html-tag.php';
 require_once __DIR__ . '/text-renderable.php';
-require_once __DIR__ . '/client.php';
 
 class ClientField extends HtmlTag {
     public function __construct($indentation_level, $client, $field) {
         $label = htmlspecialchars(
-            $field['label'],
+            $field->label()->value(),
             ENT_QUOTES,
             'UTF-8'
         );
 
         $value = htmlspecialchars(
-            display_client_field($client, $field),
+            $client->get($field->field()->value()),
             ENT_QUOTES,
             'UTF-8'
         );

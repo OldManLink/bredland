@@ -12,7 +12,6 @@ $fieldJson = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "uptime",
-    "value_type": "integer",
     "format": "display_uptime"
 }
 JSON
@@ -22,7 +21,6 @@ $fieldJson2 = from_json(<<<'JSON'
 {
     "label": "Timestamp",
     "field": "ts",
-    "value_type": "integer",
     "format": "display_uptime"
 }
 JSON
@@ -32,8 +30,7 @@ $fieldJson3 = from_json(<<<'JSON'
 {
     "label": "Temperature",
     "field": "temperature",
-    "value_type": "integer",
-    "format": "display_uptime"
+    "format": "display_value"
 }
 JSON
 );
@@ -145,9 +142,8 @@ $runner->test('rejects invalid field in field list', function () {
 $runner->test('preserves invalid field index in compiler error', function () use ($fieldJson, $fieldJson2) {
     $invalidFieldJson = from_json(<<<'JSON'
 {
-    "label": "Uptime",
-    "field": "uptime",
-    "value_type": "array",
+    "label": "Temperature",
+    "field": "temperature",
     "format": "display_uptime"
 }
 JSON
@@ -159,7 +155,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[0].value_type: unsupported value_type: array'
+        'Fields[0].display_uptime: incompatible with float'
     );
 
     assert_compile_error(
@@ -168,7 +164,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[1].value_type: unsupported value_type: array'
+        'Fields[1].display_uptime: incompatible with float'
     );
 
     assert_compile_error(
@@ -177,7 +173,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[2].value_type: unsupported value_type: array'
+        'Fields[2].display_uptime: incompatible with float'
     );
 });
 

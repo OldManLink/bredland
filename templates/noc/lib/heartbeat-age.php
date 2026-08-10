@@ -6,7 +6,7 @@ require_once __DIR__ . '/client.php';
 class HeartbeatAge extends HtmlTag {
     public function __construct($indentation_level, $client) {
         $age = htmlspecialchars(
-            format_heartbeat_age($client['age']),
+            $client->formatted_heartbeat_age(),
             ENT_QUOTES,
             'UTF-8'
         );
