@@ -112,11 +112,15 @@ class Client implements Compilable {
     }
 
     public function health() {
-        if ($this->health === null) {
-            $this->health = $this->default_health();
+        if ($this->health !== null) {
+            return $this->health;
         }
 
-        return $this->health;
+        if ($this->heartbeat === null) {
+            return 'critical';
+        }
+
+        return $this->default_health();
     }
 
     public function setHealth($health) {
@@ -142,7 +146,7 @@ class Client implements Compilable {
 
     public function get($field_name) {
        if ($this->heartbeat === null) {
-           throw new Exception('Programming error: Client has not been rendered');
+           return 'unavailable';
        }
         return $this->field_list
             ->get($field_name)
@@ -195,12 +199,13 @@ class Client implements Compilable {
     }
 
     function formatted_heartbeat_age() {
-        $age_seconds = $this->heartbeat_age();
-        if ($age_seconds === null) {
+        if ($this->heartbeat === null) {
             return 'unavailable';
         }
 
-        return $this->formatted_duration_seconds($age_seconds) . ' ago';
+        return $this->formatted_duration_seconds(
+                $this->heartbeat_age()
+            ) . ' ago';
     }
 
     function formatted_duration_seconds($seconds) {

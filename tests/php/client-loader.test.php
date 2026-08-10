@@ -123,6 +123,16 @@ function client_titles($clients) {
     return $titles;
 }
 
+function client_for_host($clients, $host) {
+    foreach ($clients as $client) {
+        if ($client->host()->value() === $host) {
+            return $client;
+        }
+    }
+
+    throw new RuntimeException('Client not found: ' . $host);
+}
+
 $fixtureNow = trim(
     file_get_contents($repoRoot . '/tests/fixtures/last-fetched.timestamp')
 );
@@ -257,40 +267,78 @@ $runner->test('load() skips a client with a malformed schema', function () use (
     }
 });
 
-$runner->test('load() skips a client with a missing heartbeat', function () use ($repoRoot) {
+$runner->test('load() returns a critical unavailable client with a missing heartbeat', function () use ($repoRoot) {
     $fixture = create_client_loader_fixture($repoRoot);
 
     try {
         unlink(heartbeat_file_for_host($fixture['data'], 'mikrotik'));
 
         $clients = ClientLoader::load(
-            $fixture['clients'],
-            $fixture['schemas'],
-            $fixture['data']
+                $fixture['clients'],
+                $fixture['schemas'],
+                $fixture['data']
         );
 
-        assertSame(array('Bredland'), client_titles($clients));
+        assertSame(
+                array('MikroTik', 'Bredland'),
+                client_titles($clients)
+        );
+
+        $client = client_for_host($clients, 'mikrotik');
+
+        assertSame(null, $client->heartbeat());
+        assertSame('critical', $client->health());
+        assertSame('red', $client->health_colour());
+        assertSame('unavailable', $client->formatted_heartbeat_age());
+
+        foreach ($client->field_list()->fields() as $field) {
+            assertSame(
+                    'unavailable',
+                    $client->get($field->field()->value())
+            );
+        }
+
+        assertSame(0, $client->notification_count());
     } finally {
         remove_tree($fixture['root']);
     }
 });
 
-$runner->test('load() skips a client with a malformed heartbeat', function () use ($repoRoot) {
+$runner->test('load() returns a critical unavailable client with a malformed heartbeat', function () use ($repoRoot) {
     $fixture = create_client_loader_fixture($repoRoot);
 
     try {
         file_put_contents(
-            heartbeat_file_for_host($fixture['data'], 'mikrotik'),
-            "{ this is not json\n"
+                heartbeat_file_for_host($fixture['data'], 'mikrotik'),
+                "{ this is not json\n"
         );
 
         $clients = ClientLoader::load(
-            $fixture['clients'],
-            $fixture['schemas'],
-            $fixture['data']
+                $fixture['clients'],
+                $fixture['schemas'],
+                $fixture['data']
         );
 
-        assertSame(array('Bredland'), client_titles($clients));
+        assertSame(
+                array('MikroTik', 'Bredland'),
+                client_titles($clients)
+        );
+
+        $client = client_for_host($clients, 'mikrotik');
+
+        assertSame(null, $client->heartbeat());
+        assertSame('critical', $client->health());
+        assertSame('red', $client->health_colour());
+        assertSame('unavailable', $client->formatted_heartbeat_age());
+
+        foreach ($client->field_list()->fields() as $field) {
+            assertSame(
+                    'unavailable',
+                    $client->get($field->field()->value())
+            );
+        }
+
+        assertSame(0, $client->notification_count());
     } finally {
         remove_tree($fixture['root']);
     }

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/html-tag.php';
 require_once __DIR__ . '/text-renderable.php';
+require_once __DIR__ . '/compiler/client.php';
 
 class ClientField extends HtmlTag {
     public function __construct($indentation_level, $client, $field) {

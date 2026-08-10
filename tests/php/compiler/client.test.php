@@ -162,16 +162,8 @@ JSON
 $runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
     with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson) {
         $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
-        assertThrows('Exception', 'Programming error: Client has not been rendered',
-            function () use ($client) {
-                $client->health();
-            }
-        );
-        assertThrows('Exception', 'Programming error: Client has not been rendered',
-            function () use ($client) {
-                $client->get('uptime');
-            }
-        );
+        assertSame('critical',$client->health());
+        assertSame('unavailable',$client->get('uptime'));
         $client->render($heartbeatJson);
         assertSame(display_uptime(2673306), $client->get('uptime'));
         assertSame(1, count($client->notifications()));

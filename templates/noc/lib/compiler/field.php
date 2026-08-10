@@ -98,14 +98,13 @@ class Field implements Compilable, RuntimeVal {
         return $this->format;
     }
 
-    public function render($heartbeat)
-    {
+    public function render($heartbeat) {
         $value = $this->field->render($heartbeat);
         $matchesType = $this->value_type->render();
         $formatter = $this->format->render();
 
         return $matchesType($value)
             ? $formatter($value)
-            : $value;
+            : 'unavailable';
     }
 }

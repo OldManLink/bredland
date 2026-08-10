@@ -49,17 +49,16 @@ class ClientLoader {
             return null;
         }
 
+        $client = $result->value();
+
         $heartbeat = self::read_latest_heartbeat(
             $heartbeats_dir,
             $host
         );
 
-        if ($heartbeat === null) {
-            return null;
+        if ($heartbeat !== null) {
+            $client->render($heartbeat);
         }
-
-        $client = $result->value();
-        $client->render($heartbeat);
 
         return $client;
     }

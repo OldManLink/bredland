@@ -74,7 +74,7 @@ $runner->test('returns unformatted value when runtime type does not match', func
         new FormatVal('display_uptime', array('integer' => true))
     );
 
-    assertSame('unavailable', $field->render(array()));
+    assertSame('unavailable', $field->render(array('uptime' => 'not-an-integer')));
 });
 
 // Compiler tests
