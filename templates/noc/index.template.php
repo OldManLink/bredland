@@ -17,5 +17,8 @@ $clients = ClientLoader::load(
 
 $cards_row = new CardsRow(2, $clients);
 $noc = new Noc(new Dashboard(1, $cards_row));
+
+header('X-NOC-Now: ' . Noc::now());
+
 echo $noc->render();
 ?>

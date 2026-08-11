@@ -2,15 +2,18 @@
 
 set -euo pipefail
 
-HEARTBEAT_TTL_SECONDS=300
 REQUIRED_FRESHNESS_SECONDS=30
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/utils.sh
+source "$(dirname "$0")/lib/utils.sh"
+
 load_bredland_secrets
 
 command -v curl >/dev/null
 command -v jq >/dev/null
+command -v ssh >/dev/null
 
 force=false
 
@@ -50,60 +53,83 @@ fixtures_are_complete()
     done
 }
 
-oldest_heartbeat_epoch()
+production_now_epoch()
 {
-    local host
-    local heartbeat_epoch
-    local oldest=""
-
-    for host in "${hosts[@]}"; do
-        heartbeat_epoch="$(
-            jq -er '.ts | fromdateiso8601' \
-                "$heartbeat_dir/${host}.json"
-        )"
-
-        if [[ -z "$oldest" ]] || (( heartbeat_epoch < oldest )); then
-            oldest="$heartbeat_epoch"
-        fi
-    done
-
-    printf '%s\n' "$oldest"
+    execute_remote_command 'date -u +%s'
 }
 
 fixtures_are_fresh_enough()
 {
-    local now
-    local oldest
-    local oldest_age
+    local now_epoch
+    local host
+    local heartbeat_file
+    local heartbeat_epoch
+    local heartbeat_ttl
+    local heartbeat_age
     local remaining_freshness
+    local least_remaining=""
 
     fixtures_are_complete || return 1
 
-    now="$(date -u +%s)"
-    oldest="$(oldest_heartbeat_epoch)" || return 1
+    now_epoch="$(production_now_epoch)"
 
-    oldest_age=$((now - oldest))
+    for host in "${hosts[@]}"; do
+        heartbeat_file="$heartbeat_dir/${host}.json"
 
-    # A future timestamp should not make the arithmetic misleading.
-    if (( oldest_age < 0 )); then
-        oldest_age=0
-    fi
+        heartbeat_epoch="$(
+            jq -er \
+                '.ts | fromdateiso8601' \
+                "$heartbeat_file"
+        )"
 
-    remaining_freshness=$((HEARTBEAT_TTL_SECONDS - oldest_age))
+        heartbeat_ttl="$(
+            jq -er \
+                '.ttl |
+                 select(
+                     type == "number" and
+                     floor == . and
+                     . > 0
+                 )' \
+                "$heartbeat_file"
+        )"
 
-    if (( remaining_freshness < REQUIRED_FRESHNESS_SECONDS )); then
+        heartbeat_age=$((now_epoch - heartbeat_epoch))
+
+        # A future heartbeat should not make the arithmetic misleading.
+        if (( heartbeat_age < 0 )); then
+            heartbeat_age=0
+        fi
+
+        remaining_freshness=$((heartbeat_ttl - heartbeat_age))
+
+        if [[ -z "$least_remaining" ]] ||
+           (( remaining_freshness < least_remaining )); then
+            least_remaining="$remaining_freshness"
+        fi
+
+        if (( remaining_freshness >= REQUIRED_FRESHNESS_SECONDS )); then
+            echo \
+                "✅ ${host}: ${remaining_freshness}s freshness remaining"
+        else
+            echo \
+                "⚠️ ${host}: only ${remaining_freshness}s freshness remaining"
+        fi
+    done
+
+    if (( least_remaining < REQUIRED_FRESHNESS_SECONDS )); then
         return 1
     fi
 
+    echo
     echo "Existing fixtures are fresh enough."
     echo "  Last fetched: $(cat "$timestamp_file")"
-    echo "  Oldest heartbeat age: ${oldest_age}s"
-    echo "  Remaining freshness: ${remaining_freshness}s"
+    echo "  Least remaining freshness: ${least_remaining}s"
 
     return 0
 }
 
 if ! $force && fixtures_are_fresh_enough; then
+    echo
     echo "✅ Fixture refresh not required."
     exit 0
 fi
@@ -111,6 +137,7 @@ fi
 if $force; then
     echo "⚠️ Forced fixture refresh requested."
 else
+    echo
     echo "Fixtures are missing or too close to expiry."
 fi
 
@@ -119,6 +146,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 staged_heartbeats="$tmpdir/heartbeats"
 staged_production="$tmpdir/production"
+staged_timestamp="$tmpdir/last-fetched.timestamp"
 
 mkdir -p "$staged_heartbeats" "$staged_production"
 mkdir -p "$staged_production/static"
@@ -132,14 +160,48 @@ for host in "${hosts[@]}"; do
 
     echo -n "Fetching latest ${host} heartbeat... "
     "$fetch_latest_heartbeat" "$host" > "$staged_file"
+
+    # Confirm that the heartbeat has a valid positive integer TTL.
+    jq -er \
+        '.ttl |
+         select(
+             type == "number" and
+             floor == . and
+             . > 0
+         )' \
+        "$staged_file" \
+        >/dev/null
+
     echo "OK"
 done
 
+index_headers="$tmpdir/index.headers"
+
 echo -n "Fetching production index.html... "
 curl --fail --silent --show-error \
+    --dump-header "$index_headers" \
     "$dashboard_url/" \
     > "$staged_production/index.html"
 echo "OK"
+
+snapshot_timestamp="$(
+    awk '
+        tolower($0) ~ /^x-noc-now:/ {
+            sub(/\r$/, "")
+            sub(/^[^:]*:[[:space:]]*/, "")
+            value = $0
+        }
+
+        END {
+            print value
+        }
+    ' "$index_headers"
+)"
+
+if [[ -z "$snapshot_timestamp" ]]; then
+    echo "Error: production response did not contain X-Noc-Now" >&2
+    exit 1
+fi
 
 echo -n "Fetching production style.css... "
 curl --fail --silent --show-error \
@@ -152,6 +214,8 @@ curl --fail --silent --show-error \
     "$dashboard_url/static/dashboard.js" \
     > "$staged_production/static/dashboard.js"
 echo "OK"
+
+printf '%s\n' "$snapshot_timestamp" > "$staged_timestamp"
 
 mkdir -p "$heartbeat_dir" "$production_dir" "$production_dir/static"
 
@@ -166,8 +230,7 @@ mv "$staged_production/static/style.css" "$production_dir/static/style.css"
 mv "$staged_production/static/dashboard.js" "$production_dir/static/dashboard.js"
 
 # Write this last: it acts as the commit marker for the complete fixture set.
-date -u +"%Y-%m-%dT%H:%M:%SZ" > "$tmpdir/last-fetched.timestamp"
-mv "$tmpdir/last-fetched.timestamp" "$timestamp_file"
+mv "$staged_timestamp" "$timestamp_file"
 
 echo
 echo "✅ Production fixtures updated."
