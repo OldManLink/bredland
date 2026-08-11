@@ -4,7 +4,7 @@ require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
 $nocLibRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
 require_once $nocLibRoot . '/compiler/type-val.php';
-require_once $nocLibRoot . '/telemetry.php';
+require_once $nocLibRoot . '/formatters.php';
 require_once $nocLibRoot . '/exports.php';
 
 $exports = get_exports();

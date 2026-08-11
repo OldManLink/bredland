@@ -9,8 +9,8 @@
 - [ ] Add endpoint-level coverage for the current telemetry request and response behaviour where needed.
 - ✅ Preserve PHP 5.5 compatibility throughout.
 - ✅ Preserve the current rendered HTML, telemetry format and HTTP behaviour unless deliberately changed by BRD-022.
-- [ ] Keep each refactoring step small enough to leave the complete test suite green.
-- [ ] Do not introduce classes that merely reproduce incidental HTML wrapper elements.
+- ✅ Keep each refactoring step small enough to leave the complete test suite green.
+- ✅ Do not introduce classes that merely reproduce incidental HTML wrapper elements.
 - [ ] Ensure that neither production entry point calls standalone functions when the refactoring is complete.
 
 ---
@@ -22,7 +22,7 @@
 - ✅ Decide which dependencies `Noc` receives explicitly.
 - ✅ Add focused tests for `Noc`.
 - ✅ Change `index.template.php` to construct and invoke `Noc`.
-- [ ] Ensure that `index.template.php` no longer calls standalone functions.
+- ✅ Ensure that `index.template.php` no longer calls standalone functions.
 
 Target shape:
 
@@ -57,7 +57,7 @@ Introduce cohesive classes based on the responsibilities discovered.
 
 Likely candidates:
 
-- [ ] `ClientLoader`
+- ✅ `ClientLoader`
 - [ ] `HeartbeatLoader`
 - [ ] `Heartbeat`
 
@@ -65,22 +65,22 @@ Names remain provisional until responsibilities are clear.
 
 ### Client loading
 
-- [ ] Move client-description discovery into a class.
-- [ ] Move client-file reading and validation into that class or a dedicated collaborator.
-- [ ] Return compiled `Client` objects rather than dashboard-specific arrays where practical.
-- [ ] Preserve deterministic client ordering.
-- [ ] Preserve the current handling of invalid client descriptions.
-- [ ] Migrate existing function tests to the new class API.
-- [ ] Add regression tests for any behaviour not already covered.
+- ✅ Move client-description discovery into a class.
+- ✅ Move client-file reading and validation into that class or a dedicated collaborator.
+- ✅ Return compiled `Client` objects rather than dashboard-specific arrays where practical.
+- ✅ Preserve deterministic client ordering.
+- ✅ Preserve the current handling of invalid client descriptions.
+- ✅ Migrate existing function tests to the new class API.
+- ✅ Add regression tests for any behaviour not already covered.
 
 ### Heartbeat loading
 
-- [ ] Encapsulate locating and reading the latest heartbeat.
-- [ ] Represent the loaded heartbeat and its age coherently.
-- [ ] Avoid exposing heartbeat filenames to rendering classes.
-- [ ] Preserve behaviour for missing, empty and malformed heartbeat files.
-- [ ] Preserve the stateless-client principle.
-- [ ] Migrate existing heartbeat-loading tests to the new class API.
+- ✅ Encapsulate locating and reading the latest heartbeat.
+- ✅ Represent the loaded heartbeat and its age coherently.
+- ✅ Avoid exposing heartbeat filenames to rendering classes.
+- ✅ Preserve behaviour for missing, empty and malformed heartbeat files.
+- ✅ Preserve the stateless-client principle.
+- ✅ Migrate existing heartbeat-loading tests to the new class API.
 
 ---
 
@@ -92,13 +92,13 @@ Identify responsibilities currently hidden behind functions such as:
 - `format_heartbeat_age()`;
 - `display_client_field()`.
 
-- [ ] Move heartbeat age and health presentation out of `index.template.php`.
+- ✅ Move heartbeat age and health presentation out of `index.template.php`.
 - ✅ Move client-field rendering out of `index.template.php`.
-- [ ] Prefer behaviour on an existing domain object when it naturally belongs there.
-- [ ] Introduce a dedicated presenter or renderer only where the behaviour does not belong on the domain object.
-- [ ] Preserve existing escaping at the final HTML boundary.
-- [ ] Add tests for healthy, warning, critical and unavailable presentation states.
-- [ ] Add tests for all supported field formatters and value types.
+- ✅ Prefer behaviour on an existing domain object when it naturally belongs there.
+- ✅ Introduce a dedicated presenter or renderer only where the behaviour does not belong on the domain object.
+- ✅ Preserve existing escaping at the final HTML boundary.
+- ✅ Add tests for healthy, warning, critical and unavailable presentation states.
+- ✅ Add tests for all supported field formatters and value types.
 
 ---
 
@@ -109,8 +109,8 @@ Create rendering classes for dashboard concepts, not for every DOM wrapper.
 Likely candidates:
 
 - ✅ `Dashboard`
-- [ ] `ClientCard`
-- [ ] `TelemetryDrawer`
+- ✅ `ClientCard`
+- ✅ `TelemetryDrawer`
 - ✅ `RefreshIndicator`, only if it has enough behaviour to justify a class
 
 Do not create classes solely because the current CSS contains elements such as:
@@ -124,27 +124,27 @@ Those elements may be emitted internally by a semantic renderer.
 
 ### Dashboard
 
-- [ ] Render the dashboard body from a collection of clients.
+- ✅ Render the dashboard body from a collection of clients.
 - ✅ Own dashboard-level composition.
-- [ ] Render clients in their configured order.
-- [ ] Add tests for an empty dashboard and a dashboard containing multiple clients.
+- ✅ Render clients in their configured order.
+- ✅ Add tests for an empty dashboard and a dashboard containing multiple clients.
 
 ### Client card
 
-- [ ] Render the client title.
-- [ ] Render heartbeat age and health state.
-- [ ] Render configured fields.
-- [ ] Render notification state introduced by BRD-022.
-- [ ] Render the telemetry-drawer handle.
-- [ ] Preserve current classes and `data-*` attributes required by JavaScript and CSS.
-- [ ] Add focused rendering tests.
+- ✅ Render the client title.
+- ✅ Render heartbeat age and health state.
+- ✅ Render configured fields.
+- ✅ Render notification state introduced by BRD-022.
+- ✅ Render the telemetry-drawer handle.
+- ✅ Preserve current classes and `data-*` attributes required by JavaScript and CSS.
+- ✅ Add focused rendering tests.
 
 ### Telemetry drawer
 
-- [ ] Render the latest raw telemetry safely.
-- [ ] Preserve the existing `<template>` contract used by JavaScript.
-- [ ] Handle unavailable telemetry explicitly.
-- [ ] Add focused rendering tests.
+- ✅ Render the latest raw telemetry safely.
+- ✅ Preserve the existing `<template>` contract used by JavaScript.
+- ✅ Handle unavailable telemetry explicitly.
+- ✅ Add focused rendering tests.
 
 ### Refresh indicator
 
@@ -155,12 +155,12 @@ Those elements may be emitted internally by a semantic renderer.
 
 ## 5. Reduce `index.template.php` to a true entry point
 
-- [ ] Remove all loops and conditionals concerned with dashboard content.
-- [ ] Remove direct filesystem access.
-- [ ] Remove direct heartbeat processing.
-- [ ] Remove direct field formatting.
-- [ ] Remove calls to all standalone application functions.
-- [ ] Retain only bootstrap/configuration code and static document framing.
+- ✅ Remove all loops and conditionals concerned with dashboard content.
+- ✅ Remove direct filesystem access.
+- ✅ Remove direct heartbeat processing.
+- ✅ Remove direct field formatting.
+- ✅ Remove calls to all standalone application functions.
+- ✅ Retain only bootstrap/configuration code and static document framing.
 - ✅ Render the dashboard through `Noc`.
 
 Desired body shape:

@@ -56,4 +56,35 @@ $runner->test('render() renders the health indicator and escaped title', functio
     assertTrue($title_start < $heading_end);
 });
 
+$runner->test('render() does not render a notification badge when there are no notifications', function () {
+    $client = test_client(
+        array(
+            'title' => 'Test client'
+        )
+    );
+
+    $card_head = new CardHead(1, $client);
+    $html = $card_head->render();
+
+    assertSame(0, substr_count($html, 'notification-badge'));
+});
+
+$runner->test('render() renders the notification count in a badge', function () {
+    $client = test_client(
+        array(
+            'title' => 'Test client'
+        )
+    );
+
+    $client->addNotification('First notification');
+    $client->addNotification('Second notification');
+
+    $card_head = new CardHead(1, $client);
+    $html = $card_head->render();
+
+    $badge = '<span class="notification-badge">2</span>';
+
+    assertSame(1, substr_count($html, $badge));
+});
+
 $runner->finish();

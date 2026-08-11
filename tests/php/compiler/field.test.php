@@ -5,7 +5,7 @@ require_once getenv('TEST_CONFIG');
 $phpRoot = dirname(__DIR__);
 require_once $phpRoot . '/lib/testlib.php';
 $libRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib';
-require_once $libRoot . '/telemetry.php';
+require_once $libRoot . '/formatters.php';
 $compilerRoot = $libRoot . '/compiler';
 require_once $compilerRoot . '/field.php';
 

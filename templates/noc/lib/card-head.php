@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/html-tag.php';
 require_once __DIR__ . '/text-renderable.php';
+require_once __DIR__ . '/notification-badge.php';
 
 class CardHead extends HtmlTag {
     public function __construct($indentation_level, $client) {
@@ -21,16 +22,25 @@ class CardHead extends HtmlTag {
             true
         );
 
+        $children = array(
+            $health_indicator,
+            new TextRenderable(
+                $child_level,
+                $title
+            )
+        );
+
+        if ($client->notification_count() > 0) {
+            $children[] = new NotificationBadge(
+                $child_level,
+                $client->notification_count()
+            );
+        }
+
         parent::__construct(
             $indentation_level,
             'h1',
-            array(
-                $health_indicator,
-                new TextRenderable(
-                    $child_level,
-                    $title
-                )
-            )
+            $children
         );
     }
 }

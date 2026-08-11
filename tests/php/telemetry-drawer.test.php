@@ -9,7 +9,7 @@ require_once $nocRoot . '/lib/telemetry-drawer.php';
 
 $runner = new TestRunner('telemetry-drawer');
 
-$runner->test('render() renders escaped heartbeat telemetry', function () use ($tmpdir) {
+$runner->test('render() renders escaped heartbeat telemetry', function () {
     $client = test_client(
         array(),
         array(
@@ -53,5 +53,4 @@ $runner->test('render() renders escaped heartbeat telemetry', function () use ($
     assertTrue($pre_end < $template_end);
 });
 
-rmdir($tmpdir);
 $runner->finish();

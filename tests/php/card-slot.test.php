@@ -9,7 +9,7 @@ require_once $nocRoot . '/lib/card-slot.php';
 
 $runner = new TestRunner('card-slot');
 
-$runner->test('render() renders the card container and telemetry drawer in order', function () use ($tmpdir) {
+$runner->test('render() renders the card container and telemetry drawer in order', function () {
 
     $client = test_client(
          array(

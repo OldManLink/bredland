@@ -138,7 +138,7 @@ if ! check_deployment_window "Checking heartbeat safety window..."; then
     exit 1
 fi
 
-fixture_was_promoted=false
+fixtures_were_promoted=false
 candidate_fixture="build/compare-dashboard/local.normalised.html"
 production_fixture="tests/fixtures/production/index.html"
 
@@ -197,11 +197,8 @@ while true; do
 
     case "$answer" in
         y|Y|yes|YES|Yes)
-            cp \
-                "$candidate_fixture" \
-                "$production_fixture"
-
-            fixture_was_promoted=true
+            "$script_dir/promote-fixtures.sh"
+            fixtures_were_promoted=true
 
             echo
             echo "📝 Production fixture updated:"
@@ -220,7 +217,7 @@ while true; do
     esac
 done
 
-if $fixture_was_promoted; then
+if $fixtures_were_promoted; then
     if ! check_deployment_window \
         "Re-checking heartbeat window after fixture review..."; then
         exit 1

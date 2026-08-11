@@ -8,7 +8,7 @@ require_once __DIR__ . '/field-val.php';
 require_once __DIR__ . '/type-val.php';
 require_once __DIR__ . '/format-val.php';
 require_once __DIR__ . '/runtime-val.php';
-require_once dirname(__DIR__) . '/telemetry.php';
+require_once dirname(__DIR__) . '/formatters.php';
 
 class Field implements Compilable, RuntimeVal {
     use PartCompiler;

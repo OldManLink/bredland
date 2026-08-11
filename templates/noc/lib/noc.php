@@ -3,6 +3,7 @@ require_once __DIR__ . '/html-renderable.php';
 require_once __DIR__ . '/page-head.php';
 require_once __DIR__ . '/refresh-indicator.php';
 require_once __DIR__ . '/html-tag.php';
+date_default_timezone_set('UTC');
 /**
  * Coordinates the construction and rendering of the Network Operations Centre.
  *

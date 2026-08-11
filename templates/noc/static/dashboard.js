@@ -168,3 +168,55 @@ function initialiseDesktopAutoRefresh() {
         location.reload();
     }, DESKTOP_AUTO_REFRESH_MS);
 }
+
+//
+// Hide and show the notificationpanel, if there is one and the user taps on the badge
+//
+
+function notificationPanelFor(element) {
+    var card = element.closest('.card');
+
+    if (!card) {
+        return null;
+    }
+
+    return card.querySelector('.notification-panel');
+}
+
+document.addEventListener('click', function (event) {
+    var badge = event.target.closest('.notification-badge');
+
+    if (badge) {
+        var panel = notificationPanelFor(badge);
+
+        if (panel) {
+            panel.classList.toggle('hidden');
+        }
+
+        return;
+    }
+
+    var close = event.target.closest('.notification-panel-close');
+
+    if (close) {
+        var close_panel = close.closest('.notification-panel');
+
+        if (close_panel) {
+            close_panel.classList.add('hidden');
+        }
+
+        return;
+    }
+
+    if (event.target.closest('.notification-panel')) {
+        return;
+    }
+
+    var panels = document.querySelectorAll(
+        '.notification-panel:not(.hidden)'
+    );
+
+    for (var i = 0; i < panels.length; i++) {
+        panels[i].classList.add('hidden');
+    }
+});

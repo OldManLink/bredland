@@ -66,4 +66,24 @@ $runner->test('render() renders the complete card in order', function () {
     });
 });
 
+$runner->test('render() does not render a notification panel when there are no notifications', function () {
+    $client = test_client();
+
+    $card = new Card(1, $client);
+    $html = $card->render();
+
+    assertSame(0, substr_count($html, 'notification-panel'));
+});
+
+$runner->test('render() renders a notification panel when there are notifications', function () {
+    $client = test_client();
+    $client->addNotification('RouterOS update available');
+
+    $card = new Card(1, $client);
+    $html = $card->render();
+
+    assertSame(1, substr_count($html, 'class="notification-panel '));
+    assertSame(1, substr_count($html, 'RouterOS update available'));
+});
+
 $runner->finish();
