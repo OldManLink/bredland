@@ -5,7 +5,6 @@ require_once '__TELEMETRY_CONFIG_FILE__';
 $base_dir = dirname($_SERVER['SCRIPT_FILENAME']);
 
 require_once "$base_dir/lib/client-loader.php";
-require_once "$base_dir/lib/client.php";
 require_once "$base_dir/lib/cards-row.php";
 require_once "$base_dir/lib/dashboard.php";
 require_once "$base_dir/lib/noc.php";

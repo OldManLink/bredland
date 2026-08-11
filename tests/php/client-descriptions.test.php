@@ -5,7 +5,6 @@ require_once __DIR__ . '/lib/testlib.php';
 $testsRoot = dirname(__DIR__);
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/client.php';
-require_once $nocRoot . '/lib/client.php';
 
 $runner = new TestRunner('client-descriptions');
 

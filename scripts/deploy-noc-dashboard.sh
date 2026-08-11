@@ -38,47 +38,194 @@ staging_dir="$tmpdir/staging"
 
 mkdir -p "$heartbeat_dir"
 
-next_heartbeat_host=""
-next_heartbeat_epoch=""
-now_epoch="$(date -u +%s)"
+check_deployment_window()
+{
+    local heading="$1"
+    local now_epoch
+    local host
+    local heartbeat_file
+    local heartbeat_epoch
+    local heartbeat_ttl
+    local expected_epoch
+    local expected_utc
+    local seconds_until_expected
+    local seconds_overdue
+    local unsafe=false
 
-for host in "${hosts[@]}"; do
-    heartbeat_file="$heartbeat_dir/${host}.json"
+    echo
+    echo "🫀 $heading"
+    echo "   Safety margin: ${DEPLOYMENT_SAFETY_MARGIN_SECONDS}s"
 
-    echo -n "Fetching latest ${host} heartbeat... "
-    "$fetch_latest_heartbeat" "$host" > "$heartbeat_file"
-    echo "OK"
+    now_epoch="$(date -u +%s)"
 
-    heartbeat_epoch="$(jq -er '.ts | fromdateiso8601' "$heartbeat_file")"
-    heartbeat_ttl="$(jq -er '.ttl | select(type == "number" and floor == . and . > 0)' "$heartbeat_file")"
-    expected_epoch=$((heartbeat_epoch + heartbeat_ttl))
+    for host in "${hosts[@]}"; do
+        heartbeat_file="$heartbeat_dir/${host}.json"
 
-    if [[ -z "$next_heartbeat_epoch" ]] || (( expected_epoch < next_heartbeat_epoch )); then
-        next_heartbeat_epoch="$expected_epoch"
-        next_heartbeat_host="$host"
+        "$fetch_latest_heartbeat" "$host" > "$heartbeat_file"
+
+        heartbeat_epoch="$(
+            jq -er \
+                '.ts | fromdateiso8601' \
+                "$heartbeat_file"
+        )"
+
+        heartbeat_ttl="$(
+            jq -er \
+                '.ttl |
+                 select(
+                     type == "number" and
+                     floor == . and
+                     . > 0
+                 )' \
+                "$heartbeat_file"
+        )"
+
+        expected_epoch=$((heartbeat_epoch + heartbeat_ttl))
+        seconds_until_expected=$((expected_epoch - now_epoch))
+
+        expected_utc="$(
+            date -u \
+                -r "$expected_epoch" \
+                +%Y-%m-%dT%H:%M:%SZ
+        )"
+
+        if (( seconds_until_expected > DEPLOYMENT_SAFETY_MARGIN_SECONDS )); then
+            echo \
+                "✅ ${host}: next heartbeat expected in " \
+                "${seconds_until_expected}s (${expected_utc})"
+            continue
+        fi
+
+        if (( seconds_until_expected < -DEPLOYMENT_SAFETY_MARGIN_SECONDS )); then
+            seconds_overdue=$((-seconds_until_expected))
+
+            echo \
+                "⚠️ ${host}: heartbeat overdue by " \
+                "${seconds_overdue}s; proceeding anyway"
+            continue
+        fi
+
+        if (( seconds_until_expected >= 0 )); then
+            echo \
+                "❌ ${host}: next heartbeat expected in " \
+                "${seconds_until_expected}s (${expected_utc})"
+        else
+            seconds_overdue=$((-seconds_until_expected))
+
+            echo \
+                "❌ ${host}: heartbeat only " \
+                "${seconds_overdue}s overdue"
+        fi
+
+        unsafe=true
+    done
+
+    if $unsafe; then
+        echo
+        echo "⛔ DEPLOYMENT REFUSED"
+        echo \
+            "   At least one client is inside the " \
+            "±${DEPLOYMENT_SAFETY_MARGIN_SECONDS}s heartbeat danger window."
+        echo "   Production has not been modified."
+        return 1
     fi
-done
 
-seconds_until_next=$((next_heartbeat_epoch - now_epoch))
-next_heartbeat_utc="$(date -u -r "$next_heartbeat_epoch" +%Y-%m-%dT%H:%M:%SZ)"
+    echo
+    echo "✅ Heartbeat safety window is clear."
+}
 
-echo
-echo "Next expected heartbeat: ${next_heartbeat_host} at ${next_heartbeat_utc}"
-echo "Time remaining: ${seconds_until_next}s"
-echo "Required safety margin: more than ${DEPLOYMENT_SAFETY_MARGIN_SECONDS}s"
-
-if (( seconds_until_next <= DEPLOYMENT_SAFETY_MARGIN_SECONDS )); then
-    echo "Deployment aborted: not enough time before the next expected heartbeat." >&2
+if ! check_deployment_window "Checking heartbeat safety window..."; then
     exit 1
 fi
 
-echo
-echo "Running test suite..."
-tests/run-all.sh -qq
+fixture_was_promoted=false
+candidate_fixture="build/compare-dashboard/local.normalised.html"
+production_fixture="tests/fixtures/production/index.html"
 
-echo
-echo "Generating dashboard comparison preview..."
-scripts/compare-dashboard.sh --preview
+while true; do
+    echo
+    echo "🧪 Running test suite..."
+    tests/run-all.sh -qq
+
+    echo
+    echo "🔍 Comparing rendered dashboard..."
+    echo "   Opening preview for approval..."
+
+    if scripts/compare-dashboard.sh --preview; then
+        :
+    else
+        compare_rc=$?
+
+        echo
+
+        if (( compare_rc == 1 )); then
+            echo "⛔ DEPLOYMENT CANCELLED"
+            echo "   Dashboard preview was not approved."
+            echo "   Production has not been modified."
+        else
+            echo "❌ DEPLOYMENT FAILED"
+            echo \
+                "   Dashboard comparison failed " \
+                "(exit ${compare_rc})."
+            echo "   Production has not been modified."
+        fi
+
+        exit "$compare_rc"
+    fi
+
+    if [[ ! -s "$candidate_fixture" ]]; then
+        echo
+        echo "❌ DEPLOYMENT FAILED"
+        echo "   Dashboard comparison candidate is missing:"
+        echo "   $candidate_fixture"
+        echo "   Production has not been modified."
+        exit 1
+    fi
+
+    if cmp -s "$candidate_fixture" "$production_fixture"; then
+        echo "✅ Dashboard matches the production fixture."
+        break
+    fi
+
+    echo
+    echo "⚠️ Approved dashboard differs from the production fixture."
+    echo
+
+    read -r -p \
+        "Promote rendered dashboard to the production fixture? [y/N] " \
+        answer
+
+    case "$answer" in
+        y|Y|yes|YES|Yes)
+            cp \
+                "$candidate_fixture" \
+                "$production_fixture"
+
+            fixture_was_promoted=true
+
+            echo
+            echo "📝 Production fixture updated:"
+            echo "   $production_fixture"
+            echo
+            echo "🔁 Returning to full validation..."
+            ;;
+
+        *)
+            echo
+            echo "⛔ DEPLOYMENT CANCELLED"
+            echo "   Production fixture was not promoted."
+            echo "   Production has not been modified."
+            exit 1
+            ;;
+    esac
+done
+
+if $fixture_was_promoted; then
+    if ! check_deployment_window \
+        "Re-checking heartbeat window after fixture review..."; then
+        exit 1
+    fi
+fi
 
 oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
 oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"

@@ -38,8 +38,15 @@ class TypeVal implements Compilable, Renderable {
     }
 
     public function render() {
-        return function ($value) {
-            return runtime_type($value) === $this->value();
-        };
-    }
+    return function ($value) {
+        $runtime_type = runtime_type($value);
+
+        if ($this->value() === 'float') {
+            return $runtime_type === 'float'
+                || $runtime_type === 'integer';
+        }
+
+        return $runtime_type === $this->value();
+    };
+}
 }
