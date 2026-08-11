@@ -208,6 +208,14 @@ class Client implements Compilable {
             ) . ' ago';
     }
 
+    function get_heartbeat() {
+        if ($this->heartbeat === null) {
+            return 'unavailable';
+        }
+
+        return $this->heartbeat();
+    }
+
     function formatted_duration_seconds($seconds) {
         $seconds = (int)$seconds;
 

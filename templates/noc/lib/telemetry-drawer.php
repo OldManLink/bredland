@@ -7,7 +7,7 @@ class TelemetryDrawer extends HtmlTag {
         $child_level = $indentation_level + 1;
         $grandchild_level = $indentation_level + 2;
 
-        $heartbeat_json = json_encode($client->heartbeat());
+        $heartbeat_json = json_encode($client->get_heartbeat());
         $escaped_heartbeat = htmlspecialchars(
             $heartbeat_json,
             ENT_QUOTES,
