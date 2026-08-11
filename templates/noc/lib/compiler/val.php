@@ -32,7 +32,7 @@ class Val implements Compilable {
             array($valueClass, 'compile'),
                 $definition,
                 $schema,
-                "$path.$partName"
+                "$path"
         );
     }
 
