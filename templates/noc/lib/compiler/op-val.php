@@ -3,8 +3,9 @@ require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
+require_once __DIR__ . '/renderable.php';
 
-class OpVal implements Compilable {
+class OpVal implements Compilable, Renderable {
     private $name;
     private $operand_types;
 
@@ -52,5 +53,23 @@ class OpVal implements Compilable {
 
     public function operand_types() {
         return $this->operand_types;
+    }
+
+    public function render() {
+        switch ($this->name()) {
+            case 'equals':
+                return function ($left, $right) {
+                    return $left === $right;
+                };
+
+            case 'lessThan':
+                return function ($left, $right) {
+                    if (gettype($left) !== gettype($right)) {
+                        throw new Exception("Programming error: 'lessThan' requires operands of the same type");
+                    }
+
+                    return $left < $right;
+                };
+        }
     }
 }

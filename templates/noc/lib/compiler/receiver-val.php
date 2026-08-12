@@ -2,12 +2,13 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
-require_once __DIR__ . '/noc.php';
+require_once dirname(__DIR__) . '/noc.php';
 require_once __DIR__ . '/client.php';
 
 class ReceiverVal implements Compilable {
     private $name;
     private $receiver_class;
+
     private static function receivers() {
         return array(
             'client' => Client::class,
@@ -44,5 +45,11 @@ class ReceiverVal implements Compilable {
     public function compilable_methods() {
         $class = $this->receiver_class;
         return $class::compilable_methods();
+    }
+
+    public function render($receivers) {
+        return array_filter($receivers, function ($r) {
+            return $r instanceof $this->receiver_class;
+        });
     }
 }

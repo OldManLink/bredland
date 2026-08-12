@@ -5,7 +5,6 @@ require_once __DIR__ . '/lib/testlib.php';
 $testsRoot = dirname(__DIR__);
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/client.php';
-require_once $nocRoot . '/lib/client.php';
 
 $runner = new TestRunner('client-descriptions');
 
@@ -61,31 +60,10 @@ $runner->test('all client descriptions compile', function () use ($nocRoot, $tes
 
         $seenHosts[$host] = true;
 
-        assertTrue(
-            $client->title() !== null,
-            "$clientFile missing title"
-        );
-
-        assertTrue(
-            is_array($client->fields()),
-            "$clientFile fields must be an array"
-        );
-
-        assertTrue(
-            $client->order() !== null,
-            "$clientFile missing order"
-        );
-
-        $fields = array();
-
-        foreach ($client->fields() as $field) {
-            $fields[$field->field()->value()] = true;
-        }
-
-        assertTrue(
-            isset($fields['uptime']),
-            "$clientFile must define uptime"
-        );
+        assertTrue($client->title() instanceof StrVal, "$clientFile.title StrVal expected");
+        assertTrue($client->field_list() instanceof FieldList, "$clientFile.field_list FieldList expected");
+        assertTrue($client->order() instanceof IntVal, "$clientFile.order IntVal expected");
+        assertTrue($client->field_list()->fields()['uptime'] !== null, "$clientFile must define uptime");
 
         foreach ($fixture as $field => $value) {
             assertTrue(

@@ -4,8 +4,9 @@ require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
+require_once __DIR__ . '/renderable.php';
 
-class FormatVal implements Compilable {
+class FormatVal implements Compilable, Renderable {
     private $name;
     private $value_types;
 
@@ -39,5 +40,9 @@ class FormatVal implements Compilable {
 
     public function value_types() {
         return $this->value_types;
+    }
+
+    public function render() {
+        return $this->name;
     }
 }

@@ -16,6 +16,11 @@ $runner->test('instance creation', function () {
     assertSame(42, $fortyTwo->value());
 });
 
+$runner->test('renders its value unchanged', function () {
+    $fortyTwo = new IntVal(42);
+    assertSame(42, $fortyTwo->render(array()));
+});
+
 $runner->test('compiler tests: IntVal', function () {
     $result = IntVal::compile(42, test_schema(), 'Happy Path');
     assert_compile_success($result);

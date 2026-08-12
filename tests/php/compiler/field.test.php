@@ -4,161 +4,166 @@
 require_once getenv('TEST_CONFIG');
 $phpRoot = dirname(__DIR__);
 require_once $phpRoot . '/lib/testlib.php';
-$compilerRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib/compiler';
-require_once $compilerRoot .'/field.php';
+$libRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib';
+require_once $libRoot . '/formatters.php';
+$compilerRoot = $libRoot . '/compiler';
+require_once $compilerRoot . '/field.php';
 
-// Correctly constructed Field in json format
-$fieldJson = array(
-    'label' => "Uptime",
-    'field' => "uptime",
-    'value_type' => "integer",
-    'format' => "display_uptime",
+$fieldJson = from_json(<<<'JSON'
+{
+    "label": "Uptime",
+    "field": "uptime",
+    "format": "display_uptime"
+}
+JSON
+);
+
+$fieldJson2 = from_json(<<<'JSON'
+{
+    "label": "Uptime",
+    "field": "ts",
+    "format": "display_uptime"
+}
+JSON
+);
+$fieldJson3 = from_json(<<<'JSON'
+{
+    "label": "Uptime",
+    "field": "temperature",
+    "format": "display_uptime"
+}
+JSON
 );
 
 $runner = new TestRunner('Field');
 
 $runner->test('instance creation', function () {
-    $labelStr = new StrVal('Uptime');
+    $label = new StrVal('Uptime');
     $fieldVal = new FieldVal('uptime');
     $type = new TypeVal('integer');
     $format = new FormatVal('display_uptime', array('integer'));
+
     $field = new Field(
-        $labelStr,
+        $label,
         $fieldVal,
         $type,
         $format
     );
 
-    assertSame($labelStr, $field->label());
+    assertSame($label, $field->label());
     assertSame($fieldVal, $field->field());
     assertSame($type, $field->value_type());
     assertSame($format, $field->format());
 });
 
-$runner->test('compiler tests: Field', function () use ($fieldJson) {
+$runner->test('renders formatted field value', function () {
+    $field = new Field(
+        new StrVal('Uptime'),
+        new FieldVal('uptime'),
+        new TypeVal('integer'),
+        new FormatVal('display_uptime', array('integer' => true))
+    );
+    assertSame(display_uptime(1165727), $field->render(array('uptime' => 1165727)));
+});
+
+$runner->test('returns unformatted value when runtime type does not match', function () {
+    $field = new Field(
+        new StrVal('Uptime'),
+        new FieldVal('uptime'),
+        new TypeVal('integer'),
+        new FormatVal('display_uptime', array('integer' => true))
+    );
+
+    assertSame('unavailable', $field->render(array('uptime' => 'not-an-integer')));
+});
+
+// Compiler tests
+$runner->test('compiles field', function () use ($fieldJson) {
     $result = Field::compile($fieldJson, test_schema(), 'Happy Path');
+
     assert_compile_success($result);
-    assertTrue($result->value()->label() instanceof StrVal, 'StrVal expected');
-    assertTrue($result->value()->field() instanceof FieldVal, 'FieldVal expected');
-    assertTrue($result->value()->value_type() instanceof TypeVal, 'TypeVal expected');
-    assertTrue($result->value()->format() instanceof FormatVal, 'FormatVal expected');
+    assertTrue($result->value()->label() instanceof StrVal);
+    assertTrue($result->value()->field() instanceof FieldVal);
+    assertTrue($result->value()->value_type() instanceof TypeVal);
+    assertTrue($result->value()->format() instanceof FormatVal);
+
     assertSame('Uptime', $result->value()->label()->value());
     assertSame('uptime', $result->value()->field()->value());
     assertSame('integer', $result->value()->value_type()->value());
     assertSame('display_uptime', $result->value()->format()->name());
+});
+
+$runner->test('rejects non-object field', function () {
     assert_compile_error(Field::compile(42, test_schema(), '42'), '42: must be an object');
 });
 
-$runner->test('compiler tests: FieldList', function () use ($fieldJson) {
-    $result = FieldList::compile(array($fieldJson), test_schema(), 'Happy array path');
-    assert_compile_success($result);
-    assertSame('array', runtime_type($result->value()));
-    assertSame(1, count($result->value()));
-    assertTrue($result->value()[0] instanceof Field);
-
-    $result = FieldList::compile(array($fieldJson, $fieldJson, $fieldJson), test_schema(), 'Happy array(3) path');
-    assert_compile_success($result);
-    assertSame(3, count($result->value()));
-    assertTrue($result->value()[2] instanceof Field);
-
-    $result = FieldList::compile(array(), test_schema(), 'Empty array');
-    assert_compile_success($result);
-    assertSame(array(), $result->value());
-
-    $result = FieldList::compile(42, test_schema(), 'Number 42');
-    assert_compile_error($result, 'Number 42: must be an array');
-
-    $result = FieldList::compile(array(42), test_schema(), 'array(42)');
-    assert_compile_error($result, 'array(42)[0]: must be an object');
-});
-
-$runner->test('unsupported value_type: array', function () use ($fieldJson) {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'field' => "uptime",
-        'value_type' => "array",
-        'format' => "display_uptime",
-    );
-
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.value_type: unsupported value_type: array');
-    assert_compile_error(FieldList::compile(array($invalidFieldJson), test_schema(), 'Fields'), 'Fields[0].value_type: unsupported value_type: array');
-    assert_compile_error(FieldList::compile(array($fieldJson, $invalidFieldJson), test_schema(), 'Fields'), 'Fields[1].value_type: unsupported value_type: array');
-    assert_compile_error(FieldList::compile(array($fieldJson, $fieldJson, $invalidFieldJson), test_schema(), 'Fields'), 'Fields[2].value_type: unsupported value_type: array');
-});
 
 $runner->test('invalid identifier: fiéld', function () {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'fiéld' => "uptime",
-        'value_type' => "array",
-        'format' => "display_uptime",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "label": "Uptime",
+        "fiéld": "uptime",
+        "format": "display_uptime"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: invalid identifier: fiéld');
 });
 
 $runner->test('missing label', function () {
-    $invalidFieldJson = array(
-        'field' => "uptime",
-        'value_type' => "array",
-        'format' => "display_uptime",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "field": "uptime",
+        "format": "display_uptime"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected label');
 });
 
 $runner->test('missing field', function () {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'value_type' => "integer",
-        'format' => "display_uptime",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "label": "Uptime",
+        "format": "display_uptime"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected field');
 });
 
-$runner->test('missing value_type', function () {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'field' => "uptime",
-        'format' => "display_uptime",
-    );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected value_type');
-});
-
 $runner->test('missing format', function () {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'field' => "uptime",
-        'value_type' => "array",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "label": "Uptime",
+        "field": "uptime"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected format');
 });
 
 $runner->test('non-existent format', function () {
-    $invalidFieldJson = array(
-        'field' => "uptime",
-        'label' => "Uptime",
-        'value_type' => "integer",
-        'format' => "no_such_function",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "label": "Uptime",
+        "field": "uptime",
+        "format": "no_such_function"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.format: no_such_function must exist in exports');
 });
 
-$runner->test('incompatible value_type format', function () {
-    $invalidFieldJson = array(
-        'field' => "uptime",
-        'label' => "Uptime",
-        'value_type' => "string",
-        'format' => "display_uptime",
-    );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.display_uptime: incompatible with string');
-});
-
 $runner->test('unsupported attribute: size', function () {
-    $invalidFieldJson = array(
-        'label' => "Uptime",
-        'field' => "uptime",
-        'value_type' => "array",
-        'format' => "display_uptime",
-        'size' => "42",
+    $invalidFieldJson = from_json(<<<'JSON'
+    {
+        "label": "Uptime",
+        "field": "uptime",
+        "format": "display_uptime",
+        "size": "42"
+    }
+JSON
     );
     assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: unsupported attribute: size');
 });

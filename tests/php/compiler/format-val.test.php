@@ -4,8 +4,9 @@
 require_once getenv('TEST_CONFIG');
 $phpTestRoot = dirname(__DIR__);
 require_once $phpTestRoot . '/lib/testlib.php';
-$compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
-
+$libRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib';
+require_once $libRoot .'/formatters.php';
+$compilerRoot = $libRoot . '/compiler';
 require_once $compilerRoot .'/format-val.php';
 
 $runner = new TestRunner('FormatVal');
@@ -15,6 +16,18 @@ $runner->test('instance creation', function () {
 
     assertSame('display_uptime', $format->name());
     assertSame(array('integer' => true), $format->value_types());
+});
+
+$runner->test('renders display_uptime formatter', function () {
+    $format = new FormatVal('display_uptime', array('integer' => true));
+    $formatter = $format->render();
+    assertSame(display_uptime(420),$formatter(420));
+});
+
+$runner->test('renders display_memory formatter', function () {
+    $format = new FormatVal('display_memory', array('integer' => true));
+    $formatter = $format->render();
+    assertSame(display_memory(420420420), $formatter(420420420));
 });
 
 $runner->test('compiler tests: FormatVal', function () {

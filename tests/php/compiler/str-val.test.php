@@ -16,6 +16,11 @@ $runner->test('instance creation', function () {
     assertSame('42', $fortyTwo->value());
 });
 
+$runner->test('renders its value unchanged', function () {
+    $value = new StrVal('RouterOS is available');
+    assertSame('RouterOS is available', $value->render(array('latest_version' => '7.23.2')));
+});
+
 $runner->test('compiler tests: StrVal', function () {
     $result = StrVal::compile('42', test_schema(), 'Happy Path');
     assert_compile_success($result);

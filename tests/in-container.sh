@@ -7,14 +7,14 @@ cd "$repo_root"
 
 echo "==> Shell tests"
 set +e
-tests/sh/run-all.sh
+tests/sh/run-all.sh "$@"
 sh_rc=$?
 set -e
 
 echo
 set +e
 echo "==> PHP tests"
-tests/php/run-all.sh
+tests/php/run-all.sh "$@"
 php_rc=$?
 set -e
 

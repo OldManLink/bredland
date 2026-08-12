@@ -5,7 +5,7 @@ require_once __DIR__ . '/lib/testlib.php';
 
 $repoRoot = dirname(dirname(__DIR__));
 
-require_once $repoRoot . '/templates/noc/lib/client.php';
+require_once $repoRoot . '/templates/noc/lib/compiler/type-val.php';
 
 $schemasDir = $repoRoot . '/templates/noc/schemas';
 $fixturesDir = $repoRoot . '/tests/fixtures/heartbeats';
@@ -15,9 +15,7 @@ $schemaFiles = glob($schemasDir . '/*.json');
 assertTrue(count($schemaFiles) > 0, 'Expected at least one heartbeat schema');
 
 foreach ($schemaFiles as $schemaFile) {
-    $schema = read_client_file($schemaFile);
-
-    assertTrue($schema !== null, "Unable to load schema: $schemaFile");
+    $schema = from_json_file($schemaFile);
 
     $host = pathinfo($schemaFile, PATHINFO_FILENAME);
     $fixtureFile = $fixturesDir . '/' . $host . '.json';
@@ -27,9 +25,7 @@ foreach ($schemaFiles as $schemaFile) {
         "Missing heartbeat fixture for $host"
     );
 
-    $heartbeat = read_client_file($fixtureFile);
-
-    assertTrue($heartbeat !== null, "Unable to load fixture: $fixtureFile");
+    $heartbeat = from_json_file($fixtureFile);
 
     $schemaFields = array_keys($schema);
     $heartbeatFields = array_keys($heartbeat);
@@ -79,14 +75,19 @@ foreach ($schemaFiles as $schemaFile) {
             "$schemaFile field $fieldName type must be a string"
         );
 
-        assertTrue(
-            is_known_value_type($value_type),
-            "$schemaFile field $fieldName has unknown value_type: $value_type"
+        $type_result = TypeVal::compile(
+                $value_type,
+                $schema,
+                "$schemaFile field $fieldName"
         );
 
+        assert_compile_success($type_result);
+
+        $matches_type = $type_result->value()->render();
+
         assertTrue(
-            value_matches_type($heartbeat[$fieldName], $value_type),
-            "$fixtureFile field $fieldName does not match value_type $value_type"
+                $matches_type($heartbeat[$fieldName]),
+                "$fixtureFile field $fieldName does not match value_type $value_type"
         );
     }
 }

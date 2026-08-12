@@ -2,8 +2,9 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/runtime-val.php';
 
-class FloatVal implements Compilable {
+class FloatVal implements Compilable, RuntimeVal {
     private $value;
 
     public static function compile($definition, $schema, $path) {
@@ -24,5 +25,9 @@ class FloatVal implements Compilable {
 
     public function value_type() {
         return 'float';
+    }
+
+    public function render($heartbeat) {
+        return $this->value();
     }
 }

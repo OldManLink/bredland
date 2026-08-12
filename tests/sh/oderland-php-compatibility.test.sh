@@ -27,6 +27,7 @@ while IFS= read -r -d '' file; do
     fi
 done < <(
     find . \
+        -path './build' -prune -o \
         -name '*.php' \
         -not -path './tests/docker/*' \
         -print0 |

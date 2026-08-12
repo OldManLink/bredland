@@ -5,13 +5,11 @@
     {
       "label": "Uptime",
       "field": "uptime",
-      "value_type": "integer",
       "format": "display_uptime"
     },
     {
       "label": "Free memory",
       "field": "free_memory",
-      "value_type": "integer",
       "format": "display_memory"
     }
   ],

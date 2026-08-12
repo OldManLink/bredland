@@ -8,9 +8,11 @@ RUN apt-get update \
         ca-certificates \
         curl \
         gcc \
-        make \
+        html-xml-utils \
         libc6-dev \
         libxml2-dev \
+        jq \
+        make \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL \
@@ -29,6 +31,10 @@ RUN curl -fsSL \
     && make -j"$(nproc)" \
     && make install \
     && rm -rf /tmp/php-src /tmp/php.tar.gz
+
+RUN command -v php \
+    && command -v hxnormalize\
+    && command -v jq
 
 WORKDIR /app
 

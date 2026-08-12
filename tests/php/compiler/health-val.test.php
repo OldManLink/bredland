@@ -20,6 +20,11 @@ $runner->test('instance creation', function () {
     assertSame('critical', $critical->value());
 });
 
+$runner->test('renders its value unchanged', function () {
+    $healthy = new HealthVal('healthy');
+    assertSame('healthy', $healthy->render(array()));
+});
+
 $runner->test('compiler tests: HealthVal', function () {
     $result = HealthVal::compile('healthy', test_schema(), 'Happy Path');
     assert_compile_success($result);

@@ -13,13 +13,45 @@ $runner = new TestRunner('TypeVal');
 $runner->test('instance creation', function () {
     $bool = new TypeVal('boolean');
     $int = new TypeVal('integer');
-    $flo = new TypeVal('float');
+    $float = new TypeVal('float');
     $str = new TypeVal('string');
 
     assertSame('boolean', $bool->value());
     assertSame('integer', $int->value());
-    assertSame('float', $flo->value());
+    assertSame('float', $float->value());
     assertSame('string', $str->value());
+});
+
+$runner->test('renders integer type predicate', function () {
+    $type = new TypeVal('integer');
+    $isInteger = $type->render();
+
+    assertTrue($isInteger(42));
+    assertFalse($isInteger('42'));
+});
+
+$runner->test('renders boolean type predicate', function () {
+    $type = new TypeVal('boolean');
+    $isBoolean = $type->render();
+
+    assertTrue($isBoolean(true));
+    assertFalse($isBoolean(1));
+});
+
+$runner->test('renders float type predicate', function () {
+    $type = new TypeVal('float');
+    $isFloat = $type->render();
+
+    assertTrue($isFloat(42.0));
+    assertFalse($isFloat('42.0'));
+});
+
+$runner->test('renders string type predicate', function () {
+    $type = new TypeVal('string');
+    $isString = $type->render();
+
+    assertTrue($isString('42'));
+    assertFalse($isString(42));
 });
 
 $runner->test('compiler tests: TypeVal', function () {

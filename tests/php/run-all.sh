@@ -22,8 +22,6 @@ BREDLAND_NOC_HOST=bredland-test
 BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
-# Remove placeholder from config file
-SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
 
 rendered_config="$build_dir/telemetry.config.php"
@@ -52,7 +50,7 @@ for test in "${test_scripts[@]}"; do
     echo "==> $name"
 
     set +e
-    php "$test"
+    php "$test" "$@"
     rc=$?
     set -e
 
@@ -60,7 +58,7 @@ for test in "${test_scripts[@]}"; do
         0)  echo "✅ $name"; ((++passed)) ;;
         77) echo "⚠️ $name"; ((++skipped)) ;;
         1)  echo "❌ $name"; ((++failed)) ;;
-        *)  echo "💥 $name (exit $rc)"; ((++crashed)) ;;
+        *)  echo "❌💥 $name (exit $rc)"; ((++crashed)) ;;
     esac
 
     echo

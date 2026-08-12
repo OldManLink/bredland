@@ -4,10 +4,12 @@
 require_once getenv('TEST_CONFIG');
 $phpTestRoot = dirname(__DIR__);
 require_once $phpTestRoot . '/lib/testlib.php';
-$compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
+$nocLibRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib';
+require_once $nocLibRoot .'/noc.php';
+
+$compilerRoot = $nocLibRoot . '/compiler';
 require_once $compilerRoot .'/client.php';
-require_once $compilerRoot .'/noc.php';
 require_once $compilerRoot .'/receiver-val.php';
 
 $runner = new TestRunner('ReceiverVal');
@@ -20,6 +22,18 @@ $runner->test('instance creation', function () {
     assertSame(Client::class, $client->receiver_class());
     assertSame('noc', $noc->name());
     assertSame(Noc::class, $noc->receiver_class());
+});
+
+$runner->test('renders matching receiver', function () {
+    $receiver = new ReceiverVal('client', Client::class);
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+    assertSame(array($client), $receiver->render(array($client)));
+});
+
+$runner->test('renders non-matching receiver as array()', function () {
+    $receiver = new ReceiverVal('noc', Noc::class);
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+    assertSame(array(), $receiver->render(array($client)));
 });
 
 $runner->test('compiles client', function () {
@@ -38,7 +52,7 @@ $runner->test('compiles noc', function () {
     assertSame('noc', $result->value()->name());
     assertSame(Noc::class, $result->value()->receiver_class());
     $methods = $result->value()->compilable_methods();
-    assertSame(StrVal::class, $methods['setValue']);
+    assertSame(BoolVal::class, $methods['setPartyMode']);
 });
 
 $runner->test('rejects unsupported receiver', function () {

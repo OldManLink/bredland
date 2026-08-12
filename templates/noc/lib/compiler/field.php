@@ -7,8 +7,10 @@ require_once __DIR__ . '/str-val.php';
 require_once __DIR__ . '/field-val.php';
 require_once __DIR__ . '/type-val.php';
 require_once __DIR__ . '/format-val.php';
+require_once __DIR__ . '/runtime-val.php';
+require_once dirname(__DIR__) . '/formatters.php';
 
-class Field implements Compilable {
+class Field implements Compilable, RuntimeVal {
     use PartCompiler;
     private $label;
     private $field;
@@ -19,7 +21,6 @@ class Field implements Compilable {
         return array(
             'label' => StrVal::class,
             'field' => FieldVal::class,
-            'value_type' => TypeVal::class,
             'format' => FormatVal::class,
         );
     }
@@ -46,9 +47,19 @@ class Field implements Compilable {
         }
 
         $compiledParts = $compiledPartsResult->value();
+
+        $field = $compiledParts['field']->value();
+        $field_name = $field->value();
+
+        $value_type_result = TypeVal::compile(
+            $schema[$field_name]['value_type'],
+            $schema,
+            "$path.value_type"
+        );
+
         $format = $compiledParts['format']->value();
         $format_name = $format->name();
-        $value_type = $compiledParts['value_type']->value();
+        $value_type = $value_type_result->value();
         $value_type_value = $value_type->value();
         if(!isset($format->value_types()[$value_type->value()])) {
             return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type_value"));
@@ -86,33 +97,14 @@ class Field implements Compilable {
     public function format() {
         return $this->format;
     }
-}
 
-class FieldList implements Compilable {
-    public static function compile($definitions, $schema, $path) {
-        $fields = array();
-        $errors = array();
+    public function render($heartbeat) {
+        $value = $this->field->render($heartbeat);
+        $matchesType = $this->value_type->render();
+        $formatter = $this->format->render();
 
-        if (!is_array($definitions)) {
-            return CompilationResult::failure(
-                array("$path: must be an array")
-            );
-        }
-
-        foreach ($definitions as $index => $definition) {
-                $result = Field::compile($definition, $schema, indexed_path($path, $index));
-
-                if ($result->isSuccess()) {
-                    $fields[] = $result->value();
-                } else {
-                    $errors = array_merge($errors, $result->errors());
-                }
-            }
-
-            if (count($errors) > 0) {
-                return CompilationResult::failure($errors);
-            }
-
-            return CompilationResult::success($fields);
+        return $matchesType($value)
+            ? $formatter($value)
+            : 'unavailable';
     }
 }

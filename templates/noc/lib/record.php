@@ -71,9 +71,7 @@ function build_record($schema, $source) {
         $value = convert_field_value($source[$field_name], $value_type);
 
         if ($value === null) {
-            throw new InvalidArgumentException(
-                "invalid value for field $field_name: expected $value_type"
-            );
+            throw new InvalidArgumentException("invalid value for field $field_name: expected $value_type");
         }
 
         $record[$field_name] = $value;

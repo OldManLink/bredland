@@ -10,6 +10,47 @@ require_once $nocRoot . '/lib/compiler/action.php';
 
 $runner = new TestRunner('action');
 
+$runner->test('instance creation', function () {
+    $receiver = new ReceiverVal('client', Client::class);
+    $method = new MethodVal('addNotification', SlotVal::class);
+    $argument = new SlotVal(array(new StrVal('Software update available')));
+
+    $action = new Action($receiver, $method, $argument);
+
+    assertSame($receiver, $action->receiver());
+    assertSame($method, $action->method());
+    assertSame($argument, $action->argument());
+});
+
+$runner->test('renders action', function () {
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+
+    $action = new Action(
+        new ReceiverVal('client', Client::class),
+        new MethodVal('addNotification', SlotVal::class),
+        new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')))
+    );
+
+    $action->render(array('latest_version' => '7.23.2'), array($client));
+
+    assertSame(1, $client->notification_count());
+    assertSame('RouterOS 7.23.2 is available.',$client->notifications()[0]->text());
+});
+
+$runner->test('renders action', function () {
+    $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
+
+    $action = new Action(
+        new ReceiverVal('noc', Noc::class),
+        new MethodVal('addNotification', StrVal::class),
+        new SlotVal(new StrVal('celebrationMode'))
+    );
+
+    $action->render(array('latest_version' => '7.23.2'), array($client));
+
+    assertSame(0, $client->notification_count());
+});
+
 $runner->test('compiles setHealth action', function () {
     $action = from_json(<<<'JSON'
     {

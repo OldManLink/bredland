@@ -14,57 +14,231 @@ $runner->test('instance creation', function () {
 
     assertSame("test", $client->host()->value());
     assertSame("Test", $client->title()->value());
-    assertSame(array(), $client->fields());
+    assertSame(array(), $client->field_list());
     assertSame(array(), $client->rules());
     assertSame(42, $client->order()->value());
 });
 
-$runner->test('compiler tests: Client', function () {
-    $clientJson = from_json(<<<'JSON'
+$clientJson = from_json(<<<'JSON'
+{
+  "host": "test",
+  "title": "Test",
+  "fields": [
     {
-      "host": "test",
-      "title": "Test",
-      "fields": [
-        {
-          "label": "Uptime",
-          "field": "uptime",
-          "value_type": "integer",
-          "format": "display_uptime"
-        }
-      ],
-      "rules": [
-          {
-            "when": {
-              "field": "free_memory",
-              "operator": "lessThan",
-              "value": 1073741824
-            },
-            "then": {
-              "receiver": "client",
-              "method": "setHealth",
-              "argument": "warning"
-            }
-          }
-        ],
-      "order": 42
+      "label": "Uptime",
+      "field": "uptime",
+      "format": "display_uptime"
     }
+  ],
+  "rules": [
+      {
+        "when": {
+          "field": "free_memory",
+          "operator": "lessThan",
+          "value": 1073741824
+        },
+        "then": {
+          "receiver": "client",
+          "method": "addNotification",
+          "argument": "Warning: low memory, {{free_memory}} bytes free."
+        }
+      }
+    ],
+  "order": 42
+}
 JSON
-    );
+);
 
+$clientJson2 = from_json(<<<'JSON'
+{
+  "host": "test",
+  "title": "Test",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "format": "display_uptime"
+    }
+  ],
+  "rules": [
+      {
+        "when": {
+          "field": "free_memory",
+          "operator": "lessThan",
+          "value": 1073741824
+        },
+        "then": {
+          "receiver": "client",
+          "method": "setHealth",
+          "argument": "warning"
+        }
+      }
+    ],
+  "order": 42
+}
+JSON
+);
+
+$clientJson3 = from_json(<<<'JSON'
+{
+  "host": "test",
+  "title": "Test",
+  "fields": [
+    {
+      "label": "Uptime",
+      "field": "uptime",
+      "format": "display_uptime"
+    }
+  ],
+  "rules": [
+      {
+        "when": {
+          "field": "free_memory",
+          "operator": "lessThan",
+          "value": 1073741824
+        },
+        "then": {
+          "receiver": "client",
+          "method": "setHealth",
+          "argument": "warning"
+        }
+      },
+      {
+        "when": {
+          "field": "update_available",
+          "operator": "equals",
+          "value": true
+        },
+        "then": {
+          "receiver": "client",
+          "method": "addNotification",
+          "argument": "Software update available:\nVersion: {{latest_version}} (stable)."
+        }
+      }
+    ],
+  "order": 42
+}
+JSON
+);
+
+$heartbeatJson = from_json(<<<'JSON'
+{
+  "schema": 1,
+  "ts": "2026-07-26T21:23:02Z",
+  "host": "test",
+  "ttl": 300,
+  "uptime": 2673306,
+  "version": "7.23.1 (stable)",
+  "model": "RB4011iGS+",
+  "cpu_load": 0,
+  "free_memory": 879349760,
+  "total_memory": 1073741824,
+  "update_available": true,
+  "latest_version": "7.23.2",
+  "remote_addr": "91.128.129.6"
+}
+JSON
+);
+
+$heartbeatJson2 = from_json(<<<'JSON'
+{
+  "schema": 1,
+  "ts": "2026-07-26T21:23:02Z",
+  "host": "test",
+  "ttl": 300,
+  "uptime": 2673306,
+  "version": "7.23.1 (stable)",
+  "model": "RB4011iGS+",
+  "cpu_load": 0,
+  "free_memory": 1073741824,
+  "total_memory": 1073741824,
+  "update_available": true,
+  "latest_version": "7.23.2",
+  "remote_addr": "91.128.129.6"
+}
+JSON
+);
+
+$runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        assertSame('critical',$client->health());
+        assertSame('unavailable',$client->get('uptime'));
+        $client->render($heartbeatJson);
+        assertSame(display_uptime(2673306), $client->get('uptime'));
+        assertSame(1, count($client->notifications()));
+        assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
+        assertSame('healthy', $client->health());
+    });
+});
+
+$runner->test('render tests: Client action not triggered', function () use ($clientJson, $heartbeatJson2) {
+    with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson2) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson2);
+        assertSame(0, count($client->notifications()));
+        assertSame('healthy', $client->health());
+    });
+});
+
+$runner->test('health defaults to healthy while heartbeat is current', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:29:01Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('healthy', $client->health());
+    });
+});
+
+$runner->test('health defaults to warning when heartbeat is late', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:29:02Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('warning', $client->health());
+    });
+});
+
+$runner->test('health defaults to critical when heartbeat is very late', function () use ($clientJson, $heartbeatJson) {
+    with_noc_now('2026-07-26T21:43:02Z', function () use ($clientJson, $heartbeatJson) {
+        $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
+        $client->render($heartbeatJson);
+
+        assertSame('critical', $client->health());
+    });
+});
+
+$runner->test('render tests: Client setHealth triggered', function () use ($clientJson2, $heartbeatJson) {
+    $client = Client::compile($clientJson2, test_schema(), 'Happy Path')->value();
+    assertSame("warning", $client->render($heartbeatJson)->health());
+});
+
+$runner->test('render tests: multiple Client rules triggered', function () use ($clientJson3, $heartbeatJson) {
+    $client = Client::compile($clientJson3, test_schema(), 'Happy Path')->value();
+
+    assertSame("warning", $client->render($heartbeatJson)->health());
+
+    assertSame(1, $client->notification_count());
+    assertSame("Software update available:\nVersion: 7.23.2 (stable).",
+        $client->notifications()[0]->text()
+    );
+});
+
+$runner->test('compiler tests: Client', function () use ($clientJson) {
     $result = Client::compile($clientJson, test_schema(), 'Happy Path');
     assert_compile_success($result);
 
     $client = $result->value();
     assertTrue($client->host() instanceof StrVal, 'StrVal expected');
     assertTrue($client->title() instanceof StrVal, 'StrVal expected');
-    assertSame('array', runtime_type($client->fields()));
+    assertTrue($client->field_list() instanceof FieldList, 'FieldList expected');
     assertSame('array', runtime_type($client->rules()));
     assertTrue($client->order() instanceof IntVal, 'IntVal expected');
 
     assertSame('test', $client->host()->value());
     assertSame('Test', $client->title()->value());
-    assertSame(1, count($client->fields()));
-    assertTrue($client->fields()[0] instanceof Field);
+    assertSame(1, count($client->field_list()));
+    assertTrue($client->field_list()->fields()['uptime'] instanceof Field);
     assertSame(1, count($client->rules()));
     assertTrue($client->rules()[0] instanceof Rule);
     assertSame(42, $client->order()->value());
@@ -165,6 +339,34 @@ $runner->test('rejects invalid identifier', function () {
 JSON
     );
     assert_compile_error(Client::compile($clientJson, test_schema(), 'client'), 'client: invalid identifier: héalthy');
+});
+
+$runner->test('starts with no notifications', function () {
+    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
+
+    assertSame(array(), $client->notifications());
+    assertSame(0, $client->notification_count());
+});
+
+$runner->test('adds notification', function () {
+    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
+
+    $client->addNotification('This is a test!');
+
+    assertSame(1, $client->notification_count());
+    assertTrue($client->notifications()[0] instanceof Notification);
+    assertSame('This is a test!', $client->notifications()[0]->text());
+});
+
+$runner->test('preserves notification order', function () {
+    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
+
+    $client->addNotification('First');
+    $client->addNotification('Second');
+
+    assertSame(2, $client->notification_count());
+    assertSame('First', $client->notifications()[0]->text());
+    assertSame('Second', $client->notifications()[1]->text());
 });
 
 $runner->finish();

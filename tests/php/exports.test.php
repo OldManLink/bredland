@@ -3,7 +3,8 @@
 require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
 $nocLibRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
-require_once $nocLibRoot . '/client.php';
+require_once $nocLibRoot . '/compiler/type-val.php';
+require_once $nocLibRoot . '/formatters.php';
 require_once $nocLibRoot . '/exports.php';
 
 $exports = get_exports();
@@ -16,9 +17,10 @@ foreach ($exports['formatters'] as $formatter => $definition) {
 
     assertTrue(isset($definition['value_types']), "Formatter must define value_types: $formatter");
     assertTrue(is_array($definition['value_types']), "Formatter value_types must be an array: $formatter");
-    foreach ($definition['value_types'] as $valueType => $ignore) {
-            assertTrue(is_known_value_type($valueType), "Formatter $formatter references unknown value_type: $valueType");
-        }
+    foreach ($definition['value_types'] as $value_type => $ignore) {
+        $typeResult = TypeVal::compile($value_type, array(), "Formatter $formatter value_type");
+        assert_compile_success($typeResult);
+    }
     $reflection = new ReflectionFunction($formatter);
     assertSame(1, $reflection->getNumberOfParameters(), "Formatter must accept exactly 1 parameter: $formatter");
 }

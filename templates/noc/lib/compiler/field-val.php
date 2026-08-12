@@ -28,4 +28,10 @@ class FieldVal implements Compilable, SlotPart {
     public function value() {
         return $this->value;
     }
+
+    public function render($heartbeat) {
+        return array_key_exists($this->value(), $heartbeat)
+            ? $heartbeat[$this->value()]
+            : 'unavailable';
+    }
 }

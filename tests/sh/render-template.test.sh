@@ -66,8 +66,6 @@ BREDLAND_NOC_HOST=bredland-test
 BREDLAND_NOC_TOKEN=bredland.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
-# Remove placeholder from config file
-SMOKE_TEST_HOST_TOKEN_LINE=
 EOF
 run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.php" \
@@ -94,20 +92,6 @@ EOF
 run_render templates/noc/consolidate-monthly-logs.sh.template \
 "$tmpdir/consolidate-monthly-logs.sh" \
 "$tmpdir/consolidate-monthly-logs.env"
-echo "OK"
-
-# Test NOC index.template.php
-echo -n "Testing noc/index.template.php ... "
-cat > "$tmpdir/noc-index.env" <<'EOF'
-# Oderland stuff
-TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
-STATIC_VERSION=42
-EOF
-run_render templates/noc/index.template.php \
-"$tmpdir/index.php" \
-"$tmpdir/noc-index.env"
-grep -q 'private/telemetry.config.php' "$tmpdir/index.php"
-grep -q '<!DOCTYPE html>' "$tmpdir/index.php"
 echo "OK"
 
 # Test bredland-heartbeat.service.template

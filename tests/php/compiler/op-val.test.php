@@ -20,6 +20,32 @@ $runner->test('instance creation', function () {
     assertSame(array('integer' => true, 'float' => true), $op->operand_types());
 });
 
+$runner->test('renders equals operator', function () {
+    $equals = (new OpVal('equals', array('boolean' => true, 'integer' => true, 'float' => true, 'string' => true)))->render();
+
+    assertTrue($equals(42, 42));
+    assertFalse($equals(42, 43));
+    assertFalse($equals(42, '42'));
+});
+
+$runner->test('renders lessThan operator', function () {
+    $lessThan = (new OpVal('lessThan', array('integer' => true, 'float' => true)))->render();
+
+    assertTrue($lessThan(42, 43));
+    assertFalse($lessThan(43, 42));
+    assertFalse($lessThan(42, 42));
+});
+
+$runner->test('lessThan rejects operands of different types', function () {
+    $lessThan = (new OpVal('lessThan', array('integer' => true, 'float' => true)))->render();
+
+    assertThrows('Exception', "Programming error: 'lessThan' requires operands of the same type",
+        function () use ($lessThan) {
+            $lessThan(42, 43.0);
+        }
+    );
+});
+
 $runner->test('compiler tests: OpVal', function () {
     $result = OpVal::compile('equals', test_schema(), 'Happy Path');
     assert_compile_success($result);

@@ -5,6 +5,22 @@ require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/receiver-val.php';
 require_once __DIR__ . '/method-val.php';
 
+/**
+ * A compiled action to execute a method on a receiver.
+ *
+ * Action deliberately does not use PartCompiler. Unlike other composite
+ * compiler objects, the type of its argument cannot be determined until
+ * the receiver and method have been compiled.
+ *
+ * The compilation flow is therefore:
+ *
+ *   receiver → discover capabilities → compile method → compile argument
+ *
+ * MethodVal is also deliberately not Compilable because its compilation
+ * requires the receiver's declared method capabilities as additional context.
+ * This keeps capability discovery owned by the receiver rather than leaking
+ * it into the general compiler pipeline.
+ */
 class Action implements Compilable {
     private $receiver;
     private $method;
@@ -66,5 +82,14 @@ class Action implements Compilable {
 
     public function argument() {
         return $this->argument;
+    }
+
+    public function render($heartbeat, $receivers) {
+        foreach ($this->receiver->render($receivers) as $receiver) {
+            $method = $this->method->render();
+            $argument = $this->argument->render($heartbeat);
+
+            $receiver->$method($argument);
+        }
     }
 }

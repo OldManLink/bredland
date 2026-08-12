@@ -16,6 +16,20 @@ $runner->test('instance creation', function () {
     assertSame('ts', $ts->value());
 });
 
+$runner->test('renders field value from heartbeat', function () {
+    $field = new FieldVal('latest_version');
+
+    $heartbeat = array('latest_version' => '7.23.2');
+
+    assertSame('7.23.2', $field->render($heartbeat));
+});
+
+$runner->test('renders unavailable when field is missing from heartbeat', function () {
+    $field = new FieldVal('latest_version');
+
+    assertSame('unavailable', $field->render(array()));
+});
+
 $runner->test('compiler tests: FieldVal', function () {
     $result = FieldVal::compile('ts', test_schema(), 'Happy Path');
     assert_compile_success($result);
