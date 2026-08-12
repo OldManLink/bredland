@@ -6,12 +6,15 @@ passed=0
 failed=0
 
 test_results_dir="$(mktemp -d)"
+export TEST_RESULTS_DIR="$test_results_dir"
 failure_fixture="tests/sh/test-runner-failure-fixture.test.sh"
+outer_results_dir="$(mktemp -d)"
 
 cleanup()
 {
     rm -f "$failure_fixture"
     rm -rf "$test_results_dir"
+    rm -rf "$outer_results_dir"
 }
 
 trap cleanup EXIT
@@ -119,6 +122,29 @@ assert_contains "$output" "==> card-head"
 assert_contains "$output" "✅ card-head"
 assert_not_contains "$output" "==> notification-badge"
 assert_not_contains "$output" "==> Shell tests"
+
+# Nested runner inherits private test-results directory
+
+printf '%s\n' \
+    "sh:private-state-sentinel" \
+    >"$test_results_dir/failed-suites"
+
+output="$(tests/in-container.sh php:card-head 2>&1)"
+rc=$?
+
+if (( rc == 0 )); then
+    ((passed++))
+else
+    echo "❌ isolated nested run exited with $rc"
+    ((failed++))
+fi
+
+if [[ ! -s "$test_results_dir/failed-suites" ]]; then
+    ((passed++))
+else
+    echo "❌ nested runner did not use the private test-results directory"
+    ((failed++))
+fi
 
 # Failures only
 
