@@ -8,13 +8,11 @@ failed=0
 test_results_dir="$(mktemp -d)"
 export TEST_RESULTS_DIR="$test_results_dir"
 failure_fixture="tests/sh/test-runner-failure-fixture.test.sh"
-outer_results_dir="$(mktemp -d)"
 
 cleanup()
 {
     rm -f "$failure_fixture"
     rm -rf "$test_results_dir"
-    rm -rf "$outer_results_dir"
 }
 
 trap cleanup EXIT
@@ -169,10 +167,7 @@ printf '%s\n' \
     "php:card-head" \
     >"$test_results_dir/failed-suites"
 
-output="$(
-    TEST_RESULTS_DIR="$test_results_dir" \
-    tests/in-container.sh --failed --list 2>&1
-)"
+output="$(tests/in-container.sh --failed --list 2>&1)"
 rc=$?
 
 if (( rc != 0 )); then
@@ -200,10 +195,7 @@ printf '%s\n' \
     "php:card-head" \
     >"$test_results_dir/failed-suites"
 
-output="$(
-    TEST_RESULTS_DIR="$test_results_dir" \
-    tests/in-container.sh --failed 2>&1
-)"
+output="$(tests/in-container.sh --failed 2>&1)"
 rc=$?
 
 if (( rc != 0 )); then
@@ -238,10 +230,7 @@ printf '%s\n' \
     "sh:test-runner-failure-fixture" \
     >"$test_results_dir/failed-suites"
 
-output="$(
-    TEST_RESULTS_DIR="$test_results_dir" \
-    tests/in-container.sh --failed 2>&1
-)"
+output="$(tests/in-container.sh --failed 2>&1)"
 rc=$?
 
 rm -f "$failure_fixture"
@@ -269,10 +258,7 @@ fi
 
 : >"$test_results_dir/failed-suites"
 
-output="$(
-    TEST_RESULTS_DIR="$test_results_dir" \
-    tests/in-container.sh --failed 2>&1
-)"
+output="$(tests/in-container.sh --failed 2>&1)"
 rc=$?
 
 if (( rc == 0 )); then
