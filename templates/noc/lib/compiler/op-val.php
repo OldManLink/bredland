@@ -20,6 +20,9 @@ class OpVal implements Compilable, Renderable {
             'lessThan' => array(
                 'integer' => true,
                 'float' => true
+            ),
+            'versionGreaterThan' => array(
+                'string' => true
             )
         );
     }
@@ -69,6 +72,10 @@ class OpVal implements Compilable, Renderable {
                     }
 
                     return $left < $right;
+                };
+            case 'versionGreaterThan':
+                return function ($left, $right) {
+                    return version_compare($left, $right, '>');
                 };
         }
     }

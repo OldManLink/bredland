@@ -16,14 +16,16 @@
   "rules": [
     {
       "when": {
-        "field": "update_available",
-        "operator": "equals",
-        "value": true
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+          "field": "version"
+        }
       },
       "then": {
         "receiver": "client",
         "method": "addNotification",
-        "argument": "Software update available:\nVersion {{latest_version}}"
+        "argument": "Software update available:\nVersion {{latest_version}} ({{update_channel}})"
       }
     }
   ],

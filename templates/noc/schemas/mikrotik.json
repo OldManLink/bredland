@@ -17,6 +17,9 @@
   "version": {
     "value_type": "string"
   },
+  "update_channel": {
+    "value_type": "string"
+  },
   "model": {
     "value_type": "string"
   },
@@ -28,9 +31,6 @@
   },
   "total_memory": {
     "value_type": "integer"
-  },
-  "update_available": {
-    "value_type": "boolean"
   },
   "latest_version": {
     "value_type": "string"
