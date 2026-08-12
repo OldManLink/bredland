@@ -14,8 +14,24 @@ repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
 failed=0
+files=()
 
-while IFS= read -r -d '' file; do
+if (( $# > 0 )); then
+    files=("$@")
+else
+    while IFS= read -r -d '' file; do
+        files+=("$file")
+    done < <(
+        find . \
+            -path './build' -prune -o \
+            -name '*.php' \
+            -not -path './tests/docker/*' \
+            -print0 |
+        sort -z
+    )
+fi
+
+for file in "${files[@]}"; do
     echo -n "Checking ${file#./} ... "
 
     if output="$(php -l "$file" 2>&1)"; then
@@ -25,14 +41,7 @@ while IFS= read -r -d '' file; do
         echo "$output"
         failed=1
     fi
-done < <(
-    find . \
-        -path './build' -prune -o \
-        -name '*.php' \
-        -not -path './tests/docker/*' \
-        -print0 |
-    sort -z
-)
+done
 
 if (( failed )); then
     exit 1

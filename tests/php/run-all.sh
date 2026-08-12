@@ -32,8 +32,34 @@ export TEST_CONFIG="$rendered_config"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
-shopt -s nullglob
-test_scripts=(tests/php/{,compiler/}*.test.php)
+test_results_dir="${TEST_RESULTS_DIR:-build/test-results}"
+failed_suites_file="$test_results_dir/failed-suites"
+
+test_args=()
+test_scripts=()
+reading_tests=false
+print_failures_only=false
+
+for arg in "$@"; do
+    if [[ "$arg" == "--" ]]; then
+        reading_tests=true
+        continue
+    fi
+
+    if $reading_tests; then
+        test_scripts+=("$arg")
+    else
+        case "$arg" in
+            --failures-only)
+                print_failures_only=true
+                ;;
+
+            *)
+                test_args+=("$arg")
+                ;;
+        esac
+    fi
+done
 
 if (( ${#test_scripts[@]} == 0 )); then
     echo "==> no PHP tests yet"
@@ -46,22 +72,62 @@ failed=0
 crashed=0
 
 for test in "${test_scripts[@]}"; do
-    name="$(basename "$test" .test.php)"    # or .test.php
-    echo "==> $name"
+    name="$(basename "$test" .test.php)"
+
+    suite="${test#tests/php/}"
+    suite="${suite%.test.php}"
+    suite="php:$suite"
+
+    output_file="$(mktemp)"
 
     set +e
-    php "$test" "$@"
+    php "$test" "${test_args[@]}" >"$output_file" 2>&1
     rc=$?
     set -e
 
     case "$rc" in
-        0)  echo "✅ $name"; ((++passed)) ;;
-        77) echo "⚠️ $name"; ((++skipped)) ;;
-        1)  echo "❌ $name"; ((++failed)) ;;
-        *)  echo "❌💥 $name (exit $rc)"; ((++crashed)) ;;
+        0)
+            if ! $print_failures_only; then
+                echo "==> $name"
+                cat "$output_file"
+                echo "✅ $name"
+                echo
+            fi
+
+            ((++passed))
+            ;;
+
+        77)
+            if ! $print_failures_only; then
+                echo "==> $name"
+                cat "$output_file"
+                echo "⚠️ $name"
+                echo
+            fi
+
+            ((++skipped))
+            ;;
+
+        1)
+            echo "==> $name"
+            cat "$output_file"
+            echo "❌ $name"
+            echo
+            echo "$suite" >> "$failed_suites_file"
+            ((++failed))
+            ;;
+
+        *)
+            echo "==> $name"
+            cat "$output_file"
+            echo "❌💥 $name (exit $rc)"
+            echo
+            echo "$suite" >> "$failed_suites_file"
+            ((++crashed))
+            ;;
     esac
 
-    echo
+    rm -f "$output_file"
 done
 
 total=$((passed + skipped + failed + crashed))

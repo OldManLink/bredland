@@ -24,8 +24,6 @@ done
 
 run_tests()
 {
-    date +"%T"
-
     if ! docker info >/dev/null 2>&1; then
         echo "ERROR: Docker is required and must be running." >&2
         return 1
@@ -42,10 +40,24 @@ run_tests()
 
     if [[ "${SKIP_DOCKER_BUILD:-0}" != "1" ]]; then
         echo "==> Building Linux test environment ($PHP_TEST_IMAGE)"
+    
+        docker_build_output="$(mktemp)"
+        docker_build_rc=0
+    
         docker build \
-          --platform linux/amd64 \
-          -t "$PHP_TEST_IMAGE" \
-          tests/docker/php55
+            --platform linux/amd64 \
+            -t "$PHP_TEST_IMAGE" \
+            tests/docker/php55 \
+            >"$docker_build_output" 2>&1 \
+            || docker_build_rc=$?
+    
+        if (( docker_build_rc != 0 )); then
+            cat "$docker_build_output"
+            rm -f "$docker_build_output"
+            return "$docker_build_rc"
+        fi
+    
+        rm -f "$docker_build_output"
     fi
 
     echo "==> Starting Linux test environment ($PHP_TEST_IMAGE)"
@@ -65,9 +77,9 @@ run_tests()
           "$PHP_TEST_IMAGE" \
           bash tests/in-container.sh
     fi
-
-    date +"%T"
 }
+
+start_time="$(date +%s)"
 
 if $quietest; then
     output_file="$(mktemp)"
@@ -81,12 +93,22 @@ if $quietest; then
     rc=$?
     set -e
 
-    if (( rc == 0 )); then
-        echo "✅ All tests passed"
-    else
+    if (( rc != 0 )); then
         cat "$output_file"
-        exit "$rc"
     fi
 else
+    set +e
     run_tests
+    rc=$?
+    set -e
+fi
+
+end_time="$(date +%s)"
+elapsed=$((end_time - start_time))
+
+if (( rc == 0 )); then
+    echo "✅ All tests passed, elapsed time: ${elapsed}s"
+else
+    echo "❌ Test failures, elapsed time: ${elapsed}s"
+    exit "$rc"
 fi
