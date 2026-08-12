@@ -15,7 +15,7 @@ function collect(...$items)
 }
 PHP
 
-if tests/sh/oderland-php-compatibility.test.sh; then
+if tests/sh/oderland-php-compatibility.test.sh "$tmp"; then
     echo "Expected compatibility test to fail"
     exit 1
 fi
