@@ -14,7 +14,7 @@ foreach (glob($compilerRoot . '/*.php') as $file) {
  *
  * Run:
  *
- *     php scripts/compiler-hierarchy.php
+ *     php scripts/inspect-compiler-hierarchy.php
  *
  * to print the current compiler interface/class relationships. This is useful
  * when adding or changing compiler types: inspect the resulting hierarchy here
