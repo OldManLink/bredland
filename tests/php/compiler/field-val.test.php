@@ -11,13 +11,13 @@ require_once $compilerRoot .'/field-val.php';
 $runner = new TestRunner('FieldVal');
 
 $runner->test('instance creation', function () {
-    $ts = new FieldVal('ts');
+    $ts = new FieldVal('ts', 'string');
 
     assertSame('ts', $ts->value());
 });
 
 $runner->test('renders field value from heartbeat', function () {
-    $field = new FieldVal('latest_version');
+    $field = new FieldVal('latest_version', 'string');
 
     $heartbeat = array('latest_version' => '7.23.2');
 
@@ -25,7 +25,7 @@ $runner->test('renders field value from heartbeat', function () {
 });
 
 $runner->test('renders unavailable when field is missing from heartbeat', function () {
-    $field = new FieldVal('latest_version');
+    $field = new FieldVal('latest_version', 'string');
 
     assertSame('unavailable', $field->render(array()));
 });
@@ -54,6 +54,24 @@ $runner->test('compiles wrapped field definition', function () {
         'FieldVal expected'
     );
     assertSame('version', $field->value());
+});
+
+$runner->test('reports value type from schema', function () {
+    $stringResult = FieldVal::compile(
+            'version',
+            test_schema(),
+            'String FieldVal'
+    );
+    assert_compile_success($stringResult);
+    assertSame('string', $stringResult->value()->value_type());
+
+    $integerResult = FieldVal::compile(
+            'uptime',
+            test_schema(),
+            'Integer FieldVal'
+    );
+    assert_compile_success($integerResult);
+    assertSame('integer', $integerResult->value()->value_type());
 });
 
 $runner->test('rejects null', function () {

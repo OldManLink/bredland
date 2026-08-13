@@ -28,7 +28,7 @@ $runner->test('renders action', function () {
     $action = new Action(
         new ReceiverVal('client', Client::class),
         new MethodVal('addNotification', SlotVal::class),
-        new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')))
+        new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.')))
     );
 
     $action->render(array('latest_version' => '7.23.2'), array($client));

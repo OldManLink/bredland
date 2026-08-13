@@ -5,16 +5,16 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 require_once __DIR__ . '/field-val.php';
-require_once __DIR__ . '/type-val.php';
 require_once __DIR__ . '/format-val.php';
 require_once __DIR__ . '/runtime-val.php';
+require_once dirname(__DIR__) . '/value-type.php';
 require_once dirname(__DIR__) . '/formatters.php';
 
 class Field implements Compilable, RuntimeVal {
     use PartCompiler;
+
     private $label;
     private $field;
-    private $value_type;
     private $format;
 
     private static function partClasses() {
@@ -49,36 +49,29 @@ class Field implements Compilable, RuntimeVal {
         $compiledParts = $compiledPartsResult->value();
 
         $field = $compiledParts['field']->value();
-        $field_name = $field->value();
-
-        $value_type_result = TypeVal::compile(
-            $schema[$field_name]['value_type'],
-            $schema,
-            "$path.value_type"
-        );
-
         $format = $compiledParts['format']->value();
-        $format_name = $format->name();
-        $value_type = $value_type_result->value();
-        $value_type_value = $value_type->value();
-        if(!isset($format->value_types()[$value_type->value()])) {
-            return CompilationResult::failure(array("$path.$format_name: incompatible with $value_type_value"));
+        $valueType = $field->value_type();
+
+        if (!isset($format->value_types()[$valueType])) {
+            return CompilationResult::failure(
+                array(
+                    "$path.{$format->name()}: incompatible with $valueType"
+                )
+            );
         }
 
         return CompilationResult::success(
             new Field(
                 $compiledParts['label']->value(),
-                $compiledParts['field']->value(),
-                $value_type,
+                $field,
                 $format
             )
         );
     }
 
-    public function __construct($label, $field, $value_type, $format) {
+    public function __construct($label, $field, $format) {
         $this->label = $label;
         $this->field = $field;
-        $this->value_type = $value_type;
         $this->format = $format;
     }
 
@@ -91,7 +84,7 @@ class Field implements Compilable, RuntimeVal {
     }
 
     public function value_type() {
-        return $this->value_type;
+        return $this->field->value_type();
     }
 
     public function format() {
@@ -100,10 +93,9 @@ class Field implements Compilable, RuntimeVal {
 
     public function render($heartbeat) {
         $value = $this->field->render($heartbeat);
-        $matchesType = $this->value_type->render();
         $formatter = $this->format->render();
 
-        return $matchesType($value)
+        return ValueType::matches($this->value_type(), $value)
             ? $formatter($value)
             : 'unavailable';
     }

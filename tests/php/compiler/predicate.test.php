@@ -12,7 +12,7 @@ $runner = new TestRunner('predicate');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('string')),
         new BoolVal(true)
     );
@@ -24,7 +24,7 @@ $runner->test('instance creation', function () {
 
 $runner->test('renders true predicate', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('boolean')),
         new BoolVal(true)
     );
@@ -33,7 +33,7 @@ $runner->test('renders true predicate', function () {
 
 $runner->test('renders false predicate', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('boolean')),
         new BoolVal(true)
     );

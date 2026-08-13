@@ -65,7 +65,6 @@ $runner->test('context-free values implement Renderable', function () {
     assertTrue(is_subclass_of(FormatVal::class, Renderable::class));
     assertTrue(is_subclass_of(MethodVal::class, Renderable::class));
     assertTrue(is_subclass_of(OpVal::class, Renderable::class));
-    assertTrue(is_subclass_of(TypeVal::class, Renderable::class));
 });
 
 $runner->test('slot parts are runtime values', function () {

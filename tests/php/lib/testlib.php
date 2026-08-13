@@ -179,7 +179,7 @@ function test_schema() {
             'value_type' => 'boolean'
        ),
        'version' => array(
-           'type' => 'string'
+           'value_type' => 'string'
        )
     );
 }
