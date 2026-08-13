@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "ts": "2026-08-13T13:08:05Z",
+  "ts": "2026-08-13T21:28:06Z",
   "host": "mikrotik",
   "ttl": 300,
-  "uptime": 4198806,
+  "uptime": 4228806,
   "version": "7.23.1",
   "update_channel": "stable",
   "model": "RB4011iGS+",
   "cpu_load": 0,
-  "free_memory": 879435776,
+  "free_memory": 879468544,
   "total_memory": 1073741824,
   "latest_version": "7.23.3",
   "remote_addr": "91.128.129.6"
