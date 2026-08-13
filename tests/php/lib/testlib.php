@@ -177,6 +177,9 @@ function test_schema() {
        ),
        'update_available' => array(
             'value_type' => 'boolean'
+       ),
+       'version' => array(
+           'type' => 'string'
        )
     );
 }

@@ -37,6 +37,25 @@ $runner->test('compiler tests: FieldVal', function () {
     assertTrue($result->value()->value() === 'ts', "'ts' expected");
 });
 
+$runner->test('compiles wrapped field definition', function () {
+    $result = FieldVal::compile(
+        array(
+            'field' => 'version'
+        ),
+        test_schema(),
+        'Happy Wrapped FieldVal Path'
+    );
+
+    assert_compile_success($result);
+
+    $field = $result->value();
+    assertTrue(
+        $field instanceof FieldVal,
+        'FieldVal expected'
+    );
+    assertSame('version', $field->value());
+});
+
 $runner->test('rejects null', function () {
     assert_compile_error(FieldVal::compile(null, test_schema(), 'null'), 'null: must be a non-empty string');
 });

@@ -48,6 +48,13 @@ $runner->test('compiles string as StrVal', function () {
     assertTrue($result->value()->value() === '42', "'42' expected");
 });
 
+$runner->test('compiles field reference as FieldVal', function () {
+    $result = Val::compile(array('field' => 'version'), test_schema(), 'Happy FieldVal Path');
+    assert_compile_success($result);
+    assertTrue(get_class($result->value()) === 'FieldVal', 'FieldVal expected');
+    assertSame('version', $result->value()->value());
+});
+
 $runner->test('rejects null', function () {
     assert_compile_error( Val::compile(null, test_schema(), 'null'), 'null: must not be undefined');
 });

@@ -9,6 +9,10 @@ class FieldVal implements Compilable, SlotPart {
     private $value;
 
     public static function compile($definition, $schema, $path) {
+        if (is_array($definition)) {
+            $definition = $definition['field'];
+        }
+
         $strValResult = StrVal::compile($definition, $schema, $path);
         if (!$strValResult->isSuccess()) {
             return $strValResult;
