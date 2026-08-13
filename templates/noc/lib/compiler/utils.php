@@ -40,13 +40,3 @@ function check_allowed_keys($definition, $allowedKeys, $path) {
 
     return CompilationResult::success(null);
 }
-
-function runtime_type($value) {
-    switch (gettype($value)) {
-        case 'double':
-            return 'float';
-
-        default:
-            return gettype($value);
-    }
-}

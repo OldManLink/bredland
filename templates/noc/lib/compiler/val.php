@@ -1,12 +1,13 @@
 <?php
+require_once dirname(__DIR__) . '/compatibility.php';
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
-require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/instantiation-exception.php';
 require_once __DIR__ . '/bool-val.php';
 require_once __DIR__ . '/int-val.php';
 require_once __DIR__ . '/float-val.php';
 require_once __DIR__ . '/str-val.php';
+require_once __DIR__ . '/field-val.php';
 
 class Val implements Compilable {
     private static function valueClasses() {
@@ -15,6 +16,7 @@ class Val implements Compilable {
             'integer' => IntVal::class,
             'float' => FloatVal::class,
             'string' => StrVal::class,
+            'array' => FieldVal::class,
         );
     }
 
@@ -23,7 +25,7 @@ class Val implements Compilable {
             return CompilationResult::failure(array("$path: must not be undefined"));
         }
         $valueType = runtime_type($definition);
-        if (!isset(self::valueClasses()[$valueType])) {
+        if (!isset(self::valueClasses()[$valueType]) || !self::validFieldDefinition($definition)) {
             return CompilationResult::failure(array("$path: unsupported value_type: $valueType"));
         }
 
@@ -32,8 +34,16 @@ class Val implements Compilable {
             array($valueClass, 'compile'),
                 $definition,
                 $schema,
-                "$path"
+                "$path.$valueClass"
         );
+    }
+
+    private static function validFieldDefinition($definition) {
+        if (!is_array($definition)) {
+            return true;
+        }
+
+        return count($definition) === 1 && isset($definition['field']);
     }
 
     public function __construct($value) {

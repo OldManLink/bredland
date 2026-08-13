@@ -30,7 +30,7 @@ $runner = new TestRunner('Rule');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(
-        new FieldVal(null),
+        new FieldVal(null, null),
         new OpVal(null, null),
         new IntVal(null)
     );

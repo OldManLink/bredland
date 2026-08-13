@@ -17,37 +17,30 @@
     :local host "__MIKROTIK_NOC_HOST__"
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local ttl 300
-    :local fields "version,model,cpu_load,free_memory,total_memory,update_available,latest_version"
-    :local version [/system resource get version]
+    :local fields "version,update_channel,model,cpu_load,free_memory,total_memory,latest_version"
+    :local version [/system package update get installed-version]
+    :local updateChannel [/system package update get channel]
     :local model [/system resource get board-name]
     :local uptime [:tonum [/system resource get uptime]]
     :local cpuLoad [/system resource get cpu-load]
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
-    :local installedVersion [/system package update get installed-version]
     :local latestVersion [/system package update get latest-version]
-    :local updateAvailable "false"
-    :if ($installedVersion != "") do={
-        :if ($latestVersion != "") do={
-            :if ($installedVersion != $latestVersion) do={
-                :set updateAvailable "true"
-            }
-        }
-    }
+
     :set host [:convert $host to=url]
     :set token [:convert $token to=url]
     :set ttl [:convert $ttl to=url]
     :set fields [:convert $fields to=url]
     :set version [:convert $version to=url]
+    :set updateChannel [:convert $updateChannel to=url]
     :set model [:convert $model to=url]
     :set uptime [:convert $uptime to=url]
     :set cpuLoad [:convert $cpuLoad to=url]
     :set freeMemory [:convert $freeMemory to=url]
     :set totalMemory [:convert $totalMemory to=url]
-    :set updateAvailable [:convert $updateAvailable to=url]
     :set latestVersion [:convert $latestVersion to=url]
 
-    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&update_available=$updateAvailable&latest_version=$latestVersion")
+    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&update_channel=$updateChannel&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&latest_version=$latestVersion")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }

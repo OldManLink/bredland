@@ -19,13 +19,8 @@ rm -rf "$compare_dir"
 mkdir -p "$compare_dir"
 
 #
-# Canonicalise dashboard HTML before presenting structural differences.
+# Pad the supplied $text with spaces on both ends until its length reaches $width
 #
-normalise_dashboard()
-{
-    cat "$1" #hxnormalize -c "snapshot" "$1"
-}
-
 centre()
 {
     local width="$1"
@@ -106,19 +101,14 @@ printf '%s\n' \
     '==> Deployment gate: verifying rendered dashboard against production <==' \
     '========================================================================'
 printf '%b' "${reset}"
-#
-# Normalise html files
-#
-normalise_dashboard "$build_dir/index.html" \
-    > "$compare_dir/local.normalised.html"
-
-normalise_dashboard "$fixture_dir/index.html" \
-    > "$compare_dir/production.normalised.html"
 
 any_differences=false
 #
 # Compare html files
 #
+cp "$build_dir/index.html" "$compare_dir/local.normalised.html"
+cp "$fixture_dir/index.html" "$compare_dir/production.normalised.html"
+
 compare_artifact \
     "index.html" \
     "$compare_dir/production.normalised.html" \

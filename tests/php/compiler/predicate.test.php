@@ -12,7 +12,7 @@ $runner = new TestRunner('predicate');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('string')),
         new BoolVal(true)
     );
@@ -24,7 +24,7 @@ $runner->test('instance creation', function () {
 
 $runner->test('renders true predicate', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('boolean')),
         new BoolVal(true)
     );
@@ -33,7 +33,7 @@ $runner->test('renders true predicate', function () {
 
 $runner->test('renders false predicate', function () {
     $predicate = new Predicate(
-        new FieldVal('update_available'),
+        new FieldVal('update_available', 'boolean'),
         new OpVal('equals', array('boolean')),
         new BoolVal(true)
     );
@@ -55,7 +55,7 @@ JSON
 
     $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
 
-    assertTrue($result instanceof CompilationResult);
+    assert_compile_success($result);
 
     $predicate = $result->value();
 
@@ -78,13 +78,157 @@ JSON
 
     $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
 
-    assertTrue($result instanceof CompilationResult);
+    assert_compile_success($result);
 
     $predicate = $result->value();
 
     assertSame('temperature', $predicate->receiver()->value());
     assertSame('lessThan', $predicate->operator()->name());
     assertSame(42.5, $predicate->argument()->value());
+});
+
+$runner->test('compiles field-valued predicate', function () {
+    $schema = test_schema();
+
+    $predicateJson = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "version"
+        }
+    }
+JSON
+    );
+
+    $result = Predicate::compile($predicateJson, $schema, 'Happy Path');
+
+    assert_compile_success($result);
+
+    $predicate = $result->value();
+
+    assertSame('latest_version', $predicate->receiver()->value());
+    assertSame('versionGreaterThan', $predicate->operator()->name());
+
+    $argument = $predicate->argument();
+    assertTrue($argument instanceof FieldVal);
+    assertSame('version', $argument->value());
+    assertSame('string', $argument->value_type());
+});
+
+$runner->test('renders true field-valued predicate', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "version"
+        }
+    }
+JSON
+    );
+
+    $result = Predicate::compile($json, $schema, 'Happy Path');
+    assert_compile_success($result);
+
+    assertTrue(
+            $result->value()->render(
+                    array(
+                            'latest_version' => '7.23.3',
+                            'version' => '7.23.1'
+                    )
+            )
+    );
+});
+
+$runner->test('renders false field-valued predicate', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "version"
+        }
+    }
+JSON
+    );
+
+    $result = Predicate::compile($json, $schema, 'Happy Path');
+    assert_compile_success($result);
+
+    assertFalse(
+            $result->value()->render(
+                    array(
+                            'latest_version' => '7.23.1',
+                            'version' => '7.23.3'
+                    )
+            )
+    );
+});
+
+$runner->test('rejects field-valued predicate with incompatible type', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "uptime"
+        }
+    }
+JSON
+    );
+
+    assert_compile_error(
+            Predicate::compile($json, $schema, 'rule.when'),
+            'rule.when.versionGreaterThan: integer incompatible with string'
+    );
+});
+
+$runner->test('rejects field-valued predicate with unknown field', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "banana"
+        }
+    }
+JSON
+    );
+
+    assert_compile_error(
+            Predicate::compile($json, $schema, 'rule.when'),
+            "rule.when.value.FieldVal: 'banana' must exist in schema"
+    );
+});
+
+$runner->test('rejects malformed field-valued predicate', function () {
+    $schema = test_schema();
+
+    $json = from_json(<<<'JSON'
+    {
+        "field": "latest_version",
+        "operator": "versionGreaterThan",
+        "value": {
+            "field": "version",
+            "fubar": true
+        }
+    }
+JSON
+    );
+
+    assert_compile_error(
+            Predicate::compile($json, $schema, 'rule.when'),
+            'rule.when.value: unsupported value_type: array'
+    );
 });
 
 $runner->test('rejects missing field', function () {

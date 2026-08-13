@@ -130,8 +130,20 @@ function assert_allowed_keys($required, $allowed, $actual, $context) {
 }
 
 function assert_compile_success($result) {
-    assertTrue($result instanceof CompilationResult, 'CompilationResult expected');
-    assertTrue($result->isSuccess());
+    assertTrue(
+        $result instanceof CompilationResult,
+        'CompilationResult expected'
+    );
+
+    $errors = $result->errors();
+        $message = count($errors) > 0
+            ? implode("\n", $errors)
+            : 'Compilation expected to succeed';
+
+    assertTrue(
+        $result->isSuccess(),
+        $message
+    );
 }
 
 function assert_compile_error($result, $message) {
@@ -165,6 +177,9 @@ function test_schema() {
        ),
        'update_available' => array(
             'value_type' => 'boolean'
+       ),
+       'version' => array(
+           'value_type' => 'string'
        )
     );
 }

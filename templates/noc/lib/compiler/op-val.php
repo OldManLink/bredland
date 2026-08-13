@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__) . '/compatibility.php';
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
-require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 require_once __DIR__ . '/renderable.php';
 
@@ -20,6 +20,9 @@ class OpVal implements Compilable, Renderable {
             'lessThan' => array(
                 'integer' => true,
                 'float' => true
+            ),
+            'versionGreaterThan' => array(
+                'string' => true
             )
         );
     }
@@ -64,11 +67,15 @@ class OpVal implements Compilable, Renderable {
 
             case 'lessThan':
                 return function ($left, $right) {
-                    if (gettype($left) !== gettype($right)) {
+                    if (runtime_type($left) !== runtime_type($right)) {
                         throw new Exception("Programming error: 'lessThan' requires operands of the same type");
                     }
 
                     return $left < $right;
+                };
+            case 'versionGreaterThan':
+                return function ($left, $right) {
+                    return version_compare($left, $right, '>');
                 };
         }
     }

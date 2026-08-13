@@ -35,16 +35,14 @@ $runner->test('all client descriptions compile', function () use ($nocRoot, $tes
         $schema = from_json_file($schemaFile);
         $fixture = from_json_file($fixtureFile);
 
-        $result = Client::compile(
+        $client_result = Client::compile(
             $clientJson,
             $schema,
             $clientFile
         );
 
-        assert_compile_success($result);
-
-        $client = $result->value();
-
+        assert_compile_success($client_result);
+        $client = $client_result->value();
         $host = $client->host()->value();
 
         assertSame(

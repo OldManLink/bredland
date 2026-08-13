@@ -3,11 +3,11 @@
 set -euo pipefail
 
 build_dir="build/render-index"
- data_dir="$build_dir/data"
- static_dir="$build_dir/static"
+data_dir="$build_dir/data"
+static_dir="$build_dir/static"
 
- rm -rf "$build_dir"
- mkdir -p "$data_dir" "$static_dir"
+rm -rf "$build_dir"
+mkdir -p "$data_dir" "$static_dir"
 
 echo -n "Testing rendered NOC index ... "
 
@@ -61,10 +61,12 @@ fi
 # Test that the rendered index.php actually executes.
 #
 
-cp -R templates/noc/lib "$build_dir/"
 cp -R templates/noc/clients "$build_dir/"
+cp -R templates/noc/icons "$build_dir/"
+cp -R templates/noc/lib "$build_dir/"
 cp -R templates/noc/schemas "$build_dir/"
 cp -R templates/noc/static/. "$static_dir/"
+cp -R templates/noc/manifest.json "$build_dir/"
 
 timestamp_file="tests/fixtures/last-fetched.timestamp"
 

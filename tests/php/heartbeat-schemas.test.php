@@ -5,7 +5,7 @@ require_once __DIR__ . '/lib/testlib.php';
 
 $repoRoot = dirname(dirname(__DIR__));
 
-require_once $repoRoot . '/templates/noc/lib/compiler/type-val.php';
+require_once $repoRoot . '/templates/noc/lib/value-type.php';
 
 $schemasDir = $repoRoot . '/templates/noc/schemas';
 $fixturesDir = $repoRoot . '/tests/fixtures/heartbeats';
@@ -75,18 +75,13 @@ foreach ($schemaFiles as $schemaFile) {
             "$schemaFile field $fieldName type must be a string"
         );
 
-        $type_result = TypeVal::compile(
-                $value_type,
-                $schema,
-                "$schemaFile field $fieldName"
+        assertTrue(
+                ValueType::is_supported($value_type),
+                "$schemaFile field $fieldName has unsupported value_type $value_type"
         );
 
-        assert_compile_success($type_result);
-
-        $matches_type = $type_result->value()->render();
-
         assertTrue(
-                $matches_type($heartbeat[$fieldName]),
+                ValueType::matches($value_type, $heartbeat[$fieldName]),
                 "$fixtureFile field $fieldName does not match value_type $value_type"
         );
     }

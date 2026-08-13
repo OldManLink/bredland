@@ -59,7 +59,49 @@ $runner->test('compiler tests: OpVal', function () {
     assertSame('lessThan', $op->name());
     assertSame(array('integer' => true, 'float' => true), $op->operand_types());
 
+    $result = OpVal::compile('versionGreaterThan', test_schema(), 'Happy Path');
+    assert_compile_success($result);
+    $op = $result->value();
+    assertSame('versionGreaterThan', $op->name());
+    assertSame(array('string' => true), $op->operand_types());
+
     assert_compile_error(OpVal::compile('greaterThan', test_schema(), 'gt'), 'gt: unsupported operator: greaterThan');
+});
+
+$runner->test('renders versionGreaterThan operator', function () {
+    $result = OpVal::compile(
+        'versionGreaterThan',
+        test_schema(),
+        'versionGreaterThan'
+    );
+
+    assert_compile_success($result);
+
+    $versionGreaterThan = $result->value()->render();
+
+    $cases = array(
+        array('7.23.3',  '7.23.1',      true),
+        array('7.23.10', '7.23.9',      true),
+        array('7.24',    '7.23.10',     true),
+        array('7.23.1',  '7.23.1',      false),
+        array('7.23.1',  '7.23.3',      false),
+        array('7.21rc6', '7.21beta11',   true),
+        array('7.21',    '7.21rc6',      true),
+        array('7.21.1',  '7.21',         true),
+        array('7.23rc4', '7.23beta5',    true),
+        array('7.23',    '7.23rc4',      true),
+        array('7.23.1',  '7.23',         true),
+    );
+
+    foreach ($cases as $case) {
+        list($left, $right, $expected) = $case;
+
+        assertSame(
+            $expected,
+            $versionGreaterThan($left, $right),
+            "$left versionGreaterThan $right"
+        );
+    }
 });
 
 $runner->test('rejects null', function () {

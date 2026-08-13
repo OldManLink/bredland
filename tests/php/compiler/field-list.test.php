@@ -40,8 +40,7 @@ $runner = new TestRunner('FieldList');
 $runner->test('instance creation', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime'),
-        new TypeVal('integer'),
+        new FieldVal('uptime', 'integer'),
         new FormatVal('display_uptime', array('integer' => true))
     );
 
@@ -60,8 +59,7 @@ $runner->test('instance creation', function () {
 $runner->test('gets field by name', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime'),
-        new TypeVal('integer'),
+        new FieldVal('uptime', 'integer'),
         new FormatVal('display_uptime', array('integer' => true))
     );
 

@@ -6,12 +6,13 @@ require_once $phpTestRoot . '/lib/testlib.php';
 $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/slot-val.php';
+require_once $nocRoot . '/lib/compatibility.php';
 
 $runner = new TestRunner('SlotVal');
 
 $runner->test('instance creation', function () {
     $strVal = new StrVal(null);
-    $fieldVal = new FieldVal(null);
+    $fieldVal = new FieldVal(null, null);
     $slotVal = new SlotVal(array($strVal, $fieldVal, $strVal));
     assertSame(runtime_type($slotVal->parts()), 'array');
     assertSame(3, count($slotVal->parts()), 'expected count = 3');
@@ -26,17 +27,17 @@ $runner->test('renders string-only slot', function () {
 });
 
 $runner->test('renders field-only slot', function () {
-    $slotVal = new SlotVal(array(new FieldVal('latest_version')));
+    $slotVal = new SlotVal(array(new FieldVal('latest_version', 'string')));
     assertSame('7.23.2', $slotVal->render(array('latest_version' => '7.23.2')));
 });
 
 $runner->test('renders mixed slot', function () {
-    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')));
+    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.')));
     assertSame('RouterOS 7.23.2 is available.', $slotVal->render(array('latest_version' => '7.23.2')));
 });
 
 $runner->test('renders unavailable for missing field', function () {
-    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version'), new StrVal(' is available.')));
+    $slotVal = new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.')));
     assertSame('RouterOS unavailable is available.', $slotVal->render(array()));
 });
 

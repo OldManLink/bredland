@@ -14,7 +14,7 @@ foreach (glob($compilerRoot . '/*.php') as $file) {
  *
  * Run:
  *
- *     php scripts/compiler-hierarchy.php
+ *     php scripts/inspect-compiler-hierarchy.php
  *
  * to print the current compiler interface/class relationships. This is useful
  * when adding or changing compiler types: inspect the resulting hierarchy here
@@ -65,7 +65,6 @@ $runner->test('context-free values implement Renderable', function () {
     assertTrue(is_subclass_of(FormatVal::class, Renderable::class));
     assertTrue(is_subclass_of(MethodVal::class, Renderable::class));
     assertTrue(is_subclass_of(OpVal::class, Renderable::class));
-    assertTrue(is_subclass_of(TypeVal::class, Renderable::class));
 });
 
 $runner->test('slot parts are runtime values', function () {

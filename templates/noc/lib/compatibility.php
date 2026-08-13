@@ -17,3 +17,13 @@ function telemetry_hash_equals($known, $user) {
 
     return $result === 0;
 }
+
+function runtime_type($value) {
+    switch (gettype($value)) {
+        case 'double':
+            return 'float';
+
+        default:
+            return gettype($value);
+    }
+}

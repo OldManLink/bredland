@@ -39,28 +39,24 @@ $runner = new TestRunner('Field');
 
 $runner->test('instance creation', function () {
     $label = new StrVal('Uptime');
-    $fieldVal = new FieldVal('uptime');
-    $type = new TypeVal('integer');
+    $fieldVal = new FieldVal('uptime', 'integer');
     $format = new FormatVal('display_uptime', array('integer'));
 
     $field = new Field(
         $label,
         $fieldVal,
-        $type,
         $format
     );
 
     assertSame($label, $field->label());
     assertSame($fieldVal, $field->field());
-    assertSame($type, $field->value_type());
     assertSame($format, $field->format());
 });
 
 $runner->test('renders formatted field value', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime'),
-        new TypeVal('integer'),
+        new FieldVal('uptime', 'integer'),
         new FormatVal('display_uptime', array('integer' => true))
     );
     assertSame(display_uptime(1165727), $field->render(array('uptime' => 1165727)));
@@ -69,8 +65,7 @@ $runner->test('renders formatted field value', function () {
 $runner->test('returns unformatted value when runtime type does not match', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime'),
-        new TypeVal('integer'),
+        new FieldVal('uptime', 'integer'),
         new FormatVal('display_uptime', array('integer' => true))
     );
 
@@ -84,12 +79,11 @@ $runner->test('compiles field', function () use ($fieldJson) {
     assert_compile_success($result);
     assertTrue($result->value()->label() instanceof StrVal);
     assertTrue($result->value()->field() instanceof FieldVal);
-    assertTrue($result->value()->value_type() instanceof TypeVal);
     assertTrue($result->value()->format() instanceof FormatVal);
 
     assertSame('Uptime', $result->value()->label()->value());
     assertSame('uptime', $result->value()->field()->value());
-    assertSame('integer', $result->value()->value_type()->value());
+    assertSame('integer', $result->value()->value_type());
     assertSame('display_uptime', $result->value()->format()->name());
 });
 
