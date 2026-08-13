@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__) . '/compatibility.php';
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/compilation-result.php';
-require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/instantiation-exception.php';
 require_once __DIR__ . '/bool-val.php';
 require_once __DIR__ . '/int-val.php';
@@ -38,7 +38,7 @@ class Val implements Compilable {
         );
     }
 
-    private function validFieldDefinition($definition) {
+    private static function validFieldDefinition($definition) {
         if (!is_array($definition)) {
             return true;
         }

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/compiler/utils.php';
+require_once __DIR__ . '/compatibility.php';
 
 class ValueType {
     private static function value_types() {

@@ -6,6 +6,7 @@ require_once $phpTestRoot . '/lib/testlib.php';
 $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/slot-val.php';
+require_once $nocRoot . '/lib/compatibility.php';
 
 $runner = new TestRunner('SlotVal');
 
