@@ -11,6 +11,9 @@ source "$(dirname "$0")/lib/utils.sh"
 
 load_bredland_secrets
 
+oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
+oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
+
 command -v curl >/dev/null
 command -v jq >/dev/null
 command -v ssh >/dev/null
@@ -45,8 +48,8 @@ fixtures_are_complete()
 
     [[ -s "$timestamp_file" ]] || return 1
     [[ -s "$production_dir/index.html" ]] || return 1
-    [[ -s "$production_dir/style.css" ]] || return 1
-    [[ -s "$production_dir/dashboard.js" ]] || return 1
+    [[ -s "$production_dir/static/style.css" ]] || return 1
+    [[ -s "$production_dir/static/dashboard.js" ]] || return 1
 
     for host in "${hosts[@]}"; do
         [[ -s "$heartbeat_dir/${host}.json" ]] || return 1
@@ -55,7 +58,9 @@ fixtures_are_complete()
 
 production_now_epoch()
 {
-    execute_remote_command 'date -u +%s'
+    execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    'date -u +%s'
 }
 
 fixtures_are_fresh_enough()

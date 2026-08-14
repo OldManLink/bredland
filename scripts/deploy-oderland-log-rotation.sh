@@ -49,6 +49,7 @@ echo "Deploying to ${oderland_user}@${oderland_host}..."
 run_step \
     "Creating remote script directory" \
     execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
     "mkdir -p '$noc_bin_dir'"
 
 run_step \
@@ -68,6 +69,7 @@ run_step \
 run_step \
     "Installing cron entry" \
     execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
     "tmp=\$(mktemp); \
      crontab -l 2>/dev/null \
        | sed '/^${cron_begin}$/,/^${cron_end}$/d' \
@@ -79,6 +81,7 @@ run_step \
 run_step \
     "Verifying cron entry" \
     execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
     "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
      crontab -l | grep -Fx '${cron_line_daily}' >/dev/null &&
      crontab -l | grep -Fx '${cron_line_monthly}' >/dev/null &&

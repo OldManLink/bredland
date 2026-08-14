@@ -304,7 +304,9 @@ cp templates/noc/manifest.json "$manifest_local"
 echo
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
-execute_remote_command "mkdir -p \
+execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "mkdir -p \
     '$lib_remote' \
     '$static_remote' \
     '$icons_remote' \
