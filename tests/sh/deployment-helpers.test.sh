@@ -49,4 +49,34 @@ if [[ "$output" != $'→ Failed step\n❌ Failed step' ]]; then
     exit 1
 fi
 
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+template="$tmpdir/example.sh.template"
+rendered="$tmpdir/example.sh"
+secrets="$tmpdir/secrets.env"
+
+: > "$secrets"
+
+cat >"$template" <<'EOF'
+#!/usr/bin/env bash
+echo "hello"
+EOF
+
+BREDLAND_SECRETS_FILE="$secrets" \
+    render_executable "$template" "$rendered"
+
+if [[ ! -x "$rendered" ]]; then
+    echo "render_executable should create an executable file" >&2
+    exit 1
+fi
+
+expected=$'#!/usr/bin/env bash\necho "hello"'
+actual="$(cat "$rendered")"
+
+if [[ "$actual" != "$expected" ]]; then
+    echo "render_executable produced unexpected content" >&2
+    exit 1
+fi
+
 echo "✅ Deployment helpers behave correctly"

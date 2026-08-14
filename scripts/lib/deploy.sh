@@ -24,3 +24,12 @@ run_step()
         fail "$description"
     fi
 }
+
+render_executable()
+{
+    local template="$1"
+    local output="$2"
+
+    scripts/render-template.sh "$template" "$output"
+    chmod +x "$output"
+}
