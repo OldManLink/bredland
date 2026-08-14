@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php
-$libraryRoot = dirname(__DIR__) . '/templates/noc/lib';
+$libraryRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
 $compilerRoot = $libraryRoot . '/compiler';
 
 foreach (glob($compilerRoot . '/*.php') as $file) {

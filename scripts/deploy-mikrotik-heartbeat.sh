@@ -3,6 +3,8 @@ set -euo pipefail
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/deploy.sh
+source "$(dirname "$0")/lib/deploy.sh"
 
 load_bredland_secrets
 
@@ -16,15 +18,6 @@ scheduler_name="telemetry-heartbeat-5m"
 router_user="${MIKROTIK_SSH_USER:?Missing MIKROTIK_SSH_USER}"
 router_host="${MIKROTIK_SSH_HOST:?Missing MIKROTIK_SSH_HOST}"
 router="${router_user}@${router_host}"
-
-pass() {
-    echo "✅ $1"
-}
-
-fail() {
-    echo "❌ $1" >&2
-    exit 1
-}
 
 verify_routeros() {
     local description="$1"
