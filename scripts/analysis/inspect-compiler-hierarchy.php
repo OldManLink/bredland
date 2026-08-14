@@ -1,7 +1,15 @@
 #!/usr/bin/env php
 <?php
-$libraryRoot = dirname(dirname(__DIR__)) . '/templates/noc/lib';
+$repoRoot = dirname(dirname(__DIR__));
+$libraryRoot = $repoRoot . '/templates/noc/lib';
 $compilerRoot = $libraryRoot . '/compiler';
+$analysisDir = $repoRoot . '/build/analysis';
+
+if (!is_dir($analysisDir)) {
+    mkdir($analysisDir, 0777, true);
+}
+
+$outputFile = $analysisDir . '/compiler-hierarchy.txt';
 
 foreach (glob($compilerRoot . '/*.php') as $file) {
     require_once $file;
@@ -407,6 +415,12 @@ function source_standalone_functions($file) {
         $token = $tokens[$index];
 
         if (is_array($token)) {
+            if ($token[0] === T_CURLY_OPEN ||
+                $token[0] === T_DOLLAR_OPEN_CURLY_BRACES) {
+                $braceDepth++;
+                continue;
+            }
+
             if ($token[0] === T_CLASS || $token[0] === T_INTERFACE ||
                 $token[0] === T_TRAIT) {
                 $pendingClassLike = true;
@@ -507,11 +521,14 @@ foreach (compiler_traits($compilerRoot) as $traitName) {
     $traitRelationships[$traitName] = trait_users($traitName, $classes);
 }
 
+ob_start();
+
 print_relationship_section('Interfaces', $interfaceRelationships);
 print_relationship_section('Traits', $traitRelationships);
-print_relationship_section(
-    'Exceptions',
-    exception_relationships($compilerRoot, $classes)
-);
+print_relationship_section('Exceptions', exception_relationships($compilerRoot, $classes));
 print_list_section('Standalone Classes', standalone_classes($classes));
 print_function_section(standalone_functions($libraryRoot));
+
+file_put_contents($outputFile, ob_get_clean());
+
+echo "✅ Wrote analysis report to $outputFile\n";
