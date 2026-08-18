@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/predicate.php';
 
-$runner = new TestRunner('predicate');
+$runner = new TestSuiteRunner('predicate');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(

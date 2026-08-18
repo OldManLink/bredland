@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/val.php';
 
-$runner = new TestRunner('Val');
+$runner = new TestSuiteRunner('Val');
 
 $runner->test('instance creation', function () {
      assertThrows(

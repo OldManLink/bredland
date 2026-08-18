@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/value-type.php';
 
-$runner = new TestRunner('ValueType');
+$runner = new TestSuiteRunner('ValueType');
 
 $runner->test('recognises supported value types', function () {
     assertTrue(ValueType::is_supported('boolean'));

@@ -10,7 +10,7 @@ require_once $compilerRoot .'/health-val.php';
 require_once $compilerRoot .'/slot-val.php';
 require_once $compilerRoot .'/method-val.php';
 
-$runner = new TestRunner('MethodVal');
+$runner = new TestSuiteRunner('MethodVal');
 
 $runner->test('instance creation', function () {
     $set_health = new MethodVal('setHealth', HealthVal::class);

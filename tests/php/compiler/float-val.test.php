@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/float-val.php';
 
-$runner = new TestRunner('FloatVal');
+$runner = new TestSuiteRunner('FloatVal');
 
 $runner->test('instance creation', function () {
     $forty_two = new FloatVal(42.0);

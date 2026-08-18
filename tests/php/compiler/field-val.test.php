@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/field-val.php';
 
-$runner = new TestRunner('FieldVal');
+$runner = new TestSuiteRunner('FieldVal');
 
 $runner->test('instance creation', function () {
     $ts = new FieldVal('ts', 'string');

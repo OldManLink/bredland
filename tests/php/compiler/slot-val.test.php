@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/slot-val.php';
 require_once $nocRoot . '/lib/compatibility.php';
 
-$runner = new TestRunner('SlotVal');
+$runner = new TestSuiteRunner('SlotVal');
 
 $runner->test('instance creation', function () {
     $strVal = new StrVal(null);

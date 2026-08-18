@@ -10,7 +10,7 @@ $nocRoot = $repoRoot . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/client.php';
 require_once $nocRoot . '/lib/client-loader.php';
 
-$runner = new TestRunner('client-loader');
+$runner = new TestSuiteRunner('client-loader');
 
 function copy_json_files($source_dir, $target_dir) {
     foreach (glob($source_dir . '/*.json') as $source_file) {

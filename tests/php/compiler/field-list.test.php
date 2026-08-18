@@ -35,7 +35,7 @@ $fieldJson3 = from_json(<<<'JSON'
 JSON
 );
 
-$runner = new TestRunner('FieldList');
+$runner = new TestSuiteRunner('FieldList');
 
 $runner->test('instance creation', function () {
     $field = new Field(

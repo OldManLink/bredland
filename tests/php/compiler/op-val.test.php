@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/op-val.php';
 
-$runner = new TestRunner('OpVal');
+$runner = new TestSuiteRunner('OpVal');
 
 $runner->test('instance creation', function () {
     $op = new OpVal('equals', array('boolean' => true, 'integer' => true, 'float' => true, 'string' => true));

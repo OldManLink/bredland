@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/client-field-list.php';
 
-$runner = new TestRunner('client-field-list');
+$runner = new TestSuiteRunner('client-field-list');
 
 $runner->test('render() renders no client fields for an empty list', function () {
     $client = test_client();

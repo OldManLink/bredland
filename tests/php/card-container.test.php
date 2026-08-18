@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/card-container.php';
 
-$runner = new TestRunner('card-container');
+$runner = new TestSuiteRunner('card-container');
 
 $runner->test('render() renders the card container structure in order', function () {
     $client = test_client();

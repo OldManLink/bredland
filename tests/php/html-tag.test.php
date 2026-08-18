@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/html-tag.php';
 
-$runner = new TestRunner('html-tag');
+$runner = new TestSuiteRunner('html-tag');
 
 $runner->test('renders an empty tag with separate closing tag', function () {
     $html_tag = new HtmlTag(0, 'pre', array(), array('id' => 'foo'));

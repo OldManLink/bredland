@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/test-runner.php';
+require_once __DIR__ . '/test-suite-runner.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/html-renderable.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/noc.php';
 

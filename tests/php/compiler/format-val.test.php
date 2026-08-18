@@ -9,7 +9,7 @@ require_once $libRoot .'/formatters.php';
 $compilerRoot = $libRoot . '/compiler';
 require_once $compilerRoot .'/format-val.php';
 
-$runner = new TestRunner('FormatVal');
+$runner = new TestSuiteRunner('FormatVal');
 
 $runner->test('instance creation', function () {
     $format = new FormatVal('display_uptime', array('integer' => true));

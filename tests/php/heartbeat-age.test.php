@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/heartbeat-age.php';
 
-$runner = new TestRunner('heartbeat-age');
+$runner = new TestSuiteRunner('heartbeat-age');
 
 $runner->test('render() renders the formatted heartbeat age', function () {
     with_noc_now('2026-08-10T12:01:05Z', function () {

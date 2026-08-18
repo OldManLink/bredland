@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/int-val.php';
 
-$runner = new TestRunner('IntVal');
+$runner = new TestSuiteRunner('IntVal');
 
 $runner->test('instance creation', function () {
     $fortyTwo = new IntVal(42);

@@ -21,7 +21,7 @@ foreach (glob($compilerRoot . '/*.php') as $file) {
  * first, then update these architecture tests only when the intended contracts
  * or architectural boundaries have genuinely changed.
  */
-$runner = new TestRunner('architecture');
+$runner = new TestSuiteRunner('architecture');
 
 /**
  * Positive architecture contracts.

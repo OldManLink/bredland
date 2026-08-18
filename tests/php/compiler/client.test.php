@@ -7,7 +7,7 @@ require_once $phpRoot . '/lib/testlib.php';
 $compilerRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib/compiler';
 require_once $compilerRoot .'/client.php';
 
-$runner = new TestRunner('Client');
+$runner = new TestSuiteRunner('Client');
 
 $runner->test('instance creation', function () {
     $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));

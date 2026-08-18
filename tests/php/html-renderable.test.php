@@ -3,7 +3,7 @@
 
 require_once getenv('TEST_CONFIG');
 require_once __DIR__ . '/lib/testlib.php';
-require_once __DIR__ . '/lib/test-runner.php';
+require_once __DIR__ . '/lib/test-suite-runner.php';
 
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/html-renderable.php';
@@ -15,7 +15,7 @@ class DummyRenderable extends HtmlRenderable {
     }
 }
 
-$runner = new TestRunner('html-renderable');
+$runner = new TestSuiteRunner('html-renderable');
 
 $runner->test('render() delegates to render_html()', function ()  {
     $renderer = new DummyRenderable(0);

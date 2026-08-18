@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/refresh-indicator.php';
 
-$runner = new TestRunner('refresh-indicator');
+$runner = new TestSuiteRunner('refresh-indicator');
 
 $runner->test('render() renders the required set of tags', function () {
     $refresh_indicator = new RefreshIndicator(1);
