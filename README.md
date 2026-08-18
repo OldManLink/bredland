@@ -58,12 +58,126 @@ Additional directories will be added as Bredland's responsibilities evolve.
 
 The project uses automated shell and PHP tests together with a reproducible PHP 5.5 Docker environment matching production.
 
-Run the complete validation workflow with:
+The canonical test entry point is:
 
 ```bash
 ./tests/run-all.sh
 ```
-This command builds (or reuses) the canonical PHP 5.5 container, executes all shell and PHP tests, validates every PHP file in the repository using php -l, and verifies that PHP 5.6 language features are rejected.
+
+This builds (or reuses) the PHP 5.5 test container, runs all shell and PHP test suites, validates every PHP file in the repository with `php -l`, and verifies that PHP 5.6 language features are rejected.
+
+### Selecting test suites
+
+Each test suite has a canonical ID.
+
+Examples:
+
+```bash
+./tests/run-all.sh php:predicate
+./tests/run-all.sh sh:deployment-helpers
+```
+
+Language aliases run all suites for that language:
+
+```bash
+./tests/run-all.sh php
+./tests/run-all.sh shell
+```
+
+Selectors may also use shell-style globs:
+
+```bash
+./tests/run-all.sh 'php:compiler/*'
+./tests/run-all.sh 'php:card*'
+```
+
+Quote glob selectors so that they are interpreted by the test runner rather than expanded by the calling shell.
+
+Available suites can be listed with:
+
+```bash
+./tests/run-all.sh --list
+./tests/run-all.sh --list php
+./tests/run-all.sh --list 'php:compiler/*'
+```
+
+### Rerunning failures
+
+Failed suite IDs are recorded under:
+
+```text
+build/test-results/failed-suites
+```
+
+To rerun only the suites that failed in the previous run:
+
+```bash
+./tests/run-all.sh --failed
+```
+
+### Output control
+
+Use `--failures-only` to suppress successful suite output while retaining summaries and failure details:
+
+```bash
+./tests/run-all.sh --failures-only
+```
+
+The existing quiet modes are also supported:
+
+```bash
+./tests/run-all.sh -q
+./tests/run-all.sh -qq
+```
+
+Options and selectors may be combined, for example:
+
+```bash
+./tests/run-all.sh --failures-only 'php:compiler/*'
+./tests/run-all.sh -q php:predicate
+./tests/run-all.sh --failed --failures-only
+```
+
+### Test results
+
+Each run writes ephemeral result information under:
+
+```text
+build/test-results/
+```
+
+Per-suite statistics are written under:
+
+```text
+build/test-results/statistics/
+├── php/
+└── sh/
+```
+
+PHP suites using `TestSuiteRunner` report individual test counts, allowing the PHP runner to display both suite-level and test-level summaries:
+
+```text
+Suite summary: 53 test suites run, 0 skipped, 53 passed, 0 failed, 0 crashed
+Test summary: 283 tests run, 0 skipped, 283 passed, 0 failed
+```
+
+Shell suites currently report suite-level results only. Some older procedural PHP suites also do not yet contribute individual test counts.
+
+### Intentionally skipping a PHP test
+
+Tests using `TestSuiteRunner` can be temporarily skipped without removing or commenting out the test body:
+
+```php
+$runner->skip(
+    'renders temporary legacy case',
+    'Waiting for the new implementation',
+    function () {
+        // Test body remains intact.
+    }
+);
+```
+
+A skipped test is reported explicitly, counted as skipped, and does not prevent later tests in the same suite from running. Changing `skip` back to `test` restores the test normally.
 
 ## Disaster Recovery
 
