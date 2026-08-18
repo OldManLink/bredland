@@ -74,14 +74,6 @@ function assertThrows($exceptionClass, $expectedMessage, $operation) {
     );
 }
 
-function disabled($testDescription) {
-    logDebug("Disabled test: $testDescription");
-}
-
-function logDebug($message) {
-    fwrite(STDERR,"\n🔎 >> $message << 🔍\n");
-}
-
 function assertTrue($actual, $message = '') {
     assertSame(true, $actual, $message);
 }

@@ -91,7 +91,7 @@ for test_script in "${test_scripts[@]}"; do
 done
 
 total=$((passed + skipped + failed + crashed))
-echo "Suite summary: $total tests run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
+echo "Suite summary: $total test suites run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
 
 if (( failed || crashed )); then
     exit 1
