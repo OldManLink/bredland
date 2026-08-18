@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/card-head.php';
 
-$runner = new TestRunner('card-head');
+$runner = new TestSuiteRunner('card-head');
 
 $runner->test('render() renders the health indicator and escaped title', function () {
     $client = test_client(

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/test-runner.php';
+require_once __DIR__ . '/test-suite-runner.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/html-renderable.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/templates/noc/lib/noc.php';
 
@@ -72,14 +72,6 @@ function assertThrows($exceptionClass, $expectedMessage, $operation) {
         "Expected exception: $exceptionClass\n" .
         "Expected message: " . var_export($expectedMessage, true)
     );
-}
-
-function disabled($testDescription) {
-    logDebug("Disabled test: $testDescription");
-}
-
-function logDebug($message) {
-    fwrite(STDERR,"\n🔎 >> $message << 🔍\n");
 }
 
 function assertTrue($actual, $message = '') {

@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/telemetry-drawer.php';
 
-$runner = new TestRunner('telemetry-drawer');
+$runner = new TestSuiteRunner('telemetry-drawer');
 
 $runner->test('render() renders escaped heartbeat telemetry', function () {
     $client = test_client(

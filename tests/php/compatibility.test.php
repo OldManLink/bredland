@@ -3,7 +3,7 @@
 require_once __DIR__ . '/lib/testlib.php';
 require_once dirname(dirname(__DIR__)) . '/templates/noc/lib/compatibility.php';
 
-$runner = new TestRunner('compatibility');
+$runner = new TestSuiteRunner('compatibility');
 
 $runner->test('telemetry_hash_equals', function () {
     assertTrue(telemetry_hash_equals('secret', 'secret'));

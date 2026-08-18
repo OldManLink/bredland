@@ -6,7 +6,7 @@ $testsRoot = dirname(__DIR__);
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/compiler/client.php';
 
-$runner = new TestRunner('client-descriptions');
+$runner = new TestSuiteRunner('client-descriptions');
 
 $runner->test('all client descriptions compile', function () use ($nocRoot, $testsRoot) {
     $clientsDir = $nocRoot . '/clients';

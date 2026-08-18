@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/record.php';
 
-$runner = new TestRunner('record');
+$runner = new TestSuiteRunner('record');
 
 $runner->test('selects requested fields', function () {
     $source = array(

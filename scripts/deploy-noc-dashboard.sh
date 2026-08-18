@@ -6,6 +6,8 @@ DEPLOYMENT_SAFETY_MARGIN_SECONDS=45
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
+# shellcheck source=scripts/lib/deploy.sh
+source "$(dirname "$0")/lib/deploy.sh"
 # shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/lib/utils.sh"
 
@@ -267,44 +269,56 @@ next="$((current + 1))"
 # asset version for the next manual coding session.
 printf '%s\n' "$next" > "$version_file"
 
-echo
-echo "Rendering telemetry endpoint..."
-scripts/render-template.sh \
+run_step \
+    "Rendering telemetry endpoint" \
+    scripts/render-template.sh \
     templates/noc/telemetry.endpoint.template.php \
     "$endpoint_local"
 
-echo "Rendering telemetry private config..."
-scripts/render-template.sh \
+run_step \
+    "Rendering telemetry private config" \
+    scripts/render-template.sh \
     templates/noc/telemetry.config.template.php \
     "$config_local"
 
-echo "Rendering NOC dashboard..."
-scripts/render-template.sh \
+run_step \
+    "Rendering NOC dashboard" \
+    scripts/render-template.sh \
     templates/noc/index.template.php \
     "$dashboard_local"
 
-echo "Copying libraries..."
-rsync -a templates/noc/lib/ "$lib_local/"
+run_step \
+    "Copying libraries" \
+    rsync -a templates/noc/lib/ "$lib_local/"
 
-echo "Copying static files..."
-cp templates/noc/static/* "$static_local/"
+run_step \
+    "Copying static files" \
+    cp templates/noc/static/* "$static_local/"
 
-echo "Copying icons..."
-cp templates/noc/icons/* "$icons_local/"
+run_step \
+    "Copying icons" \
+    cp templates/noc/icons/* "$icons_local/"
 
-echo "Copying heartbeat schemas..."
-cp templates/noc/schemas/*.json "$schemas_local/"
+run_step \
+    "Copying heartbeat schemas" \
+    cp templates/noc/schemas/*.json "$schemas_local/"
 
-echo "Copying client definitions..."
-cp templates/noc/clients/*.json "$clients_local/"
+run_step \
+    "Copying client definitions" \
+    cp templates/noc/clients/*.json "$clients_local/"
 
-echo "Copying manifest.json..."
-cp templates/noc/manifest.json "$manifest_local"
+run_step \
+    "Copying manifest.json" \
+    cp templates/noc/manifest.json "$manifest_local"
 
 echo
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
-execute_remote_command "mkdir -p \
+run_step \
+    "Creating remote directories" \
+    execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "mkdir -p \
     '$lib_remote' \
     '$static_remote' \
     '$icons_remote' \
@@ -314,53 +328,63 @@ execute_remote_command "mkdir -p \
     '$(dirname "$config_remote")' \
     '$noc_root_dir'"
 
-echo "Synchronising libraries to $lib_remote..."
-execute_rsync \
+run_step \
+    "Synchronising libraries" \
+    execute_rsync \
     "$lib_local/" \
     "${oderland_user}@${oderland_host}:${lib_remote}/"
 
-echo "Synchronising static files to $static_remote..."
-execute_rsync \
+run_step \
+    "Synchronising static files" \
+    execute_rsync \
     "$static_local/" \
     "${oderland_user}@${oderland_host}:${static_remote}/"
 
-echo "Synchronising icons to $icons_remote..."
-execute_rsync \
+run_step \
+    "Synchronising icons" \
+    execute_rsync \
     "$icons_local/" \
     "${oderland_user}@${oderland_host}:${icons_remote}/"
 
-echo "Synchronising schemas to $schemas_remote..."
-execute_rsync \
+run_step \
+    "Synchronising schemas" \
+    execute_rsync \
     "$schemas_local/" \
     "${oderland_user}@${oderland_host}:${schemas_remote}/"
 
-echo "Synchronising client definitions to $clients_remote..."
-execute_rsync \
+run_step \
+    "Synchronising client definitions" \
+    execute_rsync \
     "$clients_local/" \
     "${oderland_user}@${oderland_host}:${clients_remote}/"
 
-echo "Uploading telemetry private config to $config_remote..."
-execute_rsync \
+run_step \
+    "Uploading telemetry private config" \
+    execute_rsync \
     "$config_local" \
     "${oderland_user}@${oderland_host}:${config_remote}"
 
-echo "Uploading telemetry endpoint to $endpoint_remote..."
-execute_rsync \
+run_step \
+    "Uploading telemetry endpoint" \
+    execute_rsync \
     "$endpoint_local" \
     "${oderland_user}@${oderland_host}:${endpoint_remote}"
 
-echo "Uploading manifest.json to $manifest_remote..."
-execute_rsync \
+run_step \
+    "Uploading manifest.json" \
+    execute_rsync \
     "$manifest_local" \
     "${oderland_user}@${oderland_host}:${manifest_remote}"
 
-echo "Uploading dashboard to $dashboard_remote..."
-execute_rsync \
+run_step \
+    "Uploading dashboard" \
+    execute_rsync \
     "$dashboard_local" \
     "${oderland_user}@${oderland_host}:${dashboard_remote}"
 
-echo "Refreshing production fixtures..."
-scripts/update-fixtures.sh --force
+run_step \
+    "Refreshing production fixtures" \
+    scripts/update-fixtures.sh --force
 
 echo
 echo "Opening dashboard..."

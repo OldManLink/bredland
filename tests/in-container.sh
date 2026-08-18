@@ -83,6 +83,12 @@ failed_suites_file="$test_results_dir/failed-suites"
 
 mkdir -p "$test_results_dir"
 
+statistics_dir="$test_results_dir/statistics"
+
+mkdir -p "$test_results_dir"
+rm -rf "$statistics_dir"
+mkdir -p "$statistics_dir"
+
 if $rerun_failed_suites; then
     if [[ ! -f "$failed_suites_file" ]]; then
         echo "❌ No previous failed-suite record exists." >&2

@@ -4,13 +4,14 @@ set -euo pipefail
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
-# shellcheck source=scripts/lib/utile.sh
+# shellcheck source=scripts/lib/utils.sh
 source "$(dirname "$0")/lib/utils.sh"
+# shellcheck source=scripts/lib/deploy.sh
+source "$(dirname "$0")/lib/deploy.sh"
 
 load_bredland_secrets
 
 command -v ssh >/dev/null
-command -v scp >/dev/null
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -31,49 +32,60 @@ cron_end="# END BREDLAND NOC"
 cron_line_daily="10 3 * * * $remote_script_daily"
 cron_line_monthly="30 3 1 * * $remote_script_monthly"
 
-echo "Rendering NOC daily log rotation script ..."
-scripts/render-template.sh \
-  templates/noc/rotate-daily-logs.sh.template \
-  "$local_script_daily"
+run_step \
+    "Rendering NOC daily log rotation script" \
+    render_executable \
+    templates/noc/rotate-daily-logs.sh.template \
+    "$local_script_daily"
 
-echo "Rendering NOC monthly log consolidation script ..."
-scripts/render-template.sh \
-  templates/noc/consolidate-monthly-logs.sh.template \
-  "$local_script_monthly"
+run_step \
+    "Rendering NOC monthly log consolidation script" \
+    render_executable \
+    templates/noc/consolidate-monthly-logs.sh.template \
+    "$local_script_monthly"
 
 echo "Deploying to ${oderland_user}@${oderland_host}..."
 
-echo "Uploading script ..."
-execute_remote_command "mkdir -p '$noc_bin_dir'"
-scp "$local_script_daily" "${oderland_user}@${oderland_host}:${remote_script_daily}"
-scp "$local_script_monthly" "${oderland_user}@${oderland_host}:${remote_script_monthly}"
+run_step \
+    "Creating remote script directory" \
+    execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "mkdir -p '$noc_bin_dir'"
 
-echo -n "Making scripts executable ... "
-execute_remote_command "chmod +x '$remote_script_daily'"
-execute_remote_command "chmod +x '$remote_script_monthly'"
-echo "OK"
+run_step \
+    "Uploading daily log rotation script" \
+    execute_rsync \
+    "$local_script_daily" \
+    "${oderland_user}@${oderland_host}:${remote_script_daily}"
+
+run_step \
+    "Uploading monthly log consolidation script" \
+    execute_rsync \
+    "$local_script_monthly" \
+    "${oderland_user}@${oderland_host}:${remote_script_monthly}"
 
 # Remove any existing managed cron block, trim trailing blank lines,
 # then append exactly one blank line followed by the managed block.
-echo "Installing cron entry ..."
-execute_remote_command "tmp=\$(mktemp); \
-   crontab -l 2>/dev/null \
-     | sed '/^${cron_begin}$/,/^${cron_end}$/d' \
-     | sed -e :a -e '/^[[:space:]]*$/{\$d;N;ba' -e '}' > \"\$tmp\"; \
-   printf '\n%s\n%s\n%s\n%s\n' '${cron_begin}' '${cron_line_daily}' '${cron_line_monthly}' '${cron_end}' >> \"\$tmp\"; \
-   crontab \"\$tmp\"; \
-   rm -f \"\$tmp\""
+run_step \
+    "Installing cron entry" \
+    execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "tmp=\$(mktemp); \
+     crontab -l 2>/dev/null \
+       | sed '/^${cron_begin}$/,/^${cron_end}$/d' \
+       | sed -e :a -e '/^[[:space:]]*$/{\$d;N;ba' -e '}' > \"\$tmp\"; \
+     printf '\n%s\n%s\n%s\n%s\n' '${cron_begin}' '${cron_line_daily}' '${cron_line_monthly}' '${cron_end}' >> \"\$tmp\"; \
+     crontab \"\$tmp\"; \
+     rm -f \"\$tmp\""
 
-echo -n "Verifying scripts ... "
-execute_remote_command "test -x '$remote_script_daily'"
-execute_remote_command "test -x '$remote_script_monthly'"
-echo "OK"
+run_step \
+    "Verifying cron entry" \
+    execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
+     crontab -l | grep -Fx '${cron_line_daily}' >/dev/null &&
+     crontab -l | grep -Fx '${cron_line_monthly}' >/dev/null &&
+     crontab -l | grep -Fx '${cron_end}' >/dev/null"
 
-echo -n "Verifying cron entry... "
-execute_remote_command  "crontab -l | grep -Fx '${cron_begin}' >/dev/null &&
-   crontab -l | grep -Fx '${cron_line_daily}' >/dev/null &&
-   crontab -l | grep -Fx '${cron_line_monthly}' >/dev/null &&
-   crontab -l | grep -Fx '${cron_end}' >/dev/null"
-echo "OK"
-
-echo "Oderland NOC log rotation deployed."
+echo
+pass "Oderland NOC log rotation deployed"

@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/notification-panel.php';
 require_once $nocRoot . '/lib/notification.php';
 
-$runner = new TestRunner('notification-panel');
+$runner = new TestSuiteRunner('notification-panel');
 
 $runner->test('render() renders a notification panel div', function () {
     $client = test_client();

@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpRoot)) . '/templates/noc/lib/compiler';
 require_once $compilerRoot .'/utils.php';
 require_once $compilerRoot .'/compilation-result.php';
 
-$runner = new TestRunner('utils');
+$runner = new TestSuiteRunner('utils');
 
 $runner->test('creates indexed paths', function () {
     assertSame('fields[0]', indexed_path('fields', 0));

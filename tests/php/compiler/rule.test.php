@@ -26,7 +26,7 @@ $ruleJson = from_json(<<<'JSON'
 JSON
 );
 
-$runner = new TestRunner('Rule');
+$runner = new TestSuiteRunner('Rule');
 
 $runner->test('instance creation', function () {
     $predicate = new Predicate(

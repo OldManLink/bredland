@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/cards-row.php';
 
-$runner = new TestRunner('cards-row');
+$runner = new TestSuiteRunner('cards-row');
 
 $runner->test('render() renders no card slots for no clients', function () {
     $cards_row = new CardsRow(1, array());

@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/notification-badge.php';
 
-$runner = new TestRunner('notification-badge');
+$runner = new TestSuiteRunner('notification-badge');
 
 $runner->test('render() renders the notification count', function () {
     $badge = new NotificationBadge(1, 2);

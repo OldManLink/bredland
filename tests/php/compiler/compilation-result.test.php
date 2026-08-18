@@ -7,7 +7,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot . '/compilation-result.php';
 
-$runner = new TestRunner('CompilationResult');
+$runner = new TestSuiteRunner('CompilationResult');
 
 $runner->test('success', function () {
     $value = new stdClass();

@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/dashboard.php';
 require_once $nocRoot . '/lib/cards-row.php';
 
-$runner = new TestRunner('dashboard');
+$runner = new TestSuiteRunner('dashboard');
 
 $runner->test('render() renders the cards row inside the dashboard', function () {
     $cards_row = new CardsRow(1, array());

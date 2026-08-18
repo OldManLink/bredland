@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/page-head.php';
 require_once $nocRoot . '/lib/text-renderable.php';
 
-$runner = new TestRunner('page-head');
+$runner = new TestSuiteRunner('page-head');
 $static_version = trim(file_get_contents("$nocRoot/static/static.version"));
 
 $runner->test('render() renders the required set of tags', function () use ($static_version){

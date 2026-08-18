@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname($phpTestRoot)) . '/templates/noc';
 
 require_once $nocRoot . '/lib/compiler/action.php';
 
-$runner = new TestRunner('action');
+$runner = new TestSuiteRunner('action');
 
 $runner->test('instance creation', function () {
     $receiver = new ReceiverVal('client', Client::class);

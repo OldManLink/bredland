@@ -9,7 +9,7 @@ require_once $nocRoot . '/lib/noc.php';
 require_once $nocRoot . '/lib/cards-row.php';
 require_once $nocRoot . '/lib/dashboard.php';
 
-$runner = new TestRunner('noc');
+$runner = new TestSuiteRunner('noc');
 
 $runner->test('render() renders the complete noc', function () {
     $cards_row = new CardsRow(2, array());

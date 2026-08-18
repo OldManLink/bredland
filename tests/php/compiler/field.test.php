@@ -35,7 +35,7 @@ $fieldJson3 = from_json(<<<'JSON'
 JSON
 );
 
-$runner = new TestRunner('Field');
+$runner = new TestSuiteRunner('Field');
 
 $runner->test('instance creation', function () {
     $label = new StrVal('Uptime');

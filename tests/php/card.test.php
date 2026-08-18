@@ -7,7 +7,7 @@ require_once __DIR__ . '/lib/testlib.php';
 $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/card.php';
 
-$runner = new TestRunner('card');
+$runner = new TestSuiteRunner('card');
 
 $runner->test('render() renders the complete card in order', function () {
     with_noc_now('2026-08-10T12:01:05Z', function () {

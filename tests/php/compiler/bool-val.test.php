@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/bool-val.php';
 
-$runner = new TestRunner('BoolVal');
+$runner = new TestSuiteRunner('BoolVal');
 
 $runner->test('instance creation', function () {
     $bool = new BoolVal(true);

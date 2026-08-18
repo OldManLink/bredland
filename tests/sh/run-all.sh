@@ -39,6 +39,10 @@ for test_script in "${test_scripts[@]}"; do
     suite="${suite%.test.sh}"
     suite="sh:$suite"
 
+    statistics_file="$test_results_dir/statistics/${suite/:/\/}.json"
+    mkdir -p "$(dirname "$statistics_file")"
+    rm -f "$statistics_file"
+
     name="$(basename "$test_script" .test.sh)"
     output_file="$(mktemp)"
 
@@ -49,6 +53,8 @@ for test_script in "${test_scripts[@]}"; do
 
     case "$rc" in
         0)
+            status="passed"
+
             if ! $print_failures_only; then
                 echo "==> $name"
                 cat "$output_file"
@@ -59,6 +65,8 @@ for test_script in "${test_scripts[@]}"; do
             ;;
 
         77)
+            status="skipped"
+
             if ! $print_failures_only; then
                 echo "==> $name"
                 cat "$output_file"
@@ -69,6 +77,8 @@ for test_script in "${test_scripts[@]}"; do
             ;;
 
         1)
+            status="failed"
+
             echo "==> $name"
             cat "$output_file"
             echo "❌ $name"
@@ -78,6 +88,8 @@ for test_script in "${test_scripts[@]}"; do
             ;;
 
         *)
+            status="crashed"
+
             echo "==> $name"
             cat "$output_file"
             echo "❌💥 $name (exit $rc)"
@@ -87,11 +99,16 @@ for test_script in "${test_scripts[@]}"; do
             ;;
     esac
 
+    printf '{"suite":"%s","status":"%s"}\n' \
+        "$suite" \
+        "$status" \
+        > "$statistics_file"
+
     rm -f "$output_file"
 done
 
 total=$((passed + skipped + failed + crashed))
-echo "Suite summary: $total tests run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
+echo "Suite summary: $total test suites run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
 
 if (( failed || crashed )); then
     exit 1

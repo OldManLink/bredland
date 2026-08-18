@@ -8,7 +8,7 @@ $compilerRoot = dirname(dirname($phpTestRoot)) . '/templates/noc/lib/compiler';
 
 require_once $compilerRoot .'/health-val.php';
 
-$runner = new TestRunner('HealthVal');
+$runner = new TestSuiteRunner('HealthVal');
 
 $runner->test('instance creation', function () {
     $healthy = new HealthVal('healthy');

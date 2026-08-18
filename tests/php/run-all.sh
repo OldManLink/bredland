@@ -78,9 +78,15 @@ for test in "${test_scripts[@]}"; do
     suite="${suite%.test.php}"
     suite="php:$suite"
 
+    statistics_file="$test_results_dir/statistics/${suite/:/\/}.json"
+    mkdir -p "$(dirname "$statistics_file")"
+    rm -f "$statistics_file"
+
     output_file="$(mktemp)"
 
     set +e
+    TEST_SUITE_ID="$suite" \
+    TEST_STATISTICS_FILE="$statistics_file" \
     php "$test" "${test_args[@]}" >"$output_file" 2>&1
     rc=$?
     set -e
@@ -131,7 +137,10 @@ for test in "${test_scripts[@]}"; do
 done
 
 total=$((passed + skipped + failed + crashed))
-echo "Suite summary: $total tests run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
+echo "Suite summary: $total test suites run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
+
+statistics_dir="$test_results_dir/statistics/php"
+php tests/php/summarize-statistics.php "$statistics_dir"
 
 if (( failed || crashed )); then
     exit 1

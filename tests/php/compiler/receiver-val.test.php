@@ -12,7 +12,7 @@ $compilerRoot = $nocLibRoot . '/compiler';
 require_once $compilerRoot .'/client.php';
 require_once $compilerRoot .'/receiver-val.php';
 
-$runner = new TestRunner('ReceiverVal');
+$runner = new TestSuiteRunner('ReceiverVal');
 
 $runner->test('instance creation', function () {
     $client = new ReceiverVal('client', Client::class);

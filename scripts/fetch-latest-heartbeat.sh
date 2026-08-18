@@ -26,6 +26,9 @@ fi
 
 load_bredland_secrets
 
+oderland_user="${ODERLAND_SSH_USER:?Missing ODERLAND_SSH_USER}"
+oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
+
 command -v jq >/dev/null
 command -v ssh >/dev/null
 
@@ -35,7 +38,9 @@ remote_file="${NOC_DATA_DIR:?Missing NOC_DATA_DIR}/${host}-${date_utc}.jsonl"
 tmpfile="$(mktemp)"
 trap 'rm -f "$tmpfile"' EXIT
 
-execute_remote_command "tail -n 1 '$remote_file'" |
+execute_remote_command \
+    "${oderland_user}@${oderland_host}" \
+    "tail -n 1 '$remote_file'" |
     jq . > "$tmpfile"
 
 actual_host="$(jq -er '.host' "$tmpfile")"

@@ -20,11 +20,35 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
 PHP_TEST_IMAGE="bredland/php55-test"
+docker_build_output="$(mktemp)"
+
+preview_pid=""
+
+cleanup()
+{
+    if [[ -n "$preview_pid" ]]; then
+        kill "$preview_pid" 2>/dev/null || true
+        wait "$preview_pid" 2>/dev/null || true
+    fi
+
+    rm -f "$docker_build_output"
+}
+
+trap cleanup EXIT INT TERM
+
+docker_build_rc=0
 
 docker build \
     --platform linux/amd64 \
     -t "$PHP_TEST_IMAGE" \
-    tests/docker/php55
+    tests/docker/php55 \
+    >"$docker_build_output" 2>&1 \
+    || docker_build_rc=$?
+
+if (( docker_build_rc != 0 )); then
+    cat "$docker_build_output"
+    exit "$docker_build_rc"
+fi
 
 set +e
 
@@ -51,14 +75,6 @@ if $preview && (( compare_rc <= 1 )); then
         > "$preview_log" 2>&1 &
 
     preview_pid=$!
-
-    cleanup_preview()
-    {
-        kill "$preview_pid" 2>/dev/null || true
-        wait "$preview_pid" 2>/dev/null || true
-    }
-
-    trap cleanup_preview EXIT INT TERM
 
     sleep 1
 
