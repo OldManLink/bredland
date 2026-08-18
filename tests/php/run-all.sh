@@ -139,6 +139,9 @@ done
 total=$((passed + skipped + failed + crashed))
 echo "Suite summary: $total test suites run, $skipped skipped, $passed passed, $failed failed, $crashed crashed"
 
+statistics_dir="$test_results_dir/statistics/php"
+php tests/php/summarize-statistics.php "$statistics_dir"
+
 if (( failed || crashed )); then
     exit 1
 fi

@@ -173,6 +173,26 @@ if [[ -f "$shell_statistics_file" ]]; then
     assert_not_contains "$shell_statistics" '"tests"'
 fi
 
+# PHP summary includes individual test totals
+
+output="$(tests/in-container.sh php:test-suite-runner 2>&1)"
+rc=$?
+
+if (( rc != 0 )); then
+    echo "❌ php:test-suite-runner exited with $rc"
+    ((failed++))
+else
+    ((passed++))
+fi
+
+assert_contains \
+    "$output" \
+    "Suite summary: 1 test suites run, 0 skipped, 1 passed, 0 failed, 0 crashed"
+
+assert_contains \
+    "$output" \
+    "Test summary: 1 tests run, 0 skipped, 1 passed, 0 failed"
+
 # Nested runner inherits private test-results directory
 
 printf '%s\n' \
