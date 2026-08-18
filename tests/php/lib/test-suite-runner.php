@@ -51,6 +51,32 @@ class TestSuiteRunner {
             $this->testsSkipped +
             $this->testsFailed;
 
+        $statisticsFile = getenv('TEST_STATISTICS_FILE');
+
+        if ($statisticsFile !== false && $statisticsFile !== '') {
+            $suite = getenv('TEST_SUITE_ID');
+
+            $statistics = array(
+                'suite' => $suite,
+                'status' => $this->testsFailed > 0 ? 'failed' : 'passed',
+                'tests' => array(
+                    'run' => $total,
+                    'skipped' => $this->testsSkipped,
+                    'passed' => $this->testsPassed,
+                    'failed' => $this->testsFailed
+                )
+            );
+
+            $temporaryFile = $statisticsFile . '.tmp';
+
+            file_put_contents(
+                $temporaryFile,
+                json_encode($statistics)
+            );
+
+            rename($temporaryFile, $statisticsFile);
+        }
+
         fwrite(
             STDOUT,
             "$this->suiteName: $total tests run, " .

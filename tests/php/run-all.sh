@@ -78,9 +78,15 @@ for test in "${test_scripts[@]}"; do
     suite="${suite%.test.php}"
     suite="php:$suite"
 
+    statistics_file="$test_results_dir/statistics/${suite/:/\/}.json"
+    mkdir -p "$(dirname "$statistics_file")"
+    rm -f "$statistics_file"
+
     output_file="$(mktemp)"
 
     set +e
+    TEST_SUITE_ID="$suite" \
+    TEST_STATISTICS_FILE="$statistics_file" \
     php "$test" "${test_args[@]}" >"$output_file" 2>&1
     rc=$?
     set -e
