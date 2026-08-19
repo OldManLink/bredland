@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-build_dir="build/rendered-noc"
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$repo_root"
+
+build_dir="$repo_root/build/rendered-noc"
 data_dir="$build_dir/data"
 static_dir="$build_dir/static"
 
@@ -11,16 +14,12 @@ mkdir -p "$data_dir" "$static_dir"
 
 echo -n "Testing rendered NOC index ... "
 
-cat > "$build_dir/noc-index.env" <<EOF
-TELEMETRY_CONFIG_FILE="$build_dir/telemetry.config.php"
-EOF
-
 cat > "$build_dir/telemetry.config.php" <<EOF
 <?php
 
 \$HOST_TOKENS = array(
-    'mikrotik-test' => 'mikrotik.v1.test-token',
-    'bredland-test' => 'bredland.v1.test-token'
+    'mikrotik' => 'mikrotik.v1.test-token',
+    'bredland' => 'bredland.v1.test-token'
 );
 
 \$DATA_DIR = '$data_dir';
