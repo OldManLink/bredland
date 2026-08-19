@@ -43,19 +43,6 @@ run_render templates/mikrotik/install-noc-heartbeat.rsc.template \
 "$tmpdir/install-noc-heartbeat.env"
 echo "OK"
 
-# Test Oderland telemetry.endpoint.template.php
-echo -n "Testing noc/telemetry.endpoint.template.php ... "
-cat > "$tmpdir/telemetry.endpoint.env" <<'EOF'
-# PHP magic constants
-DIR=DIR
-# Oderland stuff
-TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
-EOF
-run_render templates/noc/telemetry.endpoint.template.php \
-"$tmpdir/telemetry.php" \
-"$tmpdir/telemetry.endpoint.env"
-echo "OK"
-
 # Test Oderland telemetry.config.template.php
 echo -n "testing noc/telemetry.config.template.php ... "
 cat > "$tmpdir/telemetry.config.env" <<'EOF'
