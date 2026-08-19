@@ -2,12 +2,24 @@
 
 require_once __DIR__ . '/telemetry-response.php';
 require_once __DIR__ . '/authenticator.php';
+require_once __DIR__ . '/field-selector.php';
+require_once __DIR__ . '/schema-loader.php';
+require_once __DIR__ . '/record-builder.php';
+require_once __DIR__ . '/telemetry-storage.php';
 
 class TelemetryEndpoint {
     private $authenticator;
+    private $fieldSelector;
+    private $schemaLoader;
+    private $recordBuilder;
+    private $telemetryStorage;
 
-    public function __construct($authenticator) {
+    public function __construct($authenticator, $fieldSelector, $schemaLoader, $recordBuilder, $telemetryStorage) {
         $this->authenticator = $authenticator;
+        $this->fieldSelector = $fieldSelector;
+        $this->schemaLoader = $schemaLoader;
+        $this->recordBuilder = $recordBuilder;
+        $this->telemetryStorage = $telemetryStorage;
     }
 
     public function handle($server, $post) {
@@ -52,8 +64,73 @@ class TelemetryEndpoint {
                 'missing parameter: fields'
             );
         }
-    
-        return null;
+
+        try {
+            $selectedFields = $this->fieldSelector->select(
+                $fields,
+                $post
+            );
+
+            $schema = $this->schemaLoader->load($host);
+        } catch (InvalidArgumentException $e) {
+            return new TelemetryResponse(
+                400,
+                $e->getMessage()
+            );
+        }
+
+        $uptime = $this->required_param($post, 'uptime');
+
+        if ($uptime === null) {
+            return new TelemetryResponse(
+                400,
+                'missing parameter: uptime'
+            );
+        }
+
+        $ttl = $this->required_param($post, 'ttl');
+
+        if ($ttl === null) {
+            return new TelemetryResponse(
+                400,
+                'missing parameter: ttl'
+            );
+        }
+
+        $source = array_merge(
+            array(
+                'ts' => gmdate('Y-m-d\TH:i:s\Z'),
+                'uptime' => $uptime,
+                'ttl' => $ttl,
+                'remote_addr' => isset($server['REMOTE_ADDR'])
+                    ? $server['REMOTE_ADDR']
+                    : ''
+            ),
+            $selectedFields
+        );
+
+        try {
+            $record = $this->recordBuilder->build(
+                $schema,
+                $source
+            );
+        } catch (InvalidArgumentException $e) {
+            return new TelemetryResponse(
+                400,
+                $e->getMessage()
+            );
+        }
+
+        $this->telemetryStorage->append(
+            $host,
+            gmdate('Y-m-d'),
+            $record
+        );
+
+        return new TelemetryResponse(
+            200,
+            'ok'
+        );
     }
 
     private function required_param($post, $name) {
