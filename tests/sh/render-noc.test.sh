@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-build_dir="build/render-index"
+build_dir="build/rendered-noc"
 data_dir="$build_dir/data"
 static_dir="$build_dir/static"
 
@@ -115,8 +115,8 @@ if (( php_rc != 0 )); then
 
     echo
 
-    if [[ -n "${RENDER_INDEX_NEXT_STEP:-}" ]]; then
-        echo "$RENDER_INDEX_NEXT_STEP"
+    if [[ -n "${RENDER_NOC_NEXT_STEP:-}" ]]; then
+        echo "$RENDER_NOC_NEXT_STEP"
     else
         echo "Please run scripts/compare-dashboard.sh for full diagnostics."
     fi

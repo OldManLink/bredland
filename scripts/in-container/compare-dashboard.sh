@@ -11,7 +11,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
-build_dir="build/render-index"
+build_dir="build/rendered-noc"
 compare_dir="build/compare-dashboard"
 fixture_dir="tests/fixtures/production"
 
@@ -78,8 +78,8 @@ compare_artifact()
 #
 set +e
 
-RENDER_INDEX_NEXT_STEP="Comparison skipped because dashboard rendering failed." \
-    tests/sh/render-index.test.sh
+RENDER_NOC_NEXT_STEP="Comparison skipped because dashboard rendering failed." \
+    tests/sh/render-noc.test.sh
 
 render_rc=$?
 set -e

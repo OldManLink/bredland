@@ -59,7 +59,7 @@ fi
 
 assert_contains "$output" "php:card"
 assert_contains "$output" "php:card-head"
-assert_not_contains "$output" "sh:render-index"
+assert_not_contains "$output" "sh:rendered-noc"
 
 # Unmatched selectors fail clearly
 
@@ -89,7 +89,7 @@ else
 fi
 
 assert_contains "$output" "php:card"
-assert_not_contains "$output" "sh:render-index"
+assert_not_contains "$output" "sh:render-noc"
 
 output="$(tests/in-container.sh --list shell)"
 rc=$?
@@ -101,7 +101,7 @@ else
     ((passed++))
 fi
 
-assert_contains "$output" "sh:render-index"
+assert_contains "$output" "sh:render-noc"
 assert_not_contains "$output" "php:card"
 
 # Run single selected test
@@ -251,7 +251,7 @@ fi
 
 assert_contains "$output" "php:card-head"
 assert_not_contains "$output" "php:notification-badge"
-assert_not_contains "$output" "sh:render-index"
+assert_not_contains "$output" "sh:rendered-noc"
 
 if grep -qx 'php:card-head' \
     "$test_results_dir/failed-suites"; then
