@@ -42,6 +42,9 @@ if grep -q '__[A-Z0-9_]\+__' "$build_dir/index.php"; then
     echo "Unresolved placeholders remain in rendered index.php" >&2
     exit 2
 fi
+echo "OK"
+
+echo -n "Testing rendered telemetry endpoint ... "
 
 BREDLAND_SECRETS_FILE="$render_env" \
     scripts/render-template.sh \
@@ -54,8 +57,12 @@ if grep -q '__[A-Z0-9_]\+__' "$build_dir/telemetry.php"; then
     echo "Unresolved placeholders remain in rendered telemetry.php" >&2
     exit 2
 fi
+echo "OK"
 
 
+#
+# Test that the rendered telemetry.php actually executes.
+#
 cp -R templates/noc/clients "$build_dir/"
 cp -R templates/noc/icons "$build_dir/"
 cp -R templates/noc/lib "$build_dir/"
@@ -63,9 +70,7 @@ cp -R templates/noc/schemas "$build_dir/"
 cp -R templates/noc/static/. "$static_dir/"
 cp -R templates/noc/manifest.json "$build_dir/"
 
-#
-# Test that the rendered telemetry.php actually executes.
-#
+echo -n "Testing execution of telemetry endpoint ... "
 
 set +e
 REQUEST_METHOD=GET \
@@ -117,7 +122,9 @@ if find "$data_dir" -type f | grep -q .; then
     echo "Telemetry endpoint wrote data for a rejected GET request."
     exit 2
 fi
+echo "OK"
 
+echo -n "Testing execution of index.php ... "
 #
 # Test that the rendered index.php actually executes.
 #
