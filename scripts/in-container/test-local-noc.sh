@@ -175,9 +175,10 @@ response="$(
         --data-urlencode 'uptime=12346' \
         --data-urlencode 'ttl=300' \
         --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
+            'fields=temperature,throttled,ignore_this,free_memory,total_memory,root_free,root_total' \
         --data-urlencode 'temperature=48.3' \
         --data-urlencode 'throttled=0x0' \
+        --data-urlencode 'ignore_this=new field' \
         --data-urlencode 'free_memory=123450000' \
         --data-urlencode 'total_memory=4294967296' \
         --data-urlencode 'root_free=987650000' \
