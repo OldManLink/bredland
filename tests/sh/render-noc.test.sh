@@ -12,7 +12,7 @@ static_dir="$build_dir/static"
 rm -rf "$build_dir"
 mkdir -p "$data_dir" "$static_dir"
 
-echo -n "Testing rendered NOC index ... "
+echo "Testing rendered NOC index ... "
 
 cat > "$build_dir/telemetry.config.php" <<EOF
 <?php
@@ -39,12 +39,12 @@ BREDLAND_SECRETS_FILE="$render_env" \
 [[ -s "$build_dir/index.php" ]]
 
 if grep -q '__[A-Z0-9_]\+__' "$build_dir/index.php"; then
-    echo "Unresolved placeholders remain in rendered index.php" >&2
+    echo "❌ Unresolved placeholders remain in rendered index.php" >&2
     exit 2
 fi
-echo "OK"
+echo "✅ NOC index rendered correctly"
 
-echo -n "Testing rendered telemetry endpoint ... "
+echo "Testing rendered telemetry endpoint ... "
 
 BREDLAND_SECRETS_FILE="$render_env" \
     scripts/render-template.sh \
@@ -54,10 +54,10 @@ BREDLAND_SECRETS_FILE="$render_env" \
 [[ -s "$build_dir/telemetry.php" ]]
 
 if grep -q '__[A-Z0-9_]\+__' "$build_dir/telemetry.php"; then
-    echo "Unresolved placeholders remain in rendered telemetry.php" >&2
+    echo "❌ Unresolved placeholders remain in rendered telemetry.php" >&2
     exit 2
 fi
-echo "OK"
+echo "✅ telemetry endpoint rendered correctly"
 
 
 #
@@ -70,7 +70,7 @@ cp -R templates/noc/schemas "$build_dir/"
 cp -R templates/noc/static/. "$static_dir/"
 cp -R templates/noc/manifest.json "$build_dir/"
 
-echo -n "Testing execution of telemetry endpoint ... "
+echo "Testing execution of telemetry endpoint ... "
 
 set +e
 REQUEST_METHOD=GET \
@@ -84,8 +84,7 @@ php_rc=$?
 set -e
 
 if (( php_rc != 0 )); then
-    echo
-    echo "Rendered telemetry endpoint execution failed."
+    echo "❌ Rendered telemetry endpoint execution failed."
 
     if [[ -s "$build_dir/telemetry.err" ]]; then
         echo "--- stderr ---"
@@ -102,14 +101,14 @@ fi
 
 if [[ -s "$build_dir/telemetry.err" ]]; then
     echo
-    echo "Unexpected telemetry endpoint PHP diagnostic output:"
+    echo "❌ Unexpected telemetry endpoint PHP diagnostic output:"
     cat "$build_dir/telemetry.err"
     exit 2
 fi
 
 if [[ "$(cat "$build_dir/telemetry.out")" != "method not allowed" ]]; then
     echo
-    echo "Unexpected telemetry endpoint response:"
+    echo "❌ Unexpected telemetry endpoint response:"
     cat "$build_dir/telemetry.out"
     exit 2
 fi
@@ -119,12 +118,12 @@ fi
 #
 if find "$data_dir" -type f | grep -q .; then
     echo
-    echo "Telemetry endpoint wrote data for a rejected GET request."
+    echo "❌ Telemetry endpoint wrote data for a rejected GET request."
     exit 2
 fi
-echo "OK"
+echo "✅ telemetry endpoint executed correctly"
 
-echo -n "Testing execution of index.php ... "
+echo "Testing execution of NOC index ... "
 #
 # Test that the rendered index.php actually executes.
 #
@@ -133,7 +132,7 @@ for fixture_file in tests/fixtures/heartbeats/*.json; do
 
     if ! compact_fixture="$(jq -c . "$fixture_file")"; then
         echo
-        echo "Heartbeat fixture contains invalid JSON:"
+        echo "❌ Heartbeat fixture contains invalid JSON:"
         echo "    $fixture_file"
         echo "Run scripts/update-fixtures.sh to refresh the fixture set."
         exit 2
@@ -152,7 +151,7 @@ timestamp_file="tests/fixtures/last-fetched.timestamp"
 
 if [[ ! -s "$timestamp_file" ]]; then
     echo
-    echo "Fixture timestamp is missing or empty:"
+    echo "❌ Fixture timestamp is missing or empty:"
     echo "    $timestamp_file"
     echo "Run scripts/update-fixtures.sh to refresh the fixture set."
     exit 2
@@ -162,7 +161,7 @@ fixture_now="$(cat "$timestamp_file")"
 
 if ! date -d "$fixture_now" +%s >/dev/null 2>&1; then
     echo
-    echo "Fixture timestamp is invalid:"
+    echo "❌ Fixture timestamp is invalid:"
     echo "    $fixture_now"
     echo "Run scripts/update-fixtures.sh to refresh the fixture set."
     exit 2
@@ -181,7 +180,7 @@ set -e
 
 if (( php_rc != 0 )); then
     echo
-    echo "Rendered dashboard execution failed."
+    echo "❌ Rendered dashboard execution failed."
 
     if [[ -s "$build_dir/index.err" ]]; then
         echo "--- stderr ---"
@@ -205,14 +204,14 @@ fi
 
 if [[ -s "$build_dir/index.err" ]]; then
     echo
-    echo "Unexpected PHP diagnostic output:"
+    echo "❌ Unexpected PHP diagnostic output:"
     cat "$build_dir/index.err"
     exit 2
 fi
 
 if [[ ! -s "$build_dir/index.html" ]]; then
     echo
-    echo "Rendered dashboard produced no HTML output."
+    echo "❌ Rendered dashboard produced no HTML output."
     echo "Please run scripts/compare-dashboard.sh for full diagnostics."
     exit 2
 fi
@@ -221,7 +220,7 @@ production_index="tests/fixtures/production/index.html"
 
 if [[ ! -s "$production_index" ]]; then
     echo
-    echo "Production dashboard fixture is missing or empty:"
+    echo "❌ Production dashboard fixture is missing or empty:"
     echo "    $production_index"
     echo "Run scripts/update-fixtures.sh to refresh the fixture set."
     exit 2
@@ -229,14 +228,14 @@ fi
 
 if [[ ! -s "$static_dir/style.css" ]]; then
     echo
-    echo "Rendered dashboard build is missing:"
+    echo "❌ Rendered dashboard build is missing:"
     echo "    $static_dir/style.css"
     exit 2
 fi
 
 if [[ ! -s "$static_dir/dashboard.js" ]]; then
     echo
-    echo "Rendered dashboard build is missing:"
+    echo "❌ Rendered dashboard build is missing:"
     echo "    $static_dir/dashboard.js"
     exit 2
 fi
@@ -246,9 +245,9 @@ if ! cmp -s \
     "$build_dir/index.html"; then
 
     echo
-    echo "Rendered dashboard differs from the production fixture."
+    echo "❌ Rendered dashboard differs from the production fixture."
     echo "Run scripts/compare-dashboard.sh to inspect the changes."
     exit 1
 fi
 
-echo "OK"
+echo "✅ NOC index executed correctly"

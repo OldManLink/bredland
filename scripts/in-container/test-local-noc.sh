@@ -25,8 +25,10 @@ cleanup()
 trap cleanup EXIT INT TERM
 
 echo "Assembling local NOC..."
+echo
 tests/sh/render-noc.test.sh
 
+echo
 echo "Resetting frozen telemetry data..."
 find "$data_dir" \
     -type f \
@@ -43,6 +45,7 @@ if find "$data_dir" \
 fi
 
 echo "Starting local PHP server..."
+echo
 
 php -S "$server_bind" \
     -t "$build_dir" \
@@ -164,7 +167,7 @@ printf '%s\n' "$record" |
 
 echo "✅ Local NOC accepted first Bredland heartbeat"
 
-echo "Posting second Bredland heartbeat..."
+echo "Posting second Bredland heartbeat with extra field ..."
 
 response="$(
     curl \
@@ -238,7 +241,7 @@ if [[ "$first_record_after_append" != "$record" ]]; then
     exit 1
 fi
 
-echo "✅ Local NOC appended second Bredland heartbeat"
+echo "✅ Local NOC appended second Bredland heartbeat, ignoring the extra field"
 
 before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
 
