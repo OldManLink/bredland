@@ -110,4 +110,39 @@ $runner->test('ignores blank field entries', function () {
     );
 });
 
+$runner->test('rejects all reserved fields', function () {
+    $selector = new FieldSelector();
+
+    $reservedFields = array(
+        'schema',
+        'ts',
+        'host',
+        'ttl',
+        'token',
+        'uptime',
+        'fields',
+        'remote_addr'
+    );
+
+    foreach ($reservedFields as $reservedField) {
+        try {
+            $selector->select(
+                $reservedField,
+                array(
+                    $reservedField => 'reject me'
+                )
+            );
+
+            fail(
+                "expected reserved field $reservedField to be rejected"
+            );
+        } catch (InvalidArgumentException $e) {
+            assertSame(
+                "reserved field: $reservedField",
+                $e->getMessage()
+            );
+        }
+    }
+});
+
 $runner->finish();

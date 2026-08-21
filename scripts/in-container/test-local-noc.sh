@@ -13,12 +13,248 @@ server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
 server_pid=""
+jsonl_file=""
 
 cleanup()
 {
     if [[ -n "$server_pid" ]]; then
         kill "$server_pid" 2>/dev/null || true
         wait "$server_pid" 2>/dev/null || true
+    fi
+}
+
+telemetry_line_count()
+{
+    local total=0
+    local file
+    local count
+
+    while IFS= read -r file; do
+        count="$(wc -l < "$file" | tr -d ' ')"
+        total=$((total + count))
+    done < <(
+        find "$data_dir" \
+            -maxdepth 1 \
+            -type f \
+            -name '*.jsonl' \
+            | sort
+    )
+
+    printf '%s\n' "$total"
+}
+
+build_request_args()
+{
+    local items=(
+        'host=bredland'
+        'token=bredland.v1.test-token'
+        'uptime=12347'
+        'ttl=300'
+        'fields=temperature,throttled,free_memory,total_memory,root_free,root_total'
+        'temperature=49.1'
+        'throttled=0x0'
+        'free_memory=123440000'
+        'total_memory=4294967296'
+        'root_free=987640000'
+        'root_total=1234567890'
+    )
+
+    local override
+    local key
+    local item_key
+    local i
+    local found
+
+    for override in "$@"; do
+        if [[ "$override" == !* ]]; then
+            key="${override#!}"
+
+            for i in "${!items[@]}"; do
+                item_key="${items[$i]%%=*}"
+
+                if [[ "$item_key" == "$key" ]]; then
+                    unset 'items[i]'
+                    break
+                fi
+            done
+
+            continue
+        fi
+
+        key="${override%%=*}"
+        found=false
+
+        for i in "${!items[@]}"; do
+            item_key="${items[$i]%%=*}"
+
+            if [[ "$item_key" == "$key" ]]; then
+                items[$i]="$override"
+                found=true
+                break
+            fi
+        done
+
+        if ! $found; then
+            items+=("$override")
+        fi
+    done
+
+    request_args=()
+
+    for i in "${!items[@]}"; do
+        request_args+=(
+            --data-urlencode "${items[$i]}"
+        )
+    done
+}
+
+check_request()
+{
+    local expected_status="$1"
+    local expected_response="$2"
+    local expected_line_delta="$3"
+    shift 3
+
+    local before_lines
+    local after_lines
+    local actual_line_delta
+    local response_file
+    local http_status
+    local response
+
+    before_lines="$(telemetry_line_count)"
+    response_file="$(mktemp)"
+
+    build_request_args "$@"
+
+    if ! http_status="$(
+        curl \
+            --silent \
+            --show-error \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            "${request_args[@]}" \
+            "$server_url/telemetry.php"
+    )"; then
+        rm -f "$response_file"
+        echo "❌ Telemetry request failed"
+        exit 1
+    fi
+
+    response="$(cat "$response_file")"
+    rm -f "$response_file"
+
+    if [[ "$http_status" != "$expected_status" ]]; then
+        echo "❌ Unexpected HTTP status"
+        echo "Expected: $expected_status"
+        echo "Actual:   $http_status"
+        exit 1
+    fi
+
+    if [[ "$response" != "$expected_response" ]]; then
+        echo "❌ Unexpected telemetry response"
+        printf 'Expected: %s\n' "$expected_response"
+        printf 'Actual:   %s\n' "$response"
+        exit 1
+    fi
+
+    after_lines="$(telemetry_line_count)"
+    actual_line_delta=$((after_lines - before_lines))
+
+    if [[ "$actual_line_delta" != "$expected_line_delta" ]]; then
+        echo "❌ Unexpected telemetry record count change"
+        echo "Expected: $expected_line_delta"
+        echo "Actual:   $actual_line_delta"
+        exit 1
+    fi
+}
+
+check_appended_line()
+{
+    local line_number="$1"
+    local checks_name="$2"
+    local -n checks="$checks_name"
+
+    local record
+    local filter=""
+    local check
+
+    record="$(sed -n "${line_number}p" "$jsonl_file")"
+
+    if [[ -z "$record" ]]; then
+        echo "❌ Expected telemetry record is missing"
+        echo "Line: $line_number"
+        exit 1
+    fi
+
+    if ! printf '%s\n' "$record" | jq -e . >/dev/null; then
+        echo "❌ Telemetry record is not valid JSON"
+        printf '%s\n' "$record"
+        exit 1
+    fi
+
+    for check in "${checks[@]}"; do
+        if [[ -n "$filter" ]]; then
+            filter+=" and "
+        fi
+
+        filter+="($check)"
+    done
+
+    if ! printf '%s\n' "$record" |
+        jq -e "$filter" >/dev/null; then
+
+        echo "❌ Telemetry record contains unexpected values"
+        printf '%s\n' "$record" | jq .
+        exit 1
+    fi
+}
+
+find_jsonl_file()
+{
+    local files
+
+    mapfile -t files < <(
+        find "$data_dir" \
+            -maxdepth 1 \
+            -type f \
+            -name '*.jsonl' \
+            | sort
+    )
+
+    if (( ${#files[@]} != 1 )); then
+        echo "❌ Expected exactly one telemetry JSONL file"
+        printf 'Found: %s\n' "${#files[@]}"
+        printf '    %s\n' "${files[@]}"
+        exit 1
+    fi
+
+    jsonl_file="${files[0]}"
+
+    if [[ "$(basename "$jsonl_file")" != bredland-*.jsonl ]]; then
+        echo "❌ Unexpected telemetry filename"
+        echo "    $jsonl_file"
+        exit 1
+    fi
+}
+
+assert_same_jsonl_file()
+{
+    local files
+
+    mapfile -t files < <(
+        find "$data_dir" \
+            -maxdepth 1 \
+            -type f \
+            -name '*.jsonl' \
+            | sort
+    )
+
+    if (( ${#files[@]} != 1 )) ||
+        [[ "${files[0]}" != "$jsonl_file" ]]; then
+
+        echo "❌ Telemetry append created an unexpected JSONL file"
+        exit 1
     fi
 }
 
@@ -30,6 +266,7 @@ tests/sh/render-noc.test.sh
 
 echo
 echo "Resetting frozen telemetry data..."
+
 find "$data_dir" \
     -type f \
     -name '*.jsonl' \
@@ -81,420 +318,154 @@ fi
 
 echo "Posting Bredland heartbeat..."
 
-response="$(
-    curl \
-        --silent \
-        --show-error \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=bredland.v1.test-token' \
-        --data-urlencode 'uptime=12345' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=47.2' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123456789' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987654321' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
+check_request \
+    200 \
+    "ok" \
+    1 \
+    'uptime=12345' \
+    'temperature=47.2' \
+    'free_memory=123456789' \
+    'root_free=987654321'
 
-if [[ "$response" != "ok" ]]; then
-    echo "❌ Unexpected telemetry endpoint response:"
-    printf '%s\n' "$response"
-    exit 1
-fi
+find_jsonl_file
 
-mapfile -t jsonl_files < <(
-    find "$data_dir" \
-        -maxdepth 1 \
-        -type f \
-        -name '*.jsonl' \
-        | sort
+first_record_checks=(
+    '.schema == 1'
+    '.host == "bredland"'
+    '.ttl == 300'
+    '.uptime == 12345'
+    '.temperature == 47.2'
+    '.throttled == "0x0"'
+    '.free_memory == 123456789'
+    '.total_memory == 4294967296'
+    '.root_free == 987654321'
+    '.root_total == 1234567890'
+    '(.ts | type == "string")'
+    '(.remote_addr | type == "string")'
 )
 
-if (( ${#jsonl_files[@]} != 1 )); then
-    echo "❌ Expected exactly one telemetry JSONL file"
-    printf 'Found: %s\n' "${#jsonl_files[@]}"
-    printf '    %s\n' "${jsonl_files[@]}"
-    exit 1
-fi
+check_appended_line \
+    1 \
+    first_record_checks
 
-jsonl_file="${jsonl_files[0]}"
-
-if [[ "$(basename "$jsonl_file")" != bredland-*.jsonl ]]; then
-    echo "❌ Unexpected telemetry filename:"
-    echo "    $jsonl_file"
-    exit 1
-fi
-
-line_count="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$line_count" != "1" ]]; then
-    echo "❌ Expected exactly one telemetry record"
-    echo "Found: $line_count"
-    exit 1
-fi
-
-record="$(cat "$jsonl_file")"
-
-if ! printf '%s\n' "$record" | jq -e . >/dev/null; then
-    echo "❌ Telemetry record is not valid JSON:"
-    printf '%s\n' "$record"
-    exit 1
-fi
-
-printf '%s\n' "$record" |
-    jq -e '
-        .schema == 1 and
-        .host == "bredland" and
-        .ttl == 300 and
-        .uptime == 12345 and
-        .temperature == 47.2 and
-        .throttled == "0x0" and
-        .free_memory == 123456789 and
-        .total_memory == 4294967296 and
-        .root_free == 987654321 and
-        .root_total == 1234567890 and
-        (.ts | type == "string") and
-        (.remote_addr | type == "string")
-    ' >/dev/null || {
-        echo "❌ Telemetry record contains unexpected values:"
-        printf '%s\n' "$record" | jq .
-        exit 1
-    }
+first_record="$(sed -n '1p' "$jsonl_file")"
 
 echo "✅ Local NOC accepted first Bredland heartbeat"
 
-echo "Posting second Bredland heartbeat with extra field ..."
+echo "Posting second Bredland heartbeat with extra field..."
 
-response="$(
-    curl \
-        --silent \
-        --show-error \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=bredland.v1.test-token' \
-        --data-urlencode 'uptime=12346' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,ignore_this,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=48.3' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'ignore_this=new field' \
-        --data-urlencode 'free_memory=123450000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987650000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
+check_request \
+    200 \
+    "ok" \
+    1 \
+    'uptime=12346' \
+    'fields=temperature,throttled,ignore_this,free_memory,total_memory,root_free,root_total' \
+    'temperature=48.3' \
+    'ignore_this=new field' \
+    'free_memory=123450000' \
+    'root_free=987650000'
 
-if [[ "$response" != "ok" ]]; then
-    echo "❌ Unexpected telemetry endpoint response:"
-    printf '%s\n' "$response"
-    exit 1
-fi
+assert_same_jsonl_file
 
-mapfile -t jsonl_files < <(
-    find "$data_dir" \
-        -maxdepth 1 \
-        -type f \
-        -name '*.jsonl' \
-        | sort
+second_record_checks=(
+    '.schema == 1'
+    '.host == "bredland"'
+    '.ttl == 300'
+    '.uptime == 12346'
+    '.temperature == 48.3'
+    '.free_memory == 123450000'
+    '.root_free == 987650000'
+    '(has("ignore_this") | not)'
 )
 
-if (( ${#jsonl_files[@]} != 1 )); then
-    echo "❌ Expected exactly one telemetry JSONL file after second heartbeat"
-    printf 'Found: %s\n' "${#jsonl_files[@]}"
-    exit 1
-fi
-
-line_count="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$line_count" != "2" ]]; then
-    echo "❌ Expected exactly two telemetry records"
-    echo "Found: $line_count"
-    exit 1
-fi
-
-second_record="$(sed -n '2p' "$jsonl_file")"
-
-printf '%s\n' "$second_record" |
-    jq -e '
-        .schema == 1 and
-        .host == "bredland" and
-        .ttl == 300 and
-        .uptime == 12346 and
-        .temperature == 48.3 and
-        .free_memory == 123450000 and
-        .root_free == 987650000
-    ' >/dev/null || {
-        echo "❌ Second telemetry record contains unexpected values:"
-        printf '%s\n' "$second_record" | jq .
-        exit 1
-    }
+check_appended_line \
+    2 \
+    second_record_checks
 
 first_record_after_append="$(sed -n '1p' "$jsonl_file")"
 
-if [[ "$first_record_after_append" != "$record" ]]; then
+if [[ "$first_record_after_append" != "$first_record" ]]; then
     echo "❌ First telemetry record changed after append"
     exit 1
 fi
 
 echo "✅ Local NOC appended second Bredland heartbeat, ignoring the extra field"
 
-before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
 echo "Rejecting heartbeat with wrong token..."
 
-response_file="$(mktemp)"
-
-http_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$response_file" \
-        --write-out '%{http_code}' \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=wrong-token' \
-        --data-urlencode 'uptime=12347' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=49.1' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123440000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987640000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
-
-response="$(cat "$response_file")"
-rm -f "$response_file"
-
-if [[ "$http_status" != "403" ]]; then
-    echo "❌ Expected HTTP 403 for invalid token, got $http_status"
-    exit 1
-fi
-
-if [[ "$response" != "forbidden" ]]; then
-    echo "❌ Unexpected response for invalid token:"
-    printf '%s\n' "$response"
-    exit 1
-fi
-
-after_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$after_lines" != "$before_lines" ]]; then
-    echo "❌ Invalid heartbeat modified telemetry data"
-    exit 1
-fi
+check_request \
+    403 \
+    "forbidden" \
+    0 \
+    'token=wrong-token'
 
 echo "✅ Rejected heartbeat with wrong token"
 
 echo "Rejecting heartbeat with missing uptime..."
 
-before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-response_file="$(mktemp)"
-
-http_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$response_file" \
-        --write-out '%{http_code}' \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=bredland.v1.test-token' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=49.1' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123440000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987640000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
-
-response="$(cat "$response_file")"
-rm -f "$response_file"
-
-if [[ "$http_status" != "400" ]]; then
-    echo "❌ Expected HTTP 400 for missing uptime, got $http_status"
-    exit 1
-fi
-
-if [[ "$response" != "missing parameter: uptime" ]]; then
-    echo "❌ Unexpected response for missing uptime:"
-    printf '%s\n' "$response"
-    exit 1
-fi
-
-after_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$after_lines" != "$before_lines" ]]; then
-    echo "❌ Heartbeat with missing uptime modified telemetry data"
-    exit 1
-fi
+check_request \
+    400 \
+    "missing parameter: uptime" \
+    0 \
+    '!uptime'
 
 echo "✅ Rejected heartbeat with missing uptime"
 
 echo "Rejecting heartbeat with invalid temperature..."
 
-before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-response_file="$(mktemp)"
-
-http_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$response_file" \
-        --write-out '%{http_code}' \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=bredland.v1.test-token' \
-        --data-urlencode 'uptime=12347' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=not-a-number' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123440000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987640000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
-
-response="$(cat "$response_file")"
-rm -f "$response_file"
-
-if [[ "$http_status" != "400" ]]; then
-    echo "❌ Expected HTTP 400 for invalid temperature, got $http_status"
-    exit 1
-fi
-
-if [[ -z "$response" ]]; then
-    echo "❌ Expected an error response for invalid temperature"
-    exit 1
-fi
-
-if [[ "$response" != "invalid value for field temperature: expected float" ]]; then
-    echo "❌ Unexpected response for invalid temperature:"
-    printf '%s\n' "$response"
-    exit 1
-fi
-
-after_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$after_lines" != "$before_lines" ]]; then
-    echo "❌ Invalid temperature heartbeat modified telemetry data"
-    exit 1
-fi
+check_request \
+    400 \
+    "invalid value for field temperature: expected float" \
+    0 \
+    'temperature=not-a-number'
 
 echo "✅ Rejected heartbeat with invalid temperature"
 
 echo "Rejecting heartbeat from unknown host..."
 
-before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-response_file="$(mktemp)"
-
-http_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$response_file" \
-        --write-out '%{http_code}' \
-        --data-urlencode 'host=no-such-host' \
-        --data-urlencode 'token=does-not-matter' \
-        --data-urlencode 'uptime=12348' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'temperature=49.1' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123430000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987630000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
-
-response="$(cat "$response_file")"
-rm -f "$response_file"
-
-if [[ "$http_status" != "403" ]]; then
-    echo "❌ Expected HTTP 403 for unknown host, got $http_status"
-    exit 1
-fi
-
-if [[ "$response" != "forbidden" ]]; then
-    echo "❌ Unexpected response for unknown host:"
-    printf '%s\n' "$response"
-    exit 1
-fi
-
-after_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$after_lines" != "$before_lines" ]]; then
-    echo "❌ Unknown-host heartbeat modified telemetry data"
-    exit 1
-fi
+check_request \
+    403 \
+    "forbidden" \
+    0 \
+    'host=no-such-host' \
+    'token=does-not-matter'
 
 echo "✅ Rejected heartbeat from unknown host"
 
 echo "Rejecting heartbeat that spoofs reserved field ts..."
 
-before_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-response_file="$(mktemp)"
-
-http_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$response_file" \
-        --write-out '%{http_code}' \
-        --data-urlencode 'host=bredland' \
-        --data-urlencode 'token=bredland.v1.test-token' \
-        --data-urlencode 'uptime=12349' \
-        --data-urlencode 'ttl=300' \
-        --data-urlencode \
-            'fields=ts,temperature,throttled,free_memory,total_memory,root_free,root_total' \
-        --data-urlencode 'ts=2000-01-01T00:00:00Z' \
-        --data-urlencode 'temperature=49.1' \
-        --data-urlencode 'throttled=0x0' \
-        --data-urlencode 'free_memory=123420000' \
-        --data-urlencode 'total_memory=4294967296' \
-        --data-urlencode 'root_free=987620000' \
-        --data-urlencode 'root_total=1234567890' \
-        "$server_url/telemetry.php"
-)"
-
-response="$(cat "$response_file")"
-rm -f "$response_file"
-
-if [[ "$http_status" != "400" ]]; then
-    echo "❌ Expected HTTP 400 for reserved field ts, got $http_status"
-    exit 1
-fi
-
-if [[ "$response" != "reserved field: ts" ]]; then
-    echo "❌ Unexpected response for reserved field ts:"
-    printf '%s\n' "$response"
-    exit 1
-fi
-
-after_lines="$(wc -l < "$jsonl_file" | tr -d ' ')"
-
-if [[ "$after_lines" != "$before_lines" ]]; then
-    echo "❌ Reserved-field heartbeat modified telemetry data"
-    exit 1
-fi
+check_request \
+    400 \
+    "reserved field: ts" \
+    0 \
+    'uptime=12349' \
+    'fields=ts,temperature,throttled,free_memory,total_memory,root_free,root_total' \
+    'ts=2000-01-01T00:00:00Z'
 
 echo "✅ Rejected heartbeat that spoofs reserved field ts"
 
 if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
+    echo
+    echo "Posting short-lived heartbeat for preview..."
+
+    check_request \
+        200 \
+        "ok" \
+        1 \
+        'host=mikrotik' \
+        'token=mikrotik.v1.test-token' \
+        'ttl=5' \
+        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version' \
+        'version=7.23.1' \
+        'update_channel=stable' \
+        'model=RB4011iGS+' \
+        'cpu_load=0' \
+        'free_memory=879124480' \
+        'total_memory=1073741824' \
+        'latest_version=7.24'
+
+    echo "✅ Local NOC ready for health transition preview"
+
     touch "$build_dir/.preview-ready"
 
     echo

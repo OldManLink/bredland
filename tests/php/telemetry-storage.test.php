@@ -94,4 +94,29 @@ $runner->test('sanitizes host in daily filename', function () {
     rmdir($dataDir);
 });
 
+$runner->test('accepts data directory with trailing slash', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-storage-' . uniqid();
+
+    mkdir($dataDir);
+
+    $storage = new TelemetryStorage($dataDir . '/');
+
+    $storage->append(
+        'mikrotik.test',
+        '2026-07-01',
+        array(
+            'schema' => 1
+        )
+    );
+
+    $file = $dataDir .
+        '/mikrotik_test-2026-07-01.jsonl';
+
+    assertTrue(file_exists($file));
+
+    unlink($file);
+    rmdir($dataDir);
+});
+
 $runner->finish();

@@ -181,7 +181,7 @@ $runner->test('render tests: Client action not triggered', function () use ($cli
     });
 });
 
-$runner->test('health defaults to healthy while heartbeat is current', function () use ($clientJson, $heartbeatJson) {
+$runner->test('health defaults to healthy before ttl grace boundary', function () use ($clientJson, $heartbeatJson) {
     with_noc_now('2026-07-26T21:29:01Z', function () use ($clientJson, $heartbeatJson) {
         $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
         $client->render($heartbeatJson);
@@ -190,7 +190,7 @@ $runner->test('health defaults to healthy while heartbeat is current', function 
     });
 });
 
-$runner->test('health defaults to warning when heartbeat is late', function () use ($clientJson, $heartbeatJson) {
+$runner->test('health defaults to warning at ttl grace boundary', function () use ($clientJson, $heartbeatJson) {
     with_noc_now('2026-07-26T21:29:02Z', function () use ($clientJson, $heartbeatJson) {
         $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
         $client->render($heartbeatJson);
@@ -367,6 +367,35 @@ $runner->test('preserves notification order', function () {
     assertSame(2, $client->notification_count());
     assertSame('First', $client->notifications()[0]->text());
     assertSame('Second', $client->notifications()[1]->text());
+});
+
+$runner->test('healthy boundary scales with heartbeat ttl', function () use ($clientJson, $heartbeatJson) {
+    $heartbeat = $heartbeatJson;
+    $heartbeat['ttl'] = 30;
+
+    with_noc_now('2026-07-26T21:23:37Z', function () use ($clientJson, $heartbeat) {
+        $client = Client::compile(
+            $clientJson,
+            test_schema(),
+            'Happy Path'
+        )->value();
+
+        $client->render($heartbeat);
+
+        assertSame('healthy', $client->health());
+    });
+
+    with_noc_now('2026-07-26T21:23:38Z', function () use ($clientJson, $heartbeat) {
+        $client = Client::compile(
+            $clientJson,
+            test_schema(),
+            'Happy Path'
+        )->value();
+
+        $client->render($heartbeat);
+
+        assertSame('warning', $client->health());
+    });
 });
 
 $runner->finish();

@@ -75,4 +75,17 @@ $runner->test('rejects invalid schema', function () {
     rmdir($dir);
 });
 
+$runner->test('loads committed Bredland schema', function () {
+    $schemasDir = dirname(dirname(__DIR__)) .
+        '/templates/noc/schemas';
+
+    $loader = new SchemaLoader($schemasDir);
+    $schema = $loader->load('bredland');
+
+    assertSame(1, $schema['schema']['const']);
+    assertSame('bredland', $schema['host']['const']);
+    assertSame('integer', $schema['uptime']['value_type']);
+    assertSame('float', $schema['temperature']['value_type']);
+});
+
 $runner->finish();

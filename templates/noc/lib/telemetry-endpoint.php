@@ -14,11 +14,11 @@ class TelemetryEndpoint {
     private $recordBuilder;
     private $telemetryStorage;
 
-    public function __construct($authenticator, $fieldSelector, $schemaLoader, $recordBuilder, $telemetryStorage) {
+    public function __construct($authenticator, $schemaLoader, $telemetryStorage) {
         $this->authenticator = $authenticator;
-        $this->fieldSelector = $fieldSelector;
+        $this->fieldSelector = new FieldSelector();
         $this->schemaLoader = $schemaLoader;
-        $this->recordBuilder = $recordBuilder;
+        $this->recordBuilder = new RecordBuilder();
         $this->telemetryStorage = $telemetryStorage;
     }
 

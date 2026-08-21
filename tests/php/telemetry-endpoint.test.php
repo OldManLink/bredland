@@ -35,9 +35,7 @@ function telemetry_endpoint($schemasDir = null, $dataDir = null) {
                 'bredland' => 'bredland.v1.test-token'
             )
         ),
-        new FieldSelector(),
         new SchemaLoader($schemasDir),
-        new RecordBuilder(),
         new TelemetryStorage($dataDir)
     );
 }

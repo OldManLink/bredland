@@ -52,4 +52,27 @@ $runner->test('rejects unknown host', function () {
     );
 });
 
+$runner->test('authenticates multiple configured hosts', function () {
+    $authenticator = new Authenticator(
+        array(
+            'mikrotik' => 'mikrotik.v1.test-token',
+            'bredland' => 'bredland.v1.test-token'
+        )
+    );
+
+    assertTrue(
+        $authenticator->authenticate(
+            'mikrotik',
+            'mikrotik.v1.test-token'
+        )
+    );
+
+    assertTrue(
+        $authenticator->authenticate(
+            'bredland',
+            'bredland.v1.test-token'
+        )
+    );
+});
+
 $runner->finish();

@@ -177,7 +177,7 @@ class Client implements Compilable {
         $age = $this->heartbeat_age();
         $ttl = $this->heartbeat['ttl'];
 
-        if ($age < $ttl + 60) {
+        if ($age < 1.2 * $ttl) {
             return 'healthy';
         }
 

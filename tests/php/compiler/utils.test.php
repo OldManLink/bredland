@@ -35,8 +35,12 @@ $runner->test('rejects invalid identifiers', function () {
 });
 
 $runner->test('rejects missing required keys', function () {
-    $result = check_allowed_keys(array(),array('host' => StrVal::class), 'client');
+    $result = check_allowed_keys(array(), array('host' => StrVal::class), 'client');
     assert_compile_error($result, 'client: expected host');
+});
+
+$runner->test('formats indexed path', function () {
+    assertSame('rules[3]', indexed_path('rules', 3));
 });
 
 $runner->finish();
