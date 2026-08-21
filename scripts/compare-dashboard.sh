@@ -71,7 +71,7 @@ if $preview && (( compare_rc <= 1 )); then
 
     python3 -m http.server "$preview_port" \
         --bind 127.0.0.1 \
-        --directory build/render-index \
+        --directory build/rendered-noc \
         > "$preview_log" 2>&1 &
 
     preview_pid=$!
