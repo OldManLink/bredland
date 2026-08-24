@@ -77,6 +77,10 @@ run_tests()
           "$PHP_TEST_IMAGE" \
           bash tests/in-container.sh
     fi
+
+    echo
+    echo "==> JavaScript tests"
+    tests/js/run-all.sh
 }
 
 start_time="$(date +%s)"
