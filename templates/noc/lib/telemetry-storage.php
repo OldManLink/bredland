@@ -15,7 +15,7 @@ class TelemetryStorage {
             $date
         );
 
-        $line = json_encode($record) . "\n";
+        $line = json_encode($record, JSON_UNESCAPED_SLASHES) . "\n";
 
         if (file_put_contents(
             $file,
