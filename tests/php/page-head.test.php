@@ -27,6 +27,7 @@ $runner->test('render() renders the required set of tags', function () use ($sta
     assertStringContains("sizes=\"16x16\"", $html);
     assertStringContains("<link rel=\"stylesheet\" href=\"static/style.css?v=$static_version\">", $html);
     assertStringContains("<script src=\"static/dashboard.js?v=$static_version\"></script>", $html);
+    assertStringContains("<script src=\"static/bootstrap.js?v=$static_version\" defer=\"defer\"></script>", $html);
     assertStringContains("<title>Network Operations Centre</title>", $html);
 });
 

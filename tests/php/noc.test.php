@@ -52,7 +52,7 @@ $runner->test('render() renders the complete noc', function () {
     assertTrue($cards_row < $body_end);
     assertTrue($body_end < $html_end);
 
-    assertSame(25, substr_count($html, "\n"));
+    assertSame(26, substr_count($html, "\n"));
 });
 
 $runner->finish();

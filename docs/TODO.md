@@ -108,6 +108,7 @@ Do not make trusted discovery a `Client`, rule, notification or other domain con
 - [ ] If the current OO renderer naturally requires an object boundary, introduce the smallest explicit one and drive it from tests.
 - [ ] Inspect current CSP/security headers before implementation.
 - [ ] Ensure any required CSP changes do not unnecessarily disclose trusted resource details.
+- [ ] Trusted-mode discovery runs asynchronously and must not delay or block ordinary dashboard rendering or interaction.
 
 Failure is normal behaviour and must produce no user-visible warning, degraded state or retry loop.
 
@@ -208,6 +209,7 @@ If a private test/production CA is no longer required, remove it from the device
 - [ ] Verify iPhone WireGuard.
 - [ ] Verify WG-off/public behaviour.
 - [ ] Restart browsers after deliberate mixed-content/TLS experiments before diagnosing leftover security UI state.
+- [ ] Verify that ordinary dashboard rendering and interaction are available immediately while the trusted-mode probe is still pending.
 
 ---
 

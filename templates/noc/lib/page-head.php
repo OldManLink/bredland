@@ -31,6 +31,7 @@ class PageHead extends HtmlRenderable {
         $html .= $this->tag('link', array('rel' => 'icon', 'type' => 'image/png', 'sizes' => '16x16', 'href' => 'icons/favicon-16x16.png'), array());
         $html .= $this->tag('link', array('rel' => 'stylesheet', 'href' => "static/style.css?v=$this->static_version"), array());
         $html .= $this->tag('script', array('src' => "static/dashboard.js?v=$this->static_version"), array(), true);
+        $html .= $this->tag('script', array('src' => "static/bootstrap.js?v=$this->static_version", 'defer' => "defer"), array(), true);
         $html .= $this->tag('title', array(), array(new TextRenderable(0, 'Network Operations Centre')), true);
 
         return $html;
