@@ -11,5 +11,9 @@
   "free_memory": 879009792,
   "total_memory": 1073741824,
   "latest_version": "7.24",
+  "wan_address":"91.128.129.171/20",
+  "wan_gateway":"91.128.128.1",
+  "wan_gateway_mac":"58:D0:61:11:D2:F7",
+  "wan_lease_remaining":10073,
   "remote_addr": "91.128.138.252"
 }

@@ -35,6 +35,18 @@
   "latest_version": {
     "value_type": "string"
   },
+  "wan_address": {
+    "value_type": "string"
+  },
+  "wan_gateway": {
+    "value_type": "string"
+  },
+  "wan_gateway_mac": {
+    "value_type": "string"
+  },
+  "wan_lease_remaining": {
+    "value_type": "integer"
+  },
   "remote_addr": {
     "value_type": "string"
   }

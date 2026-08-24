@@ -20,7 +20,7 @@ $runner->test('render() renders escaped heartbeat telemetry', function () {
     $telemetry_drawer = new TelemetryDrawer(1, $client);
     $html = $telemetry_drawer->render();
 
-    $heartbeat = json_encode($client->heartbeat());
+    $heartbeat = json_encode($client->heartbeat(), JSON_UNESCAPED_SLASHES);
 
     $escaped_heartbeat = htmlspecialchars(
         $heartbeat,

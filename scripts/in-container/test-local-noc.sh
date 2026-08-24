@@ -455,14 +455,18 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
         'host=mikrotik' \
         'token=mikrotik.v1.test-token' \
         'ttl=5' \
-        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version' \
+        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining' \
         'version=7.23.1' \
         'update_channel=stable' \
         'model=RB4011iGS+' \
         'cpu_load=0' \
         'free_memory=879124480' \
         'total_memory=1073741824' \
-        'latest_version=7.24'
+        'latest_version=7.24' \
+        'wan_address=91.128.129.171/20' \
+        'wan_gateway=91.128.128.1' \
+        'wan_gateway_mac=58:D0:61:11:D2:F7' \
+        'wan_lease_remaining=10073'
 
     echo "✅ Local NOC ready for health transition preview"
 

@@ -17,7 +17,8 @@
     :local host "__MIKROTIK_NOC_HOST__"
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local ttl 300
-    :local fields "version,update_channel,model,cpu_load,free_memory,total_memory,latest_version"
+    :local fields "version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining"
+
     :local version [/system package update get installed-version]
     :local updateChannel [/system package update get channel]
     :local model [/system resource get board-name]
@@ -26,6 +27,18 @@
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
     :local latestVersion [/system package update get latest-version]
+
+    :local dhcpClient [/ip dhcp-client find where name="client1"]
+    :local wanAddress [/ip dhcp-client get $dhcpClient address]
+    :local wanGateway [/ip dhcp-client get $dhcpClient gateway]
+    :local wanLeaseRemaining [:tonum [/ip dhcp-client get $dhcpClient expires-after]]
+
+    :local gatewayArp [/ip arp find where address=$wanGateway]
+    :local wanGatewayMac "ARP lookup failed"
+
+    :if ([:len $gatewayArp] > 0) do={
+        :set wanGatewayMac [/ip arp get $gatewayArp mac-address]
+    }
 
     :set host [:convert $host to=url]
     :set token [:convert $token to=url]
@@ -39,8 +52,12 @@
     :set freeMemory [:convert $freeMemory to=url]
     :set totalMemory [:convert $totalMemory to=url]
     :set latestVersion [:convert $latestVersion to=url]
+    :set wanAddress [:convert $wanAddress to=url]
+    :set wanGateway [:convert $wanGateway to=url]
+    :set wanGatewayMac [:convert $wanGatewayMac to=url]
+    :set wanLeaseRemaining [:convert $wanLeaseRemaining to=url]
 
-    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&update_channel=$updateChannel&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&latest_version=$latestVersion")
+    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&update_channel=$updateChannel&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&latest_version=$latestVersion&wan_address=$wanAddress&wan_gateway=$wanGateway&wan_gateway_mac=$wanGatewayMac&wan_lease_remaining=$wanLeaseRemaining")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }

@@ -36,7 +36,7 @@ function write_heartbeat_jsonl_files($fixture_dir, $data_dir) {
 
         if (file_put_contents(
             $target_file,
-            json_encode($heartbeat) . "\n",
+            json_encode($heartbeat, JSON_UNESCAPED_SLASHES) . "\n",
             LOCK_EX
         ) === false) {
             throw new RuntimeException(
