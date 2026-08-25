@@ -172,8 +172,6 @@ if $list_only; then
     exit 0
 fi
 
-: > "$failed_suites_file"
-
 # Shell tests
 
 if (( ${#selected_shell_tests[@]} > 0 )); then
