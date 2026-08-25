@@ -33,6 +33,7 @@ matches_selector()
 
 ran_shell_tests=false
 ran_php_tests=false
+ran_python_tests=false
 list_only=false
 rerun_failed_suites=false
 print_failures_only=false
@@ -41,6 +42,7 @@ selectors=()
 test_args=()
 selected_shell_tests=()
 selected_php_tests=()
+selected_python_tests=()
 matched_selectors=()
 selected_suite_ids=()
 
@@ -64,6 +66,10 @@ for arg in "$@"; do
 
         php)
             selectors+=("php:*")
+            ;;
+
+        python)
+            selectors+=("py:*")
             ;;
 
         shell)
@@ -127,6 +133,18 @@ for test in "${php_tests[@]}"; do
 
     if matches_selector "$suite" "${selectors[@]}"; then
         selected_php_tests+=("$test")
+        selected_suite_ids+=("$suite")
+    fi
+done
+
+python_tests=(tests/python/*.test.py)
+for test in "${python_tests[@]}"; do
+    suite="${test#tests/python/}"
+    suite="${suite%.test.py}"
+    suite="py:$suite"
+
+    if matches_selector "$suite" "${selectors[@]}"; then
+        selected_python_tests+=("$test")
         selected_suite_ids+=("$suite")
     fi
 done
@@ -222,6 +240,32 @@ else
     php_rc=0
 fi
 
+# Python tests
+
+if (( ${#selected_python_tests[@]} > 0 )); then
+    ran_python_tests=true
+    echo
+    echo "==> Python tests"
+
+    set +e
+
+    if $print_failures_only; then
+        tests/python/run-all.sh \
+            --failures-only \
+            -- \
+            "${selected_python_tests[@]}"
+    else
+        tests/python/run-all.sh \
+            -- \
+            "${selected_python_tests[@]}"
+    fi
+
+    python_rc=$?
+    set -e
+else
+    python_rc=0
+fi
+
 # Container summary
 
 echo
@@ -243,7 +287,15 @@ if $ran_php_tests; then
     fi
 fi
 
-if [[ $sh_rc -eq 0 && $php_rc -eq 0 ]]; then
+if $ran_python_tests; then
+    if [[ $python_rc -eq 0 ]]; then
+        echo "✅ Python tests"
+    else
+        echo "❌ Python tests"
+    fi
+fi
+
+if [[ $sh_rc -eq 0 && $php_rc -eq 0 && $python_rc -eq 0 ]]; then
     exit 0
 else
     exit 1

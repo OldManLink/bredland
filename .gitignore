@@ -33,3 +33,7 @@ build/
 
 # Generated test artefacts
 tests/**/build/
+
+# Python build artefacts
+__pycache__/
+*.py[cod]
