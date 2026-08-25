@@ -379,13 +379,37 @@ def configured_server_uses_rendered_configuration():
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
 
+        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
+        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
+
         trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
         trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
 
-        server = trusted_discovery.create_configured_server(
-            '127.0.0.1',
-            0,
-        )
+        class FakeContext:
+            def load_cert_chain(self, certfile, keyfile):
+                pass
+
+            def wrap_socket(self, socket, server_side):
+                return socket
+
+
+        class FakeSsl:
+            PROTOCOL_TLS_SERVER = 'tls-server'
+
+            @staticmethod
+            def SSLContext(protocol):
+                return FakeContext()
+
+        original_ssl = trusted_discovery.ssl
+        trusted_discovery.ssl = FakeSsl
+
+        try:
+            server = trusted_discovery.create_configured_server(
+                '127.0.0.1',
+                0,
+            )
+        finally:
+            trusted_discovery.ssl = original_ssl
 
         thread = threading.Thread(
             target=server.handle_request,
@@ -416,6 +440,8 @@ def configured_server_uses_rendered_configuration():
         finally:
             thread.join()
             server.server_close()
+            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
+            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
 
 def configured_server_loads_trusted_assets_from_files():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -435,13 +461,37 @@ def configured_server_loads_trusted_assets_from_files():
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
 
+        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
+        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
         trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
         trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
 
-        server = trusted_discovery.create_configured_server(
-            '127.0.0.1',
-            0,
-        )
+        class FakeContext:
+            def load_cert_chain(self, certfile, keyfile):
+                pass
+
+            def wrap_socket(self, socket, server_side):
+                return socket
+
+
+        class FakeSsl:
+            PROTOCOL_TLS_SERVER = 'tls-server'
+
+            @staticmethod
+            def SSLContext(protocol):
+                return FakeContext()
+
+
+        original_ssl = trusted_discovery.ssl
+        trusted_discovery.ssl = FakeSsl
+
+        try:
+            server = trusted_discovery.create_configured_server(
+                '127.0.0.1',
+                0,
+            )
+        finally:
+            trusted_discovery.ssl = original_ssl
 
         thread = threading.Thread(
             target=server.serve_forever,
@@ -474,6 +524,125 @@ def configured_server_loads_trusted_assets_from_files():
             server.shutdown()
             thread.join()
             server.server_close()
+            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
+            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
+
+
+def main_runs_configured_server():
+    calls = []
+
+    class FakeServer:
+        def serve_forever(self):
+            calls.append('serve_forever')
+
+    def fake_create_configured_server(host, port):
+        calls.append((host, port))
+        return FakeServer()
+
+    original = trusted_discovery.create_configured_server
+    trusted_discovery.create_configured_server = fake_create_configured_server
+
+    try:
+        trusted_discovery.main()
+    finally:
+        trusted_discovery.create_configured_server = original
+
+    assert_same(
+        [
+            ('0.0.0.0', 8081),
+            'serve_forever',
+        ],
+        calls,
+    )
+
+def configured_server_uses_tls():
+    calls = []
+
+    class FakeContext:
+        def load_cert_chain(self, certfile, keyfile):
+            calls.append(
+                ('load_cert_chain', certfile, keyfile)
+            )
+
+        def wrap_socket(self, socket, server_side):
+            calls.append(
+                ('wrap_socket', socket, server_side)
+            )
+            return 'tls-socket'
+
+    class FakeSsl:
+        PROTOCOL_TLS_SERVER = 'tls-server'
+
+        @staticmethod
+        def SSLContext(protocol):
+            calls.append(
+                ('SSLContext', protocol)
+            )
+            return FakeContext()
+
+    class FakeServer:
+        def __init__(self):
+            self.socket = 'plain-socket'
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_file = os.path.join(
+            tmpdir,
+            'trusted.js',
+        )
+
+        stylesheet_file = os.path.join(
+            tmpdir,
+            'trusted.css',
+        )
+
+        with open(script_file, 'w') as file:
+            file.write('window.TRUSTED_MODE = true;')
+
+        with open(stylesheet_file, 'w') as file:
+            file.write('html { outline: 1px solid; }')
+
+        original_ssl = trusted_discovery.ssl
+        original_create_server = trusted_discovery.create_server
+        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
+        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
+
+        trusted_discovery.ssl = FakeSsl
+        trusted_discovery.create_server = lambda *args: FakeServer()
+        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
+        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
+
+        try:
+            server = trusted_discovery.create_configured_server(
+                '127.0.0.1',
+                8081,
+            )
+        finally:
+            trusted_discovery.ssl = original_ssl
+            trusted_discovery.create_server = original_create_server
+            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
+            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
+
+    assert_same(
+        [
+            ('SSLContext', 'tls-server'),
+            (
+                'load_cert_chain',
+                '/etc/bredland/tls/fullchain.pem',
+                '/etc/bredland/tls/privkey.pem',
+            ),
+            (
+                'wrap_socket',
+                'plain-socket',
+                True,
+            ),
+        ],
+        calls,
+    )
+
+    assert_same(
+        'tls-socket',
+        server.socket,
+    )
 
 
 runner.test(
@@ -524,6 +693,16 @@ runner.test(
 runner.test(
     'loads trusted assets from fixed local files',
     configured_server_loads_trusted_assets_from_files,
+)
+
+runner.test(
+    'runs the configured trusted discovery server',
+    main_runs_configured_server,
+)
+
+runner.test(
+    'wraps the configured server in TLS',
+    configured_server_uses_tls,
 )
 
 runner.finish()

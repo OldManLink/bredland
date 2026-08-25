@@ -1,4 +1,7 @@
 import json
+import ssl
+
+
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 
@@ -8,6 +11,22 @@ TRUSTED_SCRIPT_PATH = '__BREDLAND_TRUSTED_SCRIPT_PATH__'
 TRUSTED_STYLESHEET_PATH = '__BREDLAND_TRUSTED_STYLESHEET_PATH__'
 TRUSTED_SCRIPT_FILE = '/usr/local/lib/bredland/static/trusted.js'
 TRUSTED_STYLESHEET_FILE = '/usr/local/lib/bredland/static/trusted.css'
+TRUSTED_BIND_HOST = '0.0.0.0'
+TRUSTED_PORT = 8081
+TRUSTED_CERT_FILE = '/etc/bredland/tls/fullchain.pem'
+TRUSTED_KEY_FILE = '/etc/bredland/tls/privkey.pem'
+
+def main():
+    server = create_configured_server(
+        TRUSTED_BIND_HOST,
+        TRUSTED_PORT,
+    )
+
+    server.serve_forever()
+
+
+if __name__ == '__main__':
+    main()
 
 def render_discovery_response(script_url, stylesheet_url):
     return json.dumps(
@@ -30,7 +49,7 @@ def create_configured_server(
     with open(TRUSTED_STYLESHEET_FILE, 'r') as file:
         stylesheet_body = file.read()
 
-    return create_server(
+    server = create_server(
         host,
         port,
         TRUSTED_BASE_URL,
@@ -40,6 +59,22 @@ def create_configured_server(
         TRUSTED_STYLESHEET_PATH,
         stylesheet_body,
     )
+
+    context = ssl.SSLContext(
+        ssl.PROTOCOL_TLS_SERVER
+    )
+
+    context.load_cert_chain(
+        TRUSTED_CERT_FILE,
+        TRUSTED_KEY_FILE,
+    )
+
+    server.socket = context.wrap_socket(
+        server.socket,
+        server_side=True,
+    )
+
+    return server
 
 def create_server(
     host,
