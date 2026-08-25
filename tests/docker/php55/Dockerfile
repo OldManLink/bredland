@@ -13,6 +13,7 @@ RUN apt-get update \
         libxml2-dev \
         jq \
         make \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL \
@@ -33,8 +34,9 @@ RUN curl -fsSL \
     && rm -rf /tmp/php-src /tmp/php.tar.gz
 
 RUN command -v php \
-    && command -v hxnormalize\
-    && command -v jq
+    && command -v hxnormalize \
+    && command -v jq \
+    && command -v python3
 
 WORKDIR /app
 
