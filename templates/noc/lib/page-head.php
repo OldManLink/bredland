@@ -10,14 +10,16 @@ require_once __DIR__ . '/text-renderable.php';
  */
 class PageHead extends HtmlRenderable {
     private $static_version;
+    private $trusted_probe_url;
 
     private static function read_static_version() {
         return trim(file_get_contents(dirname(__DIR__) . '/static/static.version'));
     }
 
-    public function __construct($indentation_level) {
+    public function __construct($indentation_level, $trusted_probe_url = null) {
         parent::__construct($indentation_level);
         $this->static_version = self::read_static_version();
+        $this->trusted_probe_url = $trusted_probe_url;
     }
 
     public function render_html($compact){
@@ -31,6 +33,12 @@ class PageHead extends HtmlRenderable {
         $html .= $this->tag('link', array('rel' => 'icon', 'type' => 'image/png', 'sizes' => '16x16', 'href' => 'icons/favicon-16x16.png'), array());
         $html .= $this->tag('link', array('rel' => 'stylesheet', 'href' => "static/style.css?v=$this->static_version"), array());
         $html .= $this->tag('script', array('src' => "static/dashboard.js?v=$this->static_version"), array(), true);
+        if ($this->trusted_probe_url !== null) {
+            $url = json_encode($this->trusted_probe_url);
+            $html .= $this->tag('script', array(), array(
+                new TextRenderable($this->child_indentation_level(), "window.NOC_TRUSTED_PROBE_URL = $url;")
+            ), true);
+        }
         $html .= $this->tag('script', array('src' => "static/bootstrap.js?v=$this->static_version", 'defer' => "defer"), array(), true);
         $html .= $this->tag('title', array(), array(new TextRenderable(0, 'Network Operations Centre')), true);
 
