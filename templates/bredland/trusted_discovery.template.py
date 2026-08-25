@@ -18,10 +18,16 @@ def render_discovery_response(script_url, stylesheet_url):
 def create_server(
     host,
     port,
-    script_url,
-    stylesheet_url,
+    base_url,
     allowed_origin,
+    script_path,
+    script_body,
+    stylesheet_path,
+    stylesheet_body,
 ):
+    script_url = base_url + script_path
+    stylesheet_url = base_url + stylesheet_path
+
     response_body = render_discovery_response(
         script_url,
         stylesheet_url,
@@ -29,14 +35,38 @@ def create_server(
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
+            if self.path == script_path:
+                body = script_body.encode('utf-8')
+
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'application/javascript',
+                )
+                self.end_headers()
+                self.wfile.write(body)
+                return
+
+            if self.path == stylesheet_path:
+                body = stylesheet_body.encode('utf-8')
+
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'text/css',
+                )
+                self.end_headers()
+                self.wfile.write(body)
+                return
+
             if self.path != '/probe':
                 self.send_error(404)
                 return
 
             self.send_response(200)
             self.send_header(
-            'Content-Type',
-            'application/json',
+                'Content-Type',
+                'application/json',
             )
             self.send_header(
                 'Access-Control-Allow-Origin',

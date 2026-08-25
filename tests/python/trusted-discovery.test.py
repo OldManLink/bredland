@@ -86,12 +86,15 @@ def discovery_endpoint_returns_json():
         'Expected trusted discovery to provide create_server()',
     )
 
-    server = create_server(
+    server = trusted_discovery.create_server(
         '127.0.0.1',
         0,
-        'https://bredland.example/opaque-script',
-        'https://bredland.example/opaque-style',
+        'https://bredland.example',
         'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
     )
 
     thread = threading.Thread(
@@ -114,8 +117,8 @@ def discovery_endpoint_returns_json():
             response.headers.get_content_type(),
         )
         assert_same(
-            '{"assets":{"script":"https://bredland.example/opaque-script",'
-            '"stylesheet":"https://bredland.example/opaque-style"}}',
+            '{"assets":{"script":"https://bredland.example/trusted-script-test",'
+            '"stylesheet":"https://bredland.example/trusted-style-test"}}',
             body,
         )
     finally:
@@ -126,9 +129,12 @@ def discovery_endpoint_only_serves_probe_path():
     server = trusted_discovery.create_server(
         '127.0.0.1',
         0,
-        'https://bredland.example/opaque-script',
-        'https://bredland.example/opaque-style',
+        'https://bredland.example',
         'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
     )
 
     thread = threading.Thread(
@@ -169,9 +175,12 @@ def discovery_endpoint_allows_noc_origin():
     server = trusted_discovery.create_server(
         '127.0.0.1',
         0,
-        'https://bredland.example/opaque-script',
-        'https://bredland.example/opaque-style',
+        'https://bredland.example',
         'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
     )
 
     thread = threading.Thread(
@@ -196,6 +205,119 @@ def discovery_endpoint_allows_noc_origin():
         thread.join()
         server.server_close()
 
+def trusted_script_is_served():
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        response = urllib.request.urlopen(
+            'http://127.0.0.1:{}/trusted-script-test'.format(
+                server.server_port,
+            ),
+        )
+
+        body = response.read().decode('utf-8')
+
+        assert_same(200, response.status)
+        assert_same(
+            'application/javascript',
+            response.headers.get_content_type(),
+        )
+        assert_same(
+            'window.TRUSTED_MODE = true;',
+            body,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+def trusted_stylesheet_is_served():
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        response = urllib.request.urlopen(
+            'http://127.0.0.1:{}/trusted-style-test'.format(
+                server.server_port,
+            ),
+        )
+
+        body = response.read().decode('utf-8')
+
+        assert_same(200, response.status)
+        assert_same(
+            'text/css',
+            response.headers.get_content_type(),
+        )
+        assert_same(
+            'html { outline: 1px solid; }',
+            body,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+def discovery_urls_match_served_asset_paths():
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        response = urllib.request.urlopen(
+            'http://127.0.0.1:{}/probe'.format(
+                server.server_port,
+            ),
+        )
+
+        body = response.read().decode('utf-8')
+
+        assert_same(
+            '{"assets":{"script":"https://bredland.example/trusted-script-test",'
+            '"stylesheet":"https://bredland.example/trusted-style-test"}}',
+            body,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
 
 runner.test(
     'renders the trusted discovery response',
@@ -215,6 +337,21 @@ runner.test(
 runner.test(
     'allows the NOC origin to read discovery',
     discovery_endpoint_allows_noc_origin,
+)
+
+runner.test(
+    'serves the configured trusted script',
+    trusted_script_is_served,
+)
+
+runner.test(
+    'serves the configured trusted stylesheet',
+    trusted_stylesheet_is_served,
+)
+
+runner.test(
+    'discovery advertises the served asset paths',
+    discovery_urls_match_served_asset_paths,
 )
 
 runner.finish()
