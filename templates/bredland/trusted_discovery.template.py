@@ -2,6 +2,12 @@ import json
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 
+TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
+TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
+TRUSTED_SCRIPT_PATH = '__BREDLAND_TRUSTED_SCRIPT_PATH__'
+TRUSTED_STYLESHEET_PATH = '__BREDLAND_TRUSTED_STYLESHEET_PATH__'
+TRUSTED_SCRIPT_FILE = '/usr/local/lib/bredland/static/trusted.js'
+TRUSTED_STYLESHEET_FILE = '/usr/local/lib/bredland/static/trusted.css'
 
 def render_discovery_response(script_url, stylesheet_url):
     return json.dumps(
@@ -14,6 +20,26 @@ def render_discovery_response(script_url, stylesheet_url):
         separators=(',', ':'),
     )
 
+def create_configured_server(
+        host,
+        port,
+):
+    with open(TRUSTED_SCRIPT_FILE, 'r') as file:
+        script_body = file.read()
+
+    with open(TRUSTED_STYLESHEET_FILE, 'r') as file:
+        stylesheet_body = file.read()
+
+    return create_server(
+        host,
+        port,
+        TRUSTED_BASE_URL,
+        TRUSTED_ALLOWED_ORIGIN,
+        TRUSTED_SCRIPT_PATH,
+        script_body,
+        TRUSTED_STYLESHEET_PATH,
+        stylesheet_body,
+    )
 
 def create_server(
     host,

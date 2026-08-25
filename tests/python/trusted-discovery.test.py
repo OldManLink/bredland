@@ -34,8 +34,13 @@ def load_trusted_discovery():
             'secrets.env',
         )
 
-        with open(secrets, 'w'):
-            pass
+        with open(secrets, 'w') as file:
+            file.write(
+                'BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081\n'
+                'BREDLAND_TRUSTED_ALLOWED_ORIGIN=https://noc.arcanel.se\n'
+                'BREDLAND_TRUSTED_SCRIPT_PATH=/trusted-script-test\n'
+                'BREDLAND_TRUSTED_STYLESHEET_PATH=/trusted-style-test\n'
+            )
 
         environment = os.environ.copy()
         environment['BREDLAND_SECRETS_FILE'] = secrets
@@ -318,6 +323,158 @@ def discovery_urls_match_served_asset_paths():
         thread.join()
         server.server_close()
 
+def deployment_configuration_is_rendered():
+    assert_same(
+        'https://bredland.example:8081',
+        getattr(
+            trusted_discovery,
+            'TRUSTED_BASE_URL',
+            None,
+        ),
+    )
+
+    assert_same(
+        'https://noc.arcanel.se',
+        getattr(
+            trusted_discovery,
+            'TRUSTED_ALLOWED_ORIGIN',
+            None,
+        ),
+    )
+
+    assert_same(
+        '/trusted-script-test',
+        getattr(
+            trusted_discovery,
+            'TRUSTED_SCRIPT_PATH',
+            None,
+        ),
+    )
+
+    assert_same(
+        '/trusted-style-test',
+        getattr(
+            trusted_discovery,
+            'TRUSTED_STYLESHEET_PATH',
+            None,
+        ),
+    )
+
+
+def configured_server_uses_rendered_configuration():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_file = os.path.join(
+            tmpdir,
+            'trusted.js',
+        )
+
+        stylesheet_file = os.path.join(
+            tmpdir,
+            'trusted.css',
+        )
+
+        with open(script_file, 'w') as file:
+            file.write('window.TRUSTED_MODE = true;')
+
+        with open(stylesheet_file, 'w') as file:
+            file.write('html { outline: 1px solid; }')
+
+        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
+        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
+
+        server = trusted_discovery.create_configured_server(
+            '127.0.0.1',
+            0,
+        )
+
+        thread = threading.Thread(
+            target=server.handle_request,
+        )
+        thread.start()
+
+        try:
+            response = urllib.request.urlopen(
+                'http://127.0.0.1:{}/probe'.format(
+                    server.server_port,
+                ),
+            )
+
+            body = response.read().decode('utf-8')
+
+            assert_same(
+                '{"assets":{"script":"https://bredland.example:8081/trusted-script-test",'
+                '"stylesheet":"https://bredland.example:8081/trusted-style-test"}}',
+                body,
+            )
+
+            assert_same(
+                'https://noc.arcanel.se',
+                response.headers.get(
+                    'Access-Control-Allow-Origin',
+                ),
+            )
+        finally:
+            thread.join()
+            server.server_close()
+
+def configured_server_loads_trusted_assets_from_files():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_file = os.path.join(
+            tmpdir,
+            'trusted.js',
+        )
+
+        stylesheet_file = os.path.join(
+            tmpdir,
+            'trusted.css',
+        )
+
+        with open(script_file, 'w') as file:
+            file.write('window.TRUSTED_MODE = true;')
+
+        with open(stylesheet_file, 'w') as file:
+            file.write('html { outline: 1px solid; }')
+
+        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
+        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
+
+        server = trusted_discovery.create_configured_server(
+            '127.0.0.1',
+            0,
+        )
+
+        thread = threading.Thread(
+            target=server.serve_forever,
+        )
+        thread.start()
+
+        try:
+            script_response = urllib.request.urlopen(
+                'http://127.0.0.1:{}/trusted-script-test'.format(
+                    server.server_port,
+                ),
+            )
+
+            stylesheet_response = urllib.request.urlopen(
+                'http://127.0.0.1:{}/trusted-style-test'.format(
+                    server.server_port,
+                ),
+            )
+
+            assert_same(
+                'window.TRUSTED_MODE = true;',
+                script_response.read().decode('utf-8'),
+            )
+
+            assert_same(
+                'html { outline: 1px solid; }',
+                stylesheet_response.read().decode('utf-8'),
+            )
+        finally:
+            server.shutdown()
+            thread.join()
+            server.server_close()
+
 
 runner.test(
     'renders the trusted discovery response',
@@ -352,6 +509,21 @@ runner.test(
 runner.test(
     'discovery advertises the served asset paths',
     discovery_urls_match_served_asset_paths,
+)
+
+runner.test(
+    'uses rendered deployment configuration',
+    deployment_configuration_is_rendered,
+)
+
+runner.test(
+    'creates a server from rendered deployment configuration',
+    configured_server_uses_rendered_configuration,
+)
+
+runner.test(
+    'loads trusted assets from fixed local files',
+    configured_server_loads_trusted_assets_from_files,
 )
 
 runner.finish()
