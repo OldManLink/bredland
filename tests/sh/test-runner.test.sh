@@ -175,6 +175,9 @@ fi
 
 # PHP summary includes individual test totals
 
+rm -rf "$test_results_dir/statistics"
+mkdir -p "$test_results_dir/statistics"
+
 output="$(tests/in-container.sh php:test-suite-runner 2>&1)"
 rc=$?
 

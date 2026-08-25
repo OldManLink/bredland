@@ -11,6 +11,7 @@ test_results_dir="${TEST_RESULTS_DIR:-build/test-results}"
 failed_suites_file="$test_results_dir/failed-suites"
 
 mkdir -p "$test_results_dir"
+statistics_dir="$test_results_dir/statistics"
 
 quietest=false
 run_js=false
@@ -106,6 +107,8 @@ fi
 
 run_tests()
 {
+    non_js_rc=0
+    js_rc=0
     if $run_non_js; then
 
         if ! docker info >/dev/null 2>&1; then
@@ -152,14 +155,16 @@ run_tests()
               -v "$repo_root:/app" \
               -w /app \
               "$PHP_TEST_IMAGE" \
-              bash tests/in-container.sh "${test_args[@]}"
+              bash tests/in-container.sh "${test_args[@]}" \
+              || non_js_rc=$?
         else
             docker run --rm \
               --platform linux/amd64 \
               -v "$repo_root:/app" \
               -w /app \
               "$PHP_TEST_IMAGE" \
-              bash tests/in-container.sh
+              bash tests/in-container.sh \
+              || non_js_rc=$?
         fi
         
     fi
@@ -188,24 +193,46 @@ run_tests()
                     tests/js/run-all.sh \
                         --failures-only \
                         -- \
-                        "${js_tests[@]}"
+                        "${js_tests[@]}" \
+                        || js_rc=$?
                 else
                     tests/js/run-all.sh \
                         -- \
-                        "${js_tests[@]}"
+                        "${js_tests[@]}" \
+                        || js_rc=$?
                 fi
             else
                 if $print_failures_only; then
-                    tests/js/run-all.sh --failures-only
+                    tests/js/run-all.sh --failures-only \
+                        || js_rc=$?
                 else
-                    tests/js/run-all.sh
+                    tests/js/run-all.sh \
+                        || js_rc=$?
                 fi
+            fi
+
+            if (( js_rc == 0 )); then
+                echo "✅ JavaScript tests"
+            else
+                echo "❌ JavaScript tests"
             fi
         fi
     fi
+
+    if (( non_js_rc != 0 )); then
+        return "$non_js_rc"
+    fi
+
+    if (( js_rc != 0 )); then
+        return "$js_rc"
+    fi
+
+    return 0
 }
 
 : > "$failed_suites_file"
+rm -rf "$statistics_dir"
+mkdir -p "$statistics_dir"
 
 start_time="$(date +%s)"
 

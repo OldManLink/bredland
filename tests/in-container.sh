@@ -82,11 +82,7 @@ test_results_dir="${TEST_RESULTS_DIR:-build/test-results}"
 failed_suites_file="$test_results_dir/failed-suites"
 
 mkdir -p "$test_results_dir"
-
 statistics_dir="$test_results_dir/statistics"
-
-mkdir -p "$test_results_dir"
-rm -rf "$statistics_dir"
 mkdir -p "$statistics_dir"
 
 if $rerun_failed_suites; then
@@ -226,10 +222,10 @@ else
     php_rc=0
 fi
 
-# Overall summary
+# Container summary
 
 echo
-echo "==> Overall summary"
+echo "==> Container summary"
 
 if $ran_shell_tests; then
     if [[ $sh_rc -eq 0 ]]; then
