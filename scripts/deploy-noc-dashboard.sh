@@ -277,14 +277,12 @@ version_file="templates/noc/static/static.version"
 previous_static_version="$(cat "$version_file")"
 next="$((previous_static_version + 1))"
 
-printf '%s\n' "$next" > "$version_file"
-static_version_changed=true
-
 # static.version is intentionally source-controlled project state.
 # Deploy increments it so the rendered dashboard always references a
 # fresh static asset version, and the repository records the last deployed
 # asset version for the next manual coding session.
 printf '%s\n' "$next" > "$version_file"
+static_version_changed=true
 
 run_step \
     "Rendering telemetry endpoint" \
