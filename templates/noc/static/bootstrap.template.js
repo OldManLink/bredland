@@ -2,10 +2,10 @@ var controller = new AbortController();
 
 var timeout_id = setTimeout(function () {
     controller.abort();
-}, 3000);
+}, 20000);
 
 fetch(
-    globalThis.NOC_TRUSTED_PROBE_URL,
+    '__BREDLAND_TRUSTED_BASE_URL__/probe',
     {
         signal: controller.signal
     }

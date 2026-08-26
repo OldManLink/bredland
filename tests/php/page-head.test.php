@@ -31,42 +31,4 @@ $runner->test('render() renders the required set of tags', function () use ($sta
     assertStringContains("<title>Network Operations Centre</title>", $html);
 });
 
-$runner->test('render() renders the trusted probe URL before the bootstrap script', function () {
-    $page_head = new PageHead(
-        1,
-        'https://bredland.example/probe'
-    );
-
-    $html = $page_head->render();
-    print_r($html);
-
-    $probe_position = strpos(
-        $html,
-        'window.NOC_TRUSTED_PROBE_URL = "https:\/\/bredland.example\/probe";'
-    );
-
-    $bootstrap_position = strpos(
-        $html,
-        'static/bootstrap.js'
-    );
-
-    assertDifferent(false, $probe_position);
-    assertDifferent(false, $bootstrap_position);
-    assertTrue($probe_position < $bootstrap_position);
-});
-
-$runner->test('render() safely encodes the trusted probe URL for JavaScript', function () {
-    $page_head = new PageHead(
-        1,
-        "https://bredland.example/probe?x='oops'"
-    );
-
-    $html = $page_head->render();
-
-    assertStringContains(
-        'window.NOC_TRUSTED_PROBE_URL = "https:\/\/bredland.example\/probe?x=\'oops\'";',
-        $html
-    );
-});
-
 $runner->finish();

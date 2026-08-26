@@ -1,5 +1,45 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const child_process = require('node:child_process');
+
+var tmpdir = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'bredland-bootstrap-')
+);
+
+var secrets_file = path.join(
+    tmpdir,
+    'secrets.env'
+);
+
+var rendered_bootstrap = path.join(
+    tmpdir,
+    'bootstrap.js'
+);
+
+fs.writeFileSync(
+    secrets_file,
+    'BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081\n'
+);
+
+child_process.execFileSync(
+    'scripts/render-template.sh',
+    [
+        'templates/noc/static/bootstrap.template.js',
+        rendered_bootstrap
+    ],
+    {
+        env: Object.assign(
+            {},
+            process.env,
+            {
+                BREDLAND_SECRETS_FILE: secrets_file
+            }
+        )
+    }
+);
 
 test('bootstrap starts exactly one discovery probe', async function () {
     var requests = [];
@@ -12,26 +52,25 @@ test('bootstrap starts exactly one discovery probe', async function () {
         });
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    require('../../templates/noc/static/bootstrap.js');
+    require(rendered_bootstrap);
 
     assert.equal(requests.length, 1);
     assert.equal(
         requests[0],
-        'https://bredland.example/probe'
+        'https://bredland.example:8081/probe'
     );
 
     delete global.fetch;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });
 
 test('bootstrap aborts a discovery probe that takes too long', function () {
     var aborted = false;
     var timeout_callback = null;
+    var timeout_delay = null;
 
-    global.setTimeout = function (callback) {
+    global.setTimeout = function (callback, delay) {
         timeout_callback = callback;
+        timeout_delay = delay;
         return 1;
     };
 
@@ -46,19 +85,19 @@ test('bootstrap aborts a discovery probe that takes too long', function () {
         return new Promise(function () {});
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    delete require.cache[require.resolve('../../templates/noc/static/bootstrap.js')];
-    require('../../templates/noc/static/bootstrap.js');
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
 
     assert.notEqual(timeout_callback, null);
+    assert.equal(timeout_delay, 20000);
+
     timeout_callback();
+
     assert.equal(aborted, true);
 
     delete global.setTimeout;
     delete global.AbortController;
     delete global.fetch;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });
 
 test('bootstrap clears the discovery timeout when the probe completes', async function () {
@@ -84,10 +123,8 @@ test('bootstrap clears the discovery timeout when the probe completes', async fu
         });
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    delete require.cache[require.resolve('../../templates/noc/static/bootstrap.js')];
-    require('../../templates/noc/static/bootstrap.js');
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
 
     await Promise.resolve();
 
@@ -97,7 +134,6 @@ test('bootstrap clears the discovery timeout when the probe completes', async fu
     delete global.clearTimeout;
     delete global.AbortController;
     delete global.fetch;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });
 
 test('bootstrap loads trusted assets after successful discovery', async function () {
@@ -142,10 +178,8 @@ test('bootstrap loads trusted assets after successful discovery', async function
         }
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    delete require.cache[require.resolve('../../templates/noc/static/bootstrap.js')];
-    require('../../templates/noc/static/bootstrap.js');
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
 
     await new Promise(function (resolve) {
         setImmediate(resolve);
@@ -171,7 +205,6 @@ test('bootstrap loads trusted assets after successful discovery', async function
     delete global.AbortController;
     delete global.fetch;
     delete global.document;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });
 
 test('bootstrap ignores incomplete discovery data', async function () {
@@ -215,10 +248,8 @@ test('bootstrap ignores incomplete discovery data', async function () {
         }
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    delete require.cache[require.resolve('../../templates/noc/static/bootstrap.js')];
-    require('../../templates/noc/static/bootstrap.js');
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
 
     await new Promise(function (resolve) {
         setImmediate(resolve);
@@ -231,7 +262,6 @@ test('bootstrap ignores incomplete discovery data', async function () {
     delete global.AbortController;
     delete global.fetch;
     delete global.document;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });
 
 test('bootstrap ignores malformed discovery response', async function () {
@@ -271,10 +301,8 @@ test('bootstrap ignores malformed discovery response', async function () {
         }
     };
 
-    global.NOC_TRUSTED_PROBE_URL = 'https://bredland.example/probe';
-
-    delete require.cache[require.resolve('../../templates/noc/static/bootstrap.js')];
-    require('../../templates/noc/static/bootstrap.js');
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
 
     await new Promise(function (resolve) {
         setImmediate(resolve);
@@ -287,5 +315,4 @@ test('bootstrap ignores malformed discovery response', async function () {
     delete global.AbortController;
     delete global.fetch;
     delete global.document;
-    delete global.NOC_TRUSTED_PROBE_URL;
 });

@@ -14,6 +14,7 @@ RUN apt-get update \
         jq \
         make \
         python3 \
+        rsync \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL \
@@ -36,7 +37,8 @@ RUN curl -fsSL \
 RUN command -v php \
     && command -v hxnormalize \
     && command -v jq \
-    && command -v python3
+    && command -v python3 \
+    && command -v rsync
 
 WORKDIR /app
 

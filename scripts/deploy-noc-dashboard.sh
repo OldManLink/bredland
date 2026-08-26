@@ -33,7 +33,21 @@ if [[ ! -x "$fetch_latest_heartbeat" ]]; then
 fi
 
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+
+static_version_changed=false
+version_file=
+previous_static_version=
+
+cleanup()
+{
+    if $static_version_changed; then
+        printf '%s\n' "$previous_static_version" > "$version_file"
+    fi
+
+    rm -rf "$tmpdir"
+}
+
+trap cleanup EXIT
 
 heartbeat_dir="$tmpdir/heartbeats"
 staging_dir="$tmpdir/staging"
@@ -260,8 +274,11 @@ mkdir -p \
     "$clients_local"
 
 version_file="templates/noc/static/static.version"
-current="$(cat "$version_file")"
-next="$((current + 1))"
+previous_static_version="$(cat "$version_file")"
+next="$((previous_static_version + 1))"
+
+printf '%s\n' "$next" > "$version_file"
+static_version_changed=true
 
 # static.version is intentionally source-controlled project state.
 # Deploy increments it so the rendered dashboard always references a
@@ -293,7 +310,16 @@ run_step \
 
 run_step \
     "Copying static files" \
-    cp templates/noc/static/* "$static_local/"
+    rsync -a \
+        --exclude='*.template.*' \
+        templates/noc/static/ \
+        "$static_local/"
+
+run_step \
+    "Rendering bootstrap" \
+    scripts/render-template.sh \
+    templates/noc/static/bootstrap.template.js \
+    "$static_local/bootstrap.js"
 
 run_step \
     "Copying icons" \
@@ -310,6 +336,35 @@ run_step \
 run_step \
     "Copying manifest.json" \
     cp templates/noc/manifest.json "$manifest_local"
+
+echo
+echo "🔍 Inspecting rendered bootstrap..."
+echo
+
+grep -F \
+    "${BREDLAND_TRUSTED_BASE_URL}/probe" \
+    "$static_local/bootstrap.js"
+
+if find "$static_local" -maxdepth 1 -type f -name '*template*' | grep -q .; then
+    echo
+    echo "❌ Static staging contains template files:"
+    find "$static_local" -maxdepth 1 -type f -name '*template*' -print
+    exit 1
+fi
+
+echo
+read -r -p "Continue with production upload? [y/N] " answer
+
+case "$answer" in
+    y|Y|yes|YES|Yes)
+        ;;
+    *)
+        echo
+        echo "⛔ DEPLOYMENT CANCELLED"
+        echo "   Production has not been modified."
+        exit 1
+        ;;
+esac
 
 echo
 echo "Deploying to ${oderland_user}@${oderland_host}..."
@@ -381,6 +436,8 @@ run_step \
     execute_rsync \
     "$dashboard_local" \
     "${oderland_user}@${oderland_host}:${dashboard_remote}"
+
+static_version_changed=false
 
 run_step \
     "Refreshing production fixtures" \

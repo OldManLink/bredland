@@ -1,3 +1,12 @@
 /* Bredland trusted-mode stylesheet */
 /* Served only from the trusted network */
 /* BRD-030 trusted discovery asset */
+
+html::after {
+    content: '';
+    position: fixed;
+    inset: 3px;
+    border: 1px solid #777;
+    pointer-events: none;
+    z-index: 2147483647;
+}
