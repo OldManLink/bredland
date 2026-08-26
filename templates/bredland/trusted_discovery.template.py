@@ -3,7 +3,7 @@ import ssl
 
 
 from http.server import BaseHTTPRequestHandler
-from http.server import HTTPServer
+from http.server import ThreadingHTTPServer
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -15,6 +15,26 @@ TRUSTED_BIND_HOST = '0.0.0.0'
 TRUSTED_PORT = 8081
 TRUSTED_CERT_FILE = '/etc/bredland/tls/fullchain.pem'
 TRUSTED_KEY_FILE = '/etc/bredland/tls/privkey.pem'
+
+class TrustedDiscoveryServer(ThreadingHTTPServer):
+    tls_context = None
+
+    def process_request_thread(
+        self,
+        request,
+        client_address,
+    ):
+        if self.tls_context is not None:
+            request = self.tls_context.wrap_socket(
+                request,
+                server_side=True,
+            )
+
+        ThreadingHTTPServer.process_request_thread(
+            self,
+            request,
+            client_address,
+        )
 
 def main():
     server = create_configured_server(
@@ -65,10 +85,7 @@ def create_configured_server(
         TRUSTED_KEY_FILE,
     )
 
-    server.socket = context.wrap_socket(
-        server.socket,
-        server_side=True,
-    )
+    server.tls_context = context
 
     return server
 
@@ -159,7 +176,7 @@ def create_server(
         def log_message(self, format, *args):
             pass
 
-    return HTTPServer(
+    return TrustedDiscoveryServer(
         (host, port),
         DiscoveryHandler,
     )

@@ -1,5 +1,6 @@
 import importlib.util
 import ast
+import socket
 import os
 import subprocess
 import sys
@@ -540,6 +541,76 @@ def configured_server_loads_trusted_assets_from_files():
             trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
             trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
 
+def slow_client_does_not_block_probe():
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TRUSTED_MODE = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+    )
+
+    thread = threading.Thread(
+        target=server.serve_forever,
+    )
+    thread.start()
+
+    slow_client = socket.create_connection(
+        ('127.0.0.1', server.server_port)
+    )
+
+    fast_client = None
+    response = None
+
+    try:
+        slow_client.sendall(
+            b'GET /probe HTTP/1.1\r\n'
+            b'Host: bredland.example\r\n'
+        )
+
+        fast_client = socket.create_connection(
+            ('127.0.0.1', server.server_port)
+        )
+
+        fast_client.settimeout(0.5)
+
+        fast_client.sendall(
+            b'GET /probe HTTP/1.1\r\n'
+            b'Host: bredland.example\r\n'
+            b'Connection: close\r\n'
+            b'\r\n'
+        )
+
+        try:
+            response = fast_client.recv(4096)
+        except socket.timeout:
+            pass
+    finally:
+        slow_client.close()
+
+        if fast_client is not None:
+            if response is None:
+                fast_client.settimeout(2)
+
+                try:
+                    fast_client.recv(4096)
+                except Exception:
+                    pass
+
+            fast_client.close()
+
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+    assert_same(
+        True,
+        response is not None and b'200 OK' in response,
+        'Expected a slow client not to block another probe',
+        )
 
 def main_runs_configured_server():
     calls = []
@@ -643,17 +714,12 @@ def configured_server_uses_tls():
                 '/etc/bredland/tls/fullchain.pem',
                 '/etc/bredland/tls/privkey.pem',
             ),
-            (
-                'wrap_socket',
-                'plain-socket',
-                True,
-            ),
         ],
         calls,
     )
 
     assert_same(
-        'tls-socket',
+        'plain-socket',
         server.socket,
     )
 
@@ -693,6 +759,64 @@ def main_guard_comes_after_function_definitions():
         main_guard_lines[0] > max(function_lines),
         '__main__ guard must come after all function definitions',
         )
+
+def worker_wraps_client_connection_in_tls():
+    calls = []
+
+    class FakeContext:
+        def wrap_socket(self, socket, server_side):
+            calls.append(
+                ('wrap_socket', socket, server_side)
+            )
+            return 'tls-client-socket'
+
+    class FakeParentServer:
+        @staticmethod
+        def process_request_thread(
+                server,
+                request,
+                client_address,
+        ):
+            calls.append(
+                (
+                    'process_request_thread',
+                    request,
+                    client_address,
+                )
+            )
+
+    server = object.__new__(
+        trusted_discovery.TrustedDiscoveryServer
+    )
+
+    server.tls_context = FakeContext()
+
+    original = trusted_discovery.ThreadingHTTPServer
+    trusted_discovery.ThreadingHTTPServer = FakeParentServer
+
+    try:
+        server.process_request_thread(
+            'plain-client-socket',
+            ('127.0.0.1', 12345),
+        )
+    finally:
+        trusted_discovery.ThreadingHTTPServer = original
+
+    assert_same(
+        [
+            (
+                'wrap_socket',
+                'plain-client-socket',
+                True,
+            ),
+            (
+                'process_request_thread',
+                'tls-client-socket',
+                ('127.0.0.1', 12345),
+            ),
+        ],
+        calls,
+    )
 
 runner.test(
     'renders the trusted discovery response',
@@ -745,18 +869,28 @@ runner.test(
 )
 
 runner.test(
+    'does not let a slow client block another probe',
+    slow_client_does_not_block_probe,
+)
+
+runner.test(
     'runs the configured trusted discovery server',
     main_runs_configured_server,
 )
 
 runner.test(
-    'wraps the configured server in TLS',
+    'keeps TLS handshake off the listening socket',
     configured_server_uses_tls,
 )
 
 runner.test(
     'places the main guard after all function definitions',
     main_guard_comes_after_function_definitions,
+)
+
+runner.test(
+    'wraps each client connection in TLS',
+    worker_wraps_client_connection_in_tls,
 )
 
 runner.finish()
