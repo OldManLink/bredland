@@ -115,3 +115,48 @@ run_render templates/bredland/bredland-heartbeat.timer.template \
 "$tmpdir/bredland-heartbeat.timer" \
 "$tmpdir/bredland-heartbeat.timer.env"
 echo "OK"
+
+# Test trusted_discovery.template.py
+echo -n "Testing bredland/trusted_discovery.template.py ... "
+cat > "$tmpdir/trusted-discovery.env" <<'EOF'
+BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081
+BREDLAND_TRUSTED_ALLOWED_ORIGIN=https://noc.example
+BREDLAND_TRUSTED_SCRIPT_PATH=/opaque-script
+BREDLAND_TRUSTED_STYLESHEET_PATH=/opaque-stylesheet
+EOF
+
+run_render templates/bredland/trusted_discovery.template.py \
+    "$tmpdir/trusted_discovery.py" \
+    "$tmpdir/trusted-discovery.env"
+
+grep -q 'https://bredland.example:8081' "$tmpdir/trusted_discovery.py"
+grep -q 'https://noc.example' "$tmpdir/trusted_discovery.py"
+grep -q '/opaque-script' "$tmpdir/trusted_discovery.py"
+grep -q '/opaque-stylesheet' "$tmpdir/trusted_discovery.py"
+
+echo "OK"
+
+# Test bootstrap.template.js
+echo -n "Testing noc/static/bootstrap.template.js ... "
+cat > "$tmpdir/bootstrap.env" <<'EOF'
+BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081
+EOF
+
+run_render templates/noc/static/bootstrap.template.js \
+    "$tmpdir/bootstrap.js" \
+    "$tmpdir/bootstrap.env"
+
+grep -q 'https://bredland.example:8081/probe' "$tmpdir/bootstrap.js"
+
+echo "OK"
+
+# Test trusted-discovery.service.template
+echo -n "Testing bredland/trusted-discovery.service.template ... "
+
+grep -q '^User=bredland-trusted$' \
+    templates/bredland/trusted-discovery.service.template
+
+grep -q '^Group=bredland-trusted$' \
+    templates/bredland/trusted-discovery.service.template
+
+echo "OK"

@@ -52,11 +52,37 @@ run_step \
     "${bredland_host}:/tmp/trusted-discovery.service"
 
 run_step \
-    "Verifying trusted TLS files" \
+    "Ensuring trusted discovery service account" \
     execute_remote_command \
     "$bredland_host" \
-    "sudo test -r /etc/bredland/tls/fullchain.pem &&
-     sudo test -r /etc/bredland/tls/privkey.pem"
+    "getent group bredland-trusted >/dev/null ||
+         sudo groupadd --system bredland-trusted
+
+     id -u bredland-trusted >/dev/null 2>&1 ||
+         sudo useradd \
+             --system \
+             --gid bredland-trusted \
+             --no-create-home \
+             --shell /usr/sbin/nologin \
+             bredland-trusted"
+
+run_step \
+    "Granting trusted discovery TLS access" \
+    execute_remote_command \
+    "$bredland_host" \
+    "sudo chown root:bredland-trusted /etc/bredland/tls &&
+     sudo chmod 750 /etc/bredland/tls &&
+     sudo chown root:bredland-trusted /etc/bredland/tls/fullchain.pem &&
+     sudo chmod 640 /etc/bredland/tls/fullchain.pem &&
+     sudo chown root:bredland-trusted /etc/bredland/tls/privkey.pem &&
+     sudo chmod 640 /etc/bredland/tls/privkey.pem"
+
+run_step \
+    "Verifying trusted discovery TLS access" \
+    execute_remote_command \
+    "$bredland_host" \
+    "sudo -u bredland-trusted test -r /etc/bredland/tls/fullchain.pem &&
+     sudo -u bredland-trusted test -r /etc/bredland/tls/privkey.pem"
 
 run_step \
     "Installing trusted discovery service" \
