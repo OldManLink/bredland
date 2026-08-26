@@ -1,19 +1,19 @@
 {
   "schema": 1,
-  "ts": "2026-08-26T13:03:08Z",
+  "ts": "2026-08-26T14:13:08Z",
   "host": "mikrotik",
   "ttl": 300,
-  "uptime": 5321706,
+  "uptime": 5325906,
   "version": "7.23.1",
   "update_channel": "stable",
   "model": "RB4011iGS+",
   "cpu_load": 0,
-  "free_memory": 876826624,
+  "free_memory": 877072384,
   "total_memory": 1073741824,
   "latest_version": "7.24.1",
   "wan_address": "91.128.129.171/20",
   "wan_gateway": "91.128.128.1",
   "wan_gateway_mac": "58:D0:61:11:D2:F7",
-  "wan_lease_remaining": 8639,
+  "wan_lease_remaining": 9499,
   "remote_addr": "91.128.129.171"
 }

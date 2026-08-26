@@ -2,7 +2,7 @@ var controller = new AbortController();
 
 var timeout_id = setTimeout(function () {
     controller.abort();
-}, 20000);
+}, 5000);
 
 fetch(
     '__BREDLAND_TRUSTED_BASE_URL__/probe',

@@ -89,7 +89,7 @@ test('bootstrap aborts a discovery probe that takes too long', function () {
     require(rendered_bootstrap);
 
     assert.notEqual(timeout_callback, null);
-    assert.equal(timeout_delay, 20000);
+    assert.equal(timeout_delay, 5000);
 
     timeout_callback();
 
