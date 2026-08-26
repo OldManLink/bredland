@@ -1,4 +1,5 @@
 import importlib.util
+import ast
 import os
 import subprocess
 import sys
@@ -645,6 +646,42 @@ def configured_server_uses_tls():
     )
 
 
+def main_guard_comes_after_function_definitions():
+    with open(
+            'templates/bredland/trusted_discovery.template.py',
+            'r',
+    ) as file:
+        tree = ast.parse(file.read())
+
+    function_lines = [
+        node.lineno
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+    ]
+
+    main_guard_lines = [
+        node.lineno
+        for node in tree.body
+        if (
+                isinstance(node, ast.If)
+                and isinstance(node.test, ast.Compare)
+                and isinstance(node.test.left, ast.Name)
+                and node.test.left.id == '__name__'
+        )
+    ]
+
+    assert_same(
+        1,
+        len(main_guard_lines),
+        'Expected exactly one __main__ guard',
+    )
+
+    assert_same(
+        True,
+        main_guard_lines[0] > max(function_lines),
+        '__main__ guard must come after all function definitions',
+        )
+
 runner.test(
     'renders the trusted discovery response',
     discovery_response_is_rendered,
@@ -703,6 +740,11 @@ runner.test(
 runner.test(
     'wraps the configured server in TLS',
     configured_server_uses_tls,
+)
+
+runner.test(
+    'places the main guard after all function definitions',
+    main_guard_comes_after_function_definitions,
 )
 
 runner.finish()

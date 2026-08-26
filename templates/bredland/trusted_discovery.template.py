@@ -24,10 +24,6 @@ def main():
 
     server.serve_forever()
 
-
-if __name__ == '__main__':
-    main()
-
 def render_discovery_response(script_url, stylesheet_url):
     return json.dumps(
         {
@@ -104,6 +100,10 @@ def create_server(
                     'Content-Type',
                     'application/javascript',
                 )
+                self.send_header(
+                    'Content-Length',
+                    str(len(body)),
+                )
                 self.end_headers()
                 self.wfile.write(body)
                 return
@@ -115,6 +115,10 @@ def create_server(
                 self.send_header(
                     'Content-Type',
                     'text/css',
+                )
+                self.send_header(
+                    'Content-Length',
+                    str(len(body)),
                 )
                 self.end_headers()
                 self.wfile.write(body)
@@ -133,6 +137,10 @@ def create_server(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
+            self.send_header(
+                'Content-Length',
+                str(len(response_body)),
+            )
             self.end_headers()
             self.wfile.write(response_body)
 
@@ -143,3 +151,6 @@ def create_server(
         (host, port),
         DiscoveryHandler,
     )
+
+if __name__ == '__main__':
+    main()
