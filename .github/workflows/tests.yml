@@ -25,6 +25,11 @@ jobs:
           cache-from: type=gha,scope=php55-test
           cache-to: type=gha,mode=max,scope=php55-test
 
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
       - name: Run tests
         env:
           SKIP_DOCKER_BUILD: "1"

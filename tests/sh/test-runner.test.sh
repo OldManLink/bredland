@@ -175,6 +175,9 @@ fi
 
 # PHP summary includes individual test totals
 
+rm -rf "$test_results_dir/statistics"
+mkdir -p "$test_results_dir/statistics"
+
 output="$(tests/in-container.sh php:test-suite-runner 2>&1)"
 rc=$?
 
@@ -193,7 +196,7 @@ assert_contains \
     "$output" \
     "Test summary: 1 tests run, 0 skipped, 1 passed, 0 failed"
 
-# Nested runner inherits private test-results directory
+# Nested runner preserves overall failed-suite state
 
 printf '%s\n' \
     "sh:private-state-sentinel" \
@@ -209,10 +212,11 @@ else
     ((failed++))
 fi
 
-if [[ ! -s "$test_results_dir/failed-suites" ]]; then
+if grep -qx 'sh:private-state-sentinel' \
+    "$test_results_dir/failed-suites"; then
     ((passed++))
 else
-    echo "❌ nested runner did not use the private test-results directory"
+    echo "❌ nested runner unexpectedly cleared overall failed-suite state"
     ((failed++))
 fi
 
@@ -280,10 +284,11 @@ fi
 assert_contains "$output" "==> card-head"
 assert_contains "$output" "✅ card-head"
 
-if [[ ! -s "$test_results_dir/failed-suites" ]]; then
+if grep -qx 'php:card-head' \
+    "$test_results_dir/failed-suites"; then
     ((passed++))
 else
-    echo "❌ failed-suites was not cleared after successful rerun"
+    echo "❌ nested runner unexpectedly cleared failed-suite state"
     ((failed++))
 fi
 

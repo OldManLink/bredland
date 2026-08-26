@@ -33,6 +33,7 @@ matches_selector()
 
 ran_shell_tests=false
 ran_php_tests=false
+ran_python_tests=false
 list_only=false
 rerun_failed_suites=false
 print_failures_only=false
@@ -41,6 +42,7 @@ selectors=()
 test_args=()
 selected_shell_tests=()
 selected_php_tests=()
+selected_python_tests=()
 matched_selectors=()
 selected_suite_ids=()
 
@@ -66,6 +68,10 @@ for arg in "$@"; do
             selectors+=("php:*")
             ;;
 
+        python)
+            selectors+=("py:*")
+            ;;
+
         shell)
             selectors+=("sh:*")
             ;;
@@ -82,11 +88,7 @@ test_results_dir="${TEST_RESULTS_DIR:-build/test-results}"
 failed_suites_file="$test_results_dir/failed-suites"
 
 mkdir -p "$test_results_dir"
-
 statistics_dir="$test_results_dir/statistics"
-
-mkdir -p "$test_results_dir"
-rm -rf "$statistics_dir"
 mkdir -p "$statistics_dir"
 
 if $rerun_failed_suites; then
@@ -135,6 +137,18 @@ for test in "${php_tests[@]}"; do
     fi
 done
 
+python_tests=(tests/python/*.test.py)
+for test in "${python_tests[@]}"; do
+    suite="${test#tests/python/}"
+    suite="${suite%.test.py}"
+    suite="py:$suite"
+
+    if matches_selector "$suite" "${selectors[@]}"; then
+        selected_python_tests+=("$test")
+        selected_suite_ids+=("$suite")
+    fi
+done
+
 unmatched_selectors=()
 
 for selector in "${selectors[@]}"; do
@@ -171,8 +185,6 @@ if $list_only; then
 
     exit 0
 fi
-
-: > "$failed_suites_file"
 
 # Shell tests
 
@@ -228,10 +240,36 @@ else
     php_rc=0
 fi
 
-# Overall summary
+# Python tests
+
+if (( ${#selected_python_tests[@]} > 0 )); then
+    ran_python_tests=true
+    echo
+    echo "==> Python tests"
+
+    set +e
+
+    if $print_failures_only; then
+        tests/python/run-all.sh \
+            --failures-only \
+            -- \
+            "${selected_python_tests[@]}"
+    else
+        tests/python/run-all.sh \
+            -- \
+            "${selected_python_tests[@]}"
+    fi
+
+    python_rc=$?
+    set -e
+else
+    python_rc=0
+fi
+
+# Container summary
 
 echo
-echo "==> Overall summary"
+echo "==> Container summary"
 
 if $ran_shell_tests; then
     if [[ $sh_rc -eq 0 ]]; then
@@ -249,7 +287,15 @@ if $ran_php_tests; then
     fi
 fi
 
-if [[ $sh_rc -eq 0 && $php_rc -eq 0 ]]; then
+if $ran_python_tests; then
+    if [[ $python_rc -eq 0 ]]; then
+        echo "✅ Python tests"
+    else
+        echo "❌ Python tests"
+    fi
+fi
+
+if [[ $sh_rc -eq 0 && $php_rc -eq 0 && $python_rc -eq 0 ]]; then
     exit 0
 else
     exit 1

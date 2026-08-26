@@ -1,0 +1,13 @@
+[Unit]
+Description=Bredland trusted discovery service
+After=network.target
+
+[Service]
+Type=simple
+User=bredland-trusted
+Group=bredland-trusted
+ExecStart=/usr/bin/python3 /usr/local/lib/bredland/trusted_discovery.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

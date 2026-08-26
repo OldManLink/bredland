@@ -29,6 +29,7 @@ render_env="$build_dir/noc.env"
 
 cat > "$render_env" <<EOF
 TELEMETRY_CONFIG_FILE="$build_dir/telemetry.config.php"
+BREDLAND_TRUSTED_BASE_URL="https://bredland.example:8081"
 EOF
 
 BREDLAND_SECRETS_FILE="$render_env" \
@@ -67,8 +68,40 @@ cp -R templates/noc/clients "$build_dir/"
 cp -R templates/noc/icons "$build_dir/"
 cp -R templates/noc/lib "$build_dir/"
 cp -R templates/noc/schemas "$build_dir/"
-cp -R templates/noc/static/. "$static_dir/"
 cp -R templates/noc/manifest.json "$build_dir/"
+
+rsync -a \
+    --exclude='*.template.*' \
+    templates/noc/static/ \
+    "$static_dir/"
+
+BREDLAND_SECRETS_FILE="$render_env" \
+    scripts/render-template.sh \
+    templates/noc/static/bootstrap.template.js \
+    "$static_dir/bootstrap.js"
+
+if [[ ! -s "$static_dir/bootstrap.js" ]]; then
+    echo
+    echo "❌ Rendered dashboard build is missing:"
+    echo "    $static_dir/bootstrap.js"
+    exit 2
+fi
+
+if [[ -e "$static_dir/bootstrap.template.js" ]]; then
+    echo
+    echo "❌ Static build contains an undeployed template:"
+    echo "    $static_dir/bootstrap.template.js"
+    exit 2
+fi
+
+if ! grep -Fq \
+    'https://bredland.example:8081/probe' \
+    "$static_dir/bootstrap.js"; then
+
+    echo
+    echo "❌ Rendered bootstrap is missing trusted probe URL."
+    exit 2
+fi
 
 echo "Testing execution of telemetry endpoint ... "
 
