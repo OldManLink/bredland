@@ -123,6 +123,10 @@ def discovery_endpoint_returns_json():
             response.headers.get_content_type(),
         )
         assert_same(
+            'no-store',
+            response.headers.get('Cache-Control'),
+        )
+        assert_same(
             '{"assets":{"script":"https://bredland.example/trusted-script-test",'
             '"stylesheet":"https://bredland.example/trusted-style-test"}}',
             body,
@@ -243,6 +247,10 @@ def trusted_script_is_served():
             response.headers.get_content_type(),
         )
         assert_same(
+            'no-store',
+            response.headers.get('Cache-Control'),
+        )
+        assert_same(
             'window.TRUSTED_MODE = true;',
             body,
         )
@@ -280,6 +288,10 @@ def trusted_stylesheet_is_served():
         assert_same(
             'text/css',
             response.headers.get_content_type(),
+        )
+        assert_same(
+            'no-store',
+            response.headers.get('Cache-Control'),
         )
         assert_same(
             'html { outline: 1px solid; }',

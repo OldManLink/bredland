@@ -101,6 +101,10 @@ def create_server(
                     'application/javascript',
                 )
                 self.send_header(
+                    'Cache-Control',
+                    'no-store',
+                )
+                self.send_header(
                     'Content-Length',
                     str(len(body)),
                 )
@@ -115,6 +119,10 @@ def create_server(
                 self.send_header(
                     'Content-Type',
                     'text/css',
+                )
+                self.send_header(
+                    'Cache-Control',
+                    'no-store',
                 )
                 self.send_header(
                     'Content-Length',
@@ -132,6 +140,10 @@ def create_server(
             self.send_header(
                 'Content-Type',
                 'application/json',
+            )
+            self.send_header(
+                'Cache-Control',
+                'no-store',
             )
             self.send_header(
                 'Access-Control-Allow-Origin',
