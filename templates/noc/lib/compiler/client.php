@@ -40,7 +40,7 @@ class Client implements Compilable {
      */
     public static function compilable_methods() {
         return array(
-            'addNotification' => SlotVal::class,
+            'addNotification' => NotificationVal::class,
             'setHealth' => HealthVal::class
         );
     }
@@ -131,8 +131,8 @@ class Client implements Compilable {
         return count($this->notifications);
     }
 
-    public function addNotification($text) {
-        $this->notifications[] = new Notification($text);
+    public function addNotification($notification) {
+        $this->notifications[] = $notification;
     }
 
     public function render($heartbeat) {

@@ -12,7 +12,7 @@ $runner = new TestSuiteRunner('notification-panel');
 
 $runner->test('render() renders a notification panel div', function () {
     $client = test_client();
-    $client->addNotification('RouterOS update available');
+    $client->addNotification(new Notification('RouterOS update available'));
     $panel = new NotificationPanel(1, $client);
 
     $html = $panel->render();
@@ -27,8 +27,8 @@ $runner->test('render() renders a notification panel div', function () {
 
 $runner->test('render() renders all notifications', function () {
     $client = test_client();
-    $client->addNotification('First notification');
-    $client->addNotification('Second notification');
+    $client->addNotification(new Notification('First notification'));
+    $client->addNotification(new Notification('Second notification'));
     $panel = new NotificationPanel(1, $client);
 
     $html = $panel->render();
@@ -41,7 +41,7 @@ $runner->test('render() renders all notifications', function () {
 $runner->test('render() renders the panel hidden', function () {
     $client = test_client();
 
-    $client->addNotification('Something happened');
+    $client->addNotification(new Notification('Something happened'));
 
     $panel = new NotificationPanel(1, $client);
     $html = $panel->render();
@@ -52,7 +52,7 @@ $runner->test('render() renders the panel hidden', function () {
 $runner->test('render() renders a close button', function () {
     $client = test_client();
 
-    $client->addNotification('Something happened');
+    $client->addNotification(new Notification('Something happened'));
 
     $panel = new NotificationPanel(1, $client);
     $html = $panel->render();
@@ -65,7 +65,7 @@ $runner->test('render() wraps each notification in notification-text', function 
     $client = test_client();
 
     $client->addNotification(
-        "Software update available:\nVersion 7.23.3"
+        new Notification("Software update available:\nVersion 7.23.3")
     );
 
     $panel = new NotificationPanel(1, $client);
@@ -83,6 +83,33 @@ $runner->test('render() wraps each notification in notification-text', function 
         "Software update available:\nVersion 7.23.3",
         $html
     );
+});
+
+$runner->test('render() renders no resolution metadata when notification has no resolution', function () {
+    $client = test_client();
+    $client->addNotification(
+        new Notification('RouterOS update available')
+    );
+
+    $panel = new NotificationPanel(1, $client);
+    $html = $panel->render();
+
+    assertSame(0, substr_count($html, 'data-resolution='));
+});
+
+$runner->test('render() renders notification resolution metadata', function () {
+    $client = test_client();
+    $client->addNotification(
+        new Notification(
+            'RouterOS update available',
+            'install-routeros-update'
+        )
+    );
+
+    $panel = new NotificationPanel(1, $client);
+    $html = $panel->render();
+
+    assertSame(1, substr_count($html, 'data-resolution="install-routeros-update"'));
 });
 
 $runner->finish();

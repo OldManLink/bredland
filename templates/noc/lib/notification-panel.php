@@ -28,6 +28,12 @@ class NotificationPanel extends HtmlTag {
         $children[] = $close_button;
 
         foreach ($client->notifications() as $notification) {
+            $attributes = array('class' => 'notification-text');
+
+            if ($notification->has_resolution()) {
+                $attributes['data-resolution'] = $notification->resolution();
+            }
+
             $children[] = new HtmlTag(
                 $child_level,
                 'div',
@@ -37,9 +43,7 @@ class NotificationPanel extends HtmlTag {
                         $notification->text()
                     )
                 ),
-                array(
-                    'class' => 'notification-text'
-                )
+                $attributes
             );
         }
 
