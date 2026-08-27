@@ -16,7 +16,7 @@ class Val implements Compilable {
             'integer' => IntVal::class,
             'float' => FloatVal::class,
             'string' => StrVal::class,
-            'array' => FieldVal::class,
+            'object' => FieldVal::class,
         );
     }
 
@@ -25,7 +25,7 @@ class Val implements Compilable {
             return CompilationResult::failure(array("$path: must not be undefined"));
         }
         $valueType = runtime_type($definition);
-        if (!isset(self::valueClasses()[$valueType]) || !self::validFieldDefinition($definition)) {
+        if (!isset(self::valueClasses()[$valueType])) {
             return CompilationResult::failure(array("$path: unsupported value_type: $valueType"));
         }
 
@@ -36,14 +36,6 @@ class Val implements Compilable {
                 $schema,
                 "$path.$valueClass"
         );
-    }
-
-    private static function validFieldDefinition($definition) {
-        if (!is_array($definition)) {
-            return true;
-        }
-
-        return count($definition) === 1 && isset($definition['field']);
     }
 
     public function __construct($value) {

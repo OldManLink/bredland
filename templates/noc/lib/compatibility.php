@@ -19,11 +19,21 @@ function telemetry_hash_equals($known, $user) {
 }
 
 function runtime_type($value) {
-    switch (gettype($value)) {
-        case 'double':
-            return 'float';
+    $type = gettype($value);
 
-        default:
-            return gettype($value);
+    if ($type === 'double') {
+        return 'float';
     }
+
+    if ($type === 'array') {
+        $expected_key = 0;
+        foreach ($value as $key => $unused) {
+            if ($key !== $expected_key) {
+                return 'object';
+            }
+            $expected_key++;
+        }
+        return 'array';
+    }
+    return $type;
 }

@@ -95,7 +95,7 @@ $runner->test('rejects float value type', function () {
 });
 
 $runner->test('rejects array value type', function () {
-    assert_compile_error(FieldVal::compile(array(), test_schema(), 'array()'), 'array(): must be a non-empty string');
+    assert_compile_error(FieldVal::compile(array(), test_schema(), 'array()'), 'array(): invalid definition: []');
 });
 
 $runner->finish();

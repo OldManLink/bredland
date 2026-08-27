@@ -227,7 +227,7 @@ JSON
 
     assert_compile_error(
             Predicate::compile($json, $schema, 'rule.when'),
-            'rule.when.value: unsupported value_type: array'
+            'rule.when.value.FieldVal: invalid definition: {"field":"version","fubar":true}'
     );
 });
 
