@@ -1,0 +1,14 @@
+# Permanent harmless trusted-action test target.
+
+:local scriptName "noc-trusted-action-test"
+
+:if ([:len [/system script find name=$scriptName]] > 0) do={
+    /system script remove [find name=$scriptName]
+}
+
+/system script add \
+    name=$scriptName \
+    dont-require-permissions=yes \
+    source={
+        :log info "[NOC-TRUSTED-TEST] trusted action test invoked"
+    }

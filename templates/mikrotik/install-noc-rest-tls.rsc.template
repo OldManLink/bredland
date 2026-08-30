@@ -1,0 +1,10 @@
+# Configure HTTPS REST access for Bredland only.
+
+:local serviceName "www-ssl"
+:local certificateName "noc-rest-server"
+:local bredlandAddress "192.168.88.5/32"
+
+/ip service set $serviceName \
+    disabled=no \
+    certificate=$certificateName \
+    address=$bredlandAddress
