@@ -10,8 +10,17 @@ source "$(dirname "$0")/lib/mikrotik.sh"
 
 load_bredland_secrets
 
+tmpdir="$(mktemp -d)"
+cleanup() {
+    rm -rf "$tmpdir"
+
+    ssh "$router" \
+        ":foreach id in=[/file find name=\"${remote_file}\"] do={ /file remove \$id }" \
+        >/dev/null 2>&1 || true
+}
+
 template="templates/mikrotik/install-noc-heartbeat.rsc.template"
-rendered="/tmp/install-noc-heartbeat.rsc"
+rendered="${tmpdir}/install-noc-heartbeat.rsc"
 remote_file="install-noc-heartbeat.rsc"
 
 script_name="telemetry-heartbeat"
@@ -20,6 +29,8 @@ scheduler_name="telemetry-heartbeat-5m"
 router_user="${MIKROTIK_SSH_USER:?Missing MIKROTIK_SSH_USER}"
 router_host="${MIKROTIK_SSH_HOST:?Missing MIKROTIK_SSH_HOST}"
 router="${router_user}@${router_host}"
+
+trap cleanup EXIT
 
 echo "Rendering MikroTik heartbeat installer..."
 if scripts/render-template.sh "$template" "$rendered"; then
