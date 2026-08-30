@@ -14,7 +14,14 @@ class TestSuiteRunner:
         self.tests_failed = 0
         self.quiet = '-q' in sys.argv
 
-    def test(self, description, operation):
+    def test(self, description, operation=None):
+        if operation is None:
+            def register(test_operation):
+                self.test(description, test_operation)
+                return test_operation
+
+            return register
+
         self._output('→ {}\n'.format(description))
 
         try:

@@ -86,7 +86,7 @@ if $rerun_failed_suites; then
                 js_tests+=("tests/js/${suite#js:}.test.js")
                 ;;
 
-            php:*|sh:*)
+            php:*|sh:*|py:*)
                 explicit_selector=true
                 run_non_js=true
                 test_args+=("$suite")

@@ -49,6 +49,7 @@ docker_args=(
 if $preview; then
     docker_args+=(
         -p 127.0.0.1:8000:8000
+        -p 127.0.0.1:8081:8081
         -e LOCAL_NOC_PREVIEW=1
     )
 fi

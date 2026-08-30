@@ -123,6 +123,7 @@ BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081
 BREDLAND_TRUSTED_ALLOWED_ORIGIN=https://noc.example
 BREDLAND_TRUSTED_SCRIPT_PATH=/opaque-script
 BREDLAND_TRUSTED_STYLESHEET_PATH=/opaque-stylesheet
+MIKROTIK_REST_BASE_URL=https://mikrotik.example
 EOF
 
 run_render templates/bredland/trusted_discovery.template.py \
@@ -131,6 +132,7 @@ run_render templates/bredland/trusted_discovery.template.py \
 
 grep -q 'https://bredland.example:8081' "$tmpdir/trusted_discovery.py"
 grep -q 'https://noc.example' "$tmpdir/trusted_discovery.py"
+grep -q 'https://mikrotik.example' "$tmpdir/trusted_discovery.py"
 grep -q '/opaque-script' "$tmpdir/trusted_discovery.py"
 grep -q '/opaque-stylesheet' "$tmpdir/trusted_discovery.py"
 
