@@ -90,13 +90,12 @@ for test in "${test_scripts[@]}"; do
             echo
             echo "$suite" >> "$failed_suites_file"
             ((++crashed))
+
+            printf '{"suite":"%s","status":"crashed"}\n' \
+                "$suite" \
+                >"$statistics_file"
             ;;
     esac
-
-    printf '{"suite":"%s","status":"%s"}\n' \
-        "$suite" \
-        "$status" \
-        >"$statistics_file"
 
     rm -f "$output_file"
 done
@@ -104,6 +103,8 @@ done
 total=$((passed + failed + crashed))
 
 echo "Suite summary: $total test suites run, $passed passed, $failed failed, $crashed crashed"
+statistics_dir="$test_results_dir/statistics/py"
+python3 tests/python/lib/summarize_statistics.py "$statistics_dir"
 
 if (( failed || crashed )); then
     exit 1

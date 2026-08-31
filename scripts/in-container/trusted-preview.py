@@ -89,15 +89,21 @@ def main():
         )
     )
 
-    def execute_action(script_name):
-        print(
-            'Preview trusted action requested: {}'.format(
-                script_name
-            ),
-            flush=True,
-        )
+    def preview_post(url, body):
+        return trusted_discovery.post_json(
+            url,
+            body,
+            {
+                'Content-Type': 'application/json',
+            },
+            None,
+            urllib.request.urlopen,
+            )
 
-        return True
+    execute_action = trusted_discovery.create_routeros_action_executor(
+        trusted_discovery.MIKROTIK_REST_BASE_URL,
+        preview_post,
+    )
 
     server = trusted_discovery.create_server(
         '0.0.0.0',

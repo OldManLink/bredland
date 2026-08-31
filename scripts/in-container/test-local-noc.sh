@@ -13,11 +13,17 @@ server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
 server_pid=""
+mikrotik_preview_pid=""
 trusted_preview_pid=""
 jsonl_file=""
 
 cleanup()
 {
+    if [ -n "$mikrotik_preview_pid" ]; then
+        kill "$mikrotik_preview_pid" 2>/dev/null || true
+        wait "$mikrotik_preview_pid" 2>/dev/null || true
+    fi
+
     if [[ -n "$trusted_preview_pid" ]]; then
         kill "$trusted_preview_pid" 2>/dev/null || true
         wait "$trusted_preview_pid" 2>/dev/null || true
@@ -451,6 +457,37 @@ check_request \
 echo "✅ Rejected heartbeat that spoofs reserved field ts"
 
 if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
+    echo
+    echo "Starting mock MikroTik REST service..."
+
+    mikrotik_preview_log="$build_dir/mikrotik-rest-preview.log"
+
+    python3 scripts/in-container/mikrotik-rest-preview.py \
+        >"$mikrotik_preview_log" 2>&1 &
+
+    mikrotik_preview_pid=$!
+
+    for attempt in 1 2 3 4 5; do
+        if curl -s \
+            -o /dev/null \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            --data '{".id":"noc-trusted-action-test"}' \
+            http://127.0.0.1:8082/rest/system/script/run
+        then
+            echo "✅ Mock MikroTik REST service ready"
+            break
+        fi
+
+        if [ "$attempt" -eq 5 ]; then
+            echo "❌ Mock MikroTik REST service failed to start"
+            cat "$mikrotik_preview_log"
+            exit 1
+        fi
+
+        sleep 0.2
+    done
+
     echo
     echo "Rendering local trusted-discovery service..."
 

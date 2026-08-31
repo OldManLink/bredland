@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import threading
 import urllib.error
 import urllib.request
@@ -14,8 +15,8 @@ sys.path.insert(
     ),
 )
 
+import testlib
 from test_suite_runner import TestSuiteRunner
-from testlib import assert_same
 from trusted_discovery_testlib import load_trusted_discovery
 from trusted_discovery_testlib import stub_routeros_action_dependencies
 from trusted_discovery_testlib import restore_routeros_action_dependencies
@@ -25,7 +26,7 @@ trusted_discovery = load_trusted_discovery()
 
 @runner.test('maps supported resolution to RouterOS script')
 def supported_resolution_maps_to_routeros_script():
-    assert_same(
+    testlib.assert_same(
         'noc-trusted-action-test',
         trusted_discovery.routeros_script_for_resolution(
             'install-routeros-update',
@@ -34,14 +35,14 @@ def supported_resolution_maps_to_routeros_script():
 
 @runner.test('maps unsupported resolution to nothing')
 def unsupported_resolution_maps_to_nothing():
-    assert_same(
+    testlib.assert_same(
         None,
         trusted_discovery.routeros_script_for_resolution(
             'launch-missiles',
         ),
     )
 
-@runner.test('action endpoint executes supported resolution')
+@runner.test('action endpoint executes supported action resolution')
 def action_endpoint_executes_supported_resolution():
     calls = []
 
@@ -66,7 +67,7 @@ def action_endpoint_executes_supported_resolution():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -99,14 +100,14 @@ def action_endpoint_executes_supported_resolution():
 
         response = urllib.request.urlopen(request)
 
-        assert_same(200, response.status)
-        assert_same(
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
             'https://noc.arcanel.se',
             response.headers.get(
                 'Access-Control-Allow-Origin',
             ),
         )
-        assert_same(
+        testlib.assert_same(
             ['noc-trusted-action-test'],
             calls,
         )
@@ -132,7 +133,7 @@ def action_endpoint_rejects_unsupported_resolution():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -166,15 +167,11 @@ def action_endpoint_rejects_unsupported_resolution():
         try:
             urllib.request.urlopen(request)
         except urllib.error.HTTPError as error:
-            assert_same(400, error.code)
+            testlib.assert_same(400, error.code)
         else:
-            assert_same(
-                True,
-                False,
-                'Expected unsupported resolution to return 400',
-            )
+            testlib.fail('Expected unsupported resolution to return 400')
 
-        assert_same([], calls)
+        testlib.assert_same([], calls)
     finally:
         thread.join()
         server.server_close()
@@ -193,7 +190,7 @@ def action_endpoint_rejects_wrong_origin():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -226,15 +223,11 @@ def action_endpoint_rejects_wrong_origin():
         try:
             urllib.request.urlopen(request)
         except urllib.error.HTTPError as error:
-            assert_same(403, error.code)
+            testlib.assert_same(403, error.code)
         else:
-            assert_same(
-                True,
-                False,
-                'Expected wrong origin to return 403',
-            )
+            testlib.fail('Expected wrong origin to return 403')
 
-        assert_same([], calls)
+        testlib.assert_same([], calls)
     finally:
         thread.join()
         server.server_close()
@@ -247,7 +240,7 @@ def action_endpoint_allows_preflight_from_noc_origin():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         lambda script_name: True,
@@ -275,20 +268,20 @@ def action_endpoint_allows_preflight_from_noc_origin():
 
         response = urllib.request.urlopen(request)
 
-        assert_same(204, response.status)
-        assert_same(
+        testlib.assert_same(204, response.status)
+        testlib.assert_same(
             'https://noc.arcanel.se',
             response.headers.get(
                 'Access-Control-Allow-Origin',
             ),
         )
-        assert_same(
+        testlib.assert_same(
             'POST',
             response.headers.get(
                 'Access-Control-Allow-Methods',
             ),
         )
-        assert_same(
+        testlib.assert_same(
             'Content-Type',
             response.headers.get(
                 'Access-Control-Allow-Headers',
@@ -312,7 +305,7 @@ def action_endpoint_rejects_malformed_json():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -341,15 +334,136 @@ def action_endpoint_rejects_malformed_json():
         try:
             urllib.request.urlopen(request)
         except urllib.error.HTTPError as error:
-            assert_same(400, error.code)
+            testlib.assert_same(400, error.code)
         else:
-            assert_same(
-                True,
-                False,
-                'Expected malformed JSON to return 400',
-            )
+            testlib.fail('Expected malformed JSON to return 400')
 
-        assert_same([], calls)
+        testlib.assert_same([], calls)
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint rejects non-object JSON')
+def action_endpoint_rejects_non_object_json():
+    calls = []
+
+    def execute(script_name):
+        calls.append(script_name)
+        return True
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        None,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=b'[]',
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                400,
+                error.code,
+            )
+        else:
+            testlib.fail('Expected non-object JSON to return 400')
+
+        testlib.assert_same(
+            [],
+            calls,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint rejects non-string fields')
+def action_endpoint_rejects_non_string_fields():
+    calls = []
+
+    def execute(script_name):
+        calls.append(script_name)
+        return True
+
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 123,
+                    'token': [],
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                400,
+                error.code,
+            )
+        else:
+            testlib.fail('Expected non-string fields to return 400')
+
+        testlib.assert_same(
+            [],
+            calls,
+        )
     finally:
         thread.join()
         server.server_close()
@@ -372,7 +486,7 @@ def action_endpoint_rejects_missing_resolution():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -401,15 +515,11 @@ def action_endpoint_rejects_missing_resolution():
         try:
             urllib.request.urlopen(request)
         except urllib.error.HTTPError as error:
-            assert_same(400, error.code)
+            testlib.assert_same(400, error.code)
         else:
-            assert_same(
-                True,
-                False,
-                'Expected missing resolution to return 400',
-            )
+            testlib.fail('Expected missing resolution to return 400')
 
-        assert_same([], calls)
+        testlib.assert_same([], calls)
     finally:
         thread.join()
         server.server_close()
@@ -426,7 +536,7 @@ def discovers_rendered_resolution_from_noc_html():
     with open(fixture_path, 'r') as fixture:
         html = fixture.read()
 
-    assert_same(
+    testlib.assert_same(
         ['install-routeros-update'],
         trusted_discovery.resolutions_from_noc_html(html),
     )
@@ -443,14 +553,14 @@ def discovers_no_resolution_from_noc_html():
     with open(fixture_path, 'r') as fixture:
         html = fixture.read()
 
-    assert_same(
+    testlib.assert_same(
         [],
         trusted_discovery.resolutions_from_noc_html(html),
     )
 
 @runner.test('keeps only supported rendered resolutions')
 def keeps_only_supported_rendered_resolutions():
-    assert_same(
+    testlib.assert_same(
         ['install-routeros-update'],
         trusted_discovery.supported_rendered_resolutions(
             [
@@ -473,7 +583,7 @@ def issues_capability_for_supported_rendered_resolution():
         200,
     )
 
-    assert_same(
+    testlib.assert_same(
         {
             'install-routeros-update': 'test-token',
         },
@@ -493,7 +603,7 @@ def consumes_capability_only_once():
         200,
     )
 
-    assert_same(
+    testlib.assert_same(
         'noc-trusted-action-test',
         registry.consume(
             'install-routeros-update',
@@ -501,12 +611,92 @@ def consumes_capability_only_once():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         None,
         registry.consume(
             'install-routeros-update',
             'test-token',
         ),
+    )
+
+@runner.test('consumes capability atomically across threads')
+def consumes_capability_atomically_across_threads():
+    results = []
+    errors = []
+
+    class SlowCapabilities(dict):
+        def get(self, token):
+            capability = dict.get(
+                self,
+                token,
+            )
+
+            if capability is not None:
+                time.sleep(0.05)
+
+            return capability
+
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.capabilities = SlowCapabilities()
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    def consume():
+        try:
+            results.append(
+                registry.consume(
+                    'install-routeros-update',
+                    'test-token',
+                )
+            )
+        except Exception as error:
+            errors.append(
+                error.__class__.__name__
+            )
+
+    threads = [
+        threading.Thread(
+            target=consume,
+        ),
+        threading.Thread(
+            target=consume,
+        ),
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    testlib.assert_same(
+        [],
+        errors,
+    )
+
+    testlib.assert_same(
+        2,
+        len(results),
+    )
+
+    testlib.assert_same(
+        1,
+        results.count(
+            'noc-trusted-action-test',
+        ),
+    )
+
+    testlib.assert_same(
+        1,
+        results.count(None),
     )
 
 @runner.test('does not consume capability for wrong resolution')
@@ -522,7 +712,7 @@ def does_not_consume_capability_for_wrong_resolution():
         200,
     )
 
-    assert_same(
+    testlib.assert_same(
         None,
         registry.consume(
             'different-resolution',
@@ -530,7 +720,7 @@ def does_not_consume_capability_for_wrong_resolution():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         'noc-trusted-action-test',
         registry.consume(
             'install-routeros-update',
@@ -551,7 +741,7 @@ def rejects_expired_capability():
         110,
     )
 
-    assert_same(
+    testlib.assert_same(
         'noc-trusted-action-test',
         registry.consume(
             'install-routeros-update',
@@ -566,7 +756,7 @@ def rejects_expired_capability():
         90,
     )
 
-    assert_same(
+    testlib.assert_same(
         None,
         registry.consume(
             'install-routeros-update',
@@ -587,7 +777,7 @@ def removes_expired_capability_when_consumed():
         90,
     )
 
-    assert_same(
+    testlib.assert_same(
         None,
         registry.consume(
             'install-routeros-update',
@@ -595,7 +785,7 @@ def removes_expired_capability_when_consumed():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         None,
         registry.consume(
             'install-routeros-update',
@@ -628,7 +818,7 @@ def action_endpoint_consumes_capability_before_execution():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -661,13 +851,13 @@ def action_endpoint_consumes_capability_before_execution():
 
         response = urllib.request.urlopen(request)
 
-        assert_same(200, response.status)
-        assert_same(
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
             ['noc-trusted-action-test'],
             calls,
         )
 
-        assert_same(
+        testlib.assert_same(
             None,
             registry.consume(
                 'install-routeros-update',
@@ -703,7 +893,7 @@ def action_endpoint_rejects_replayed_capability():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         execute,
@@ -741,7 +931,7 @@ def action_endpoint_rejects_replayed_capability():
         first_response = urllib.request.urlopen(
             request()
         )
-        assert_same(
+        testlib.assert_same(
             200,
             first_response.status,
         )
@@ -751,18 +941,20 @@ def action_endpoint_rejects_replayed_capability():
                 request()
             )
         except urllib.error.HTTPError as error:
-            assert_same(
+            testlib.assert_same(
                 400,
                 error.code,
             )
-        else:
-            assert_same(
-                True,
-                False,
-                'Expected replayed capability to be rejected',
+            testlib.assert_same(
+                'https://noc.arcanel.se',
+                error.headers.get(
+                    'Access-Control-Allow-Origin',
+                ),
             )
+        else:
+            testlib.fail('Expected replayed capability to be rejected')
 
-        assert_same(
+        testlib.assert_same(
             ['noc-trusted-action-test'],
             calls,
         )
@@ -783,14 +975,14 @@ def registers_issued_capability():
         200,
     )
 
-    assert_same(
+    testlib.assert_same(
         {
             'install-routeros-update': 'test-token',
         },
         capabilities,
     )
 
-    assert_same(
+    testlib.assert_same(
         'noc-trusted-action-test',
         registry.consume(
             'install-routeros-update',
@@ -816,7 +1008,7 @@ def trusted_script_includes_capability_for_rendered_resolution():
             return fixture.read()
 
     script = trusted_discovery.render_trusted_script(
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         'https://bredland.example:8081',
         load_noc_html,
         lambda: 'test-token',
@@ -824,16 +1016,40 @@ def trusted_script_includes_capability_for_rendered_resolution():
         200,
     )
 
-    assert_same(
-        True,
-        '"install-routeros-update": "test-token"' in script,
-        )
+    testlib.assert_string_contains(
+        '"install-routeros-update": "test-token"',
+        script,
+    )
 
-    assert_same(
-        True,
-        'window.TRUSTED_BASE_URL = "https://bredland.example:8081";'
-        in script,
-        )
+    testlib.assert_string_contains('window.TRUSTED_BASE_URL = "https://bredland.example:8081";', script)
+
+@runner.test('trusted script preserves static banner first')
+def trusted_script_preserves_static_banner_first():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    script = trusted_discovery.render_trusted_script(
+        '// Bredland trusted-mode JavaScript\n'
+        '// Served only from the trusted network\n'
+        '// BRD-030 trusted discovery asset\n'
+        '\n'
+        'console.log("trusted");',
+        'https://bredland.example:8081',
+        lambda: '<div data-resolution="install-routeros-update"></div>',
+        lambda: 'test-token',
+        registry,
+        200,
+    )
+
+    testlib.assert_same(
+        '// Bredland trusted-mode JavaScript\n'
+        '// Served only from the trusted network\n'
+        '// BRD-030 trusted discovery asset',
+        '\n'.join(
+            script.splitlines()[:3]
+        ),
+    )
 
 @runner.test('trusted script has no capabilities without rendered resolution')
 def trusted_script_has_no_capabilities_without_rendered_resolution():
@@ -853,7 +1069,7 @@ def trusted_script_has_no_capabilities_without_rendered_resolution():
             return fixture.read()
 
     script = trusted_discovery.render_trusted_script(
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         'https://bredland.example:8081',
         load_noc_html,
         lambda: 'test-token',
@@ -861,17 +1077,9 @@ def trusted_script_has_no_capabilities_without_rendered_resolution():
         200,
     )
 
-    assert_same(
-        True,
-        'window.TRUSTED_CAPABILITIES = {};' in script,
-        )
+    testlib.assert_string_contains('window.TRUSTED_CAPABILITIES = {};', script)
+    testlib.assert_string_ends_with('window.TEST_TRUSTED_ASSET_LOADED = true;', script)
 
-    assert_same(
-        True,
-        script.endswith(
-            'window.TRUSTED_MODE = true;'
-        ),
-    )
 
 @runner.test('trusted script GET renders current capabilities')
 def trusted_script_get_renders_current_capabilities():
@@ -906,7 +1114,7 @@ def trusted_script_get_renders_current_capabilities():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         lambda script_name: True,
@@ -928,10 +1136,7 @@ def trusted_script_get_renders_current_capabilities():
 
         script = response.read().decode('utf-8')
 
-        assert_same(
-            True,
-            '"install-routeros-update": "test-token"' in script,
-            )
+        testlib.assert_string_contains('"install-routeros-update": "test-token"', script)
     finally:
         thread.join()
         server.server_close()
@@ -953,12 +1158,12 @@ def fetches_current_noc_html():
         open_url,
     )
 
-    assert_same(
+    testlib.assert_same(
         ['https://noc.arcanel.se/'],
         requested_urls,
     )
 
-    assert_same(
+    testlib.assert_same(
         '<html>current NOC</html>',
         html,
     )
@@ -970,10 +1175,10 @@ def generates_cryptographically_random_capability_token():
     ])
 
     def token_bytes(length):
-        assert_same(32, length)
+        testlib.assert_same(32, length)
         return next(tokens)
 
-    assert_same(
+    testlib.assert_same(
         '01020304',
         trusted_discovery.generate_capability_token(
             token_bytes,
@@ -984,14 +1189,14 @@ def generates_cryptographically_random_capability_token():
 def creates_capability_token():
     token = trusted_discovery.create_capability_token()
 
-    assert_same(
+    testlib.assert_same(
         64,
         len(token),
     )
 
 @runner.test('calculates capability expiry')
 def calculates_capability_expiry():
-    assert_same(
+    testlib.assert_same(
         130,
         trusted_discovery.capability_expiry(
             lambda: 100,
@@ -1025,14 +1230,11 @@ def creates_trusted_script_renderer():
     )
 
     script = renderer(
-        'window.TRUSTED_MODE = true;'
+        'window.TEST_TRUSTED_ASSET_LOADED = true;'
     )
 
-    assert_same(
-        True,
-        '"install-routeros-update": "test-token"' in script,
-        )
-    assert_same(
+    testlib.assert_string_contains('"install-routeros-update": "test-token"', script)
+    testlib.assert_same(
         'noc-trusted-action-test',
         registry.consume(
             'install-routeros-update',
@@ -1060,7 +1262,7 @@ def executes_routeros_script_through_rest():
         post,
     )
 
-    assert_same(
+    testlib.assert_same(
         [
             (
                 'https://192.168.88.1/rest/system/script/run',
@@ -1072,10 +1274,7 @@ def executes_routeros_script_through_rest():
         calls,
     )
 
-    assert_same(
-        True,
-        result,
-    )
+    testlib.assert_true(result)
 
 @runner.test('posts JSON to RouterOS REST')
 def posts_json_to_routeros_rest():
@@ -1109,41 +1308,38 @@ def posts_json_to_routeros_rest():
         open_request,
     )
 
-    assert_same(
-        True,
-        result,
-    )
+    testlib.assert_true(result)
 
-    assert_same(
+    testlib.assert_same(
         'https://192.168.88.1/rest/system/script/run',
         calls[0][0],
     )
 
-    assert_same(
+    testlib.assert_same(
         'POST',
         calls[0][1],
     )
 
-    assert_same(
+    testlib.assert_same(
         b'{".id":"noc-trusted-action-test"}',
         calls[0][2],
     )
 
-    assert_same(
+    testlib.assert_same(
         'Basic test',
         calls[0][3].get(
             'Authorization',
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         'application/json',
         calls[0][3].get(
             'Content-type',
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         'test-context',
         calls[0][4],
     )
@@ -1158,7 +1354,7 @@ def loads_routeros_rest_credentials():
 
         with open(credentials_file, 'w') as file:
             file.write(
-                'MIKROTIK_REST_USERNAME=noc-rest-bredland\n'
+                'MIKROTIK_REST_USER=noc-rest-bredland\n'
                 'MIKROTIK_REST_PASSWORD=test-password\n'
             )
 
@@ -1168,7 +1364,7 @@ def loads_routeros_rest_credentials():
             )
         )
 
-        assert_same(
+        testlib.assert_same(
             {
                 'username': 'noc-rest-bredland',
                 'password': 'test-password',
@@ -1178,7 +1374,7 @@ def loads_routeros_rest_credentials():
 
 @runner.test('builds RouterOS REST authorization header')
 def builds_routeros_rest_authorization_header():
-    assert_same(
+    testlib.assert_same(
         'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
         trusted_discovery.routeros_rest_authorization(
             'noc-rest-bredland',
@@ -1211,14 +1407,14 @@ def creates_routeros_rest_tls_context():
     finally:
         trusted_discovery.ssl = original_ssl
 
-    assert_same(
+    testlib.assert_same(
         [
             '/etc/bredland/mikrotik-rest/ca.pem',
         ],
         calls,
     )
 
-    assert_same(
+    testlib.assert_same(
         'tls-context',
         context,
     )
@@ -1265,24 +1461,21 @@ def creates_authenticated_routeros_rest_poster():
         },
     )
 
-    assert_same(
-        True,
-        result,
-    )
+    testlib.assert_true(result)
 
-    assert_same(
+    testlib.assert_same(
         'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
         calls[0][2].get(
             'Authorization',
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         'tls-context',
         calls[0][3],
     )
 
-    assert_same(
+    testlib.assert_same(
         'open-request',
         calls[0][4],
     )
@@ -1310,12 +1503,9 @@ def creates_routeros_action_executor():
         'noc-trusted-action-test',
     )
 
-    assert_same(
-        True,
-        result,
-    )
+    testlib.assert_true(result)
 
-    assert_same(
+    testlib.assert_same(
         [
             (
                 'https://192.168.88.1/rest/system/script/run',
@@ -1326,5 +1516,265 @@ def creates_routeros_action_executor():
         ],
         calls,
     )
+
+@runner.test('action endpoint reports executor failure')
+def action_endpoint_reports_executor_failure():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        lambda script_name: False,
+        registry,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail('Expected executor failure to return 500')
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint handles executor exception')
+def action_endpoint_handles_executor_exception():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    def execute(script_name):
+        raise RuntimeError(
+            'RouterOS unavailable'
+        )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail('Expected executor exception to return 500')
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint reports missing executor with CORS')
+def action_endpoint_reports_missing_executor_with_cors():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        None,
+        registry,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+
+            testlib.assert_same(
+                'https://noc.arcanel.se',
+                error.headers.get(
+                    'Access-Control-Allow-Origin',
+                ),
+            )
+        else:
+            testlib.fail('Expected missing executor to return 500')
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint reports missing registry with CORS')
+def action_endpoint_reports_missing_registry_with_cors():
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        lambda script_name: True,
+        None,
+        None,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+
+            testlib.assert_same(
+                'https://noc.arcanel.se',
+                error.headers.get(
+                    'Access-Control-Allow-Origin',
+                ),
+            )
+        else:
+            testlib.fail('Expected missing registry to return 500')
+    finally:
+        thread.join()
+        server.server_close()
 
 runner.finish()

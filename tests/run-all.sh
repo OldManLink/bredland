@@ -21,6 +21,7 @@ rerun_failed_suites=false
 list_only=false
 print_failures_only=false
 
+failed_suite_prefixes=()
 test_args=()
 js_tests=()
 
@@ -60,6 +61,27 @@ for arg in "$@"; do
             test_args+=("$arg")
             ;;
 
+        php)
+            explicit_selector=true
+            run_non_js=true
+            test_args+=("$arg")
+            failed_suite_prefixes+=("php:")
+            ;;
+
+        python)
+            explicit_selector=true
+            run_non_js=true
+            test_args+=("$arg")
+            failed_suite_prefixes+=("py:")
+            ;;
+
+        shell)
+            explicit_selector=true
+            run_non_js=true
+            test_args+=("$arg")
+            failed_suite_prefixes+=("sh:")
+            ;;
+
         *)
             explicit_selector=true
             run_non_js=true
@@ -69,6 +91,7 @@ for arg in "$@"; do
 done
 
 if $rerun_failed_suites; then
+    failed_suites_added=0
     if [[ ! -f "$failed_suites_file" ]]; then
         echo "❌ No previous failed-suite record exists." >&2
         exit 1
@@ -84,18 +107,35 @@ if $rerun_failed_suites; then
                 explicit_selector=true
                 run_js=true
                 js_tests+=("tests/js/${suite#js:}.test.js")
+                ((++failed_suites_added))
                 ;;
 
             php:*|sh:*|py:*)
-                explicit_selector=true
-                run_non_js=true
-                test_args+=("$suite")
+                include_suite=true
+
+                if (( ${#failed_suite_prefixes[@]} > 0 )); then
+                    include_suite=false
+
+                    for prefix in "${failed_suite_prefixes[@]}"; do
+                        if [[ "$suite" == "$prefix"* ]]; then
+                            include_suite=true
+                            break
+                        fi
+                    done
+                fi
+
+                if $include_suite; then
+                    explicit_selector=true
+                    run_non_js=true
+                    test_args+=("$suite")
+                    ((++failed_suites_added))
+                fi
                 ;;
         esac
     done < "$failed_suites_file"
 
-    if ! $run_js && ! $run_non_js; then
-        echo "✅ No failed suites from the previous run."
+    if (( failed_suites_added == 0 )); then
+        echo "✅ No matching failed suites from the previous run."
         exit 0
     fi
 fi

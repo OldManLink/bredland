@@ -12,8 +12,8 @@ sys.path.insert(
     ),
 )
 
+import testlib
 from test_suite_runner import TestSuiteRunner
-from testlib import assert_same
 from trusted_discovery_testlib import load_trusted_discovery
 from trusted_discovery_testlib import stub_routeros_action_dependencies
 from trusted_discovery_testlib import restore_routeros_action_dependencies
@@ -61,7 +61,7 @@ def expected_client_disconnect_errors_are_suppressed():
             ('127.0.0.1', 12345),
         )
 
-        assert_same(
+        testlib.assert_same(
             [],
             calls,
         )
@@ -108,7 +108,7 @@ def unexpected_server_errors_are_delegated():
             ('127.0.0.1', 12345),
         )
 
-        assert_same(
+        testlib.assert_same(
             [
                 (
                     'request',
@@ -129,7 +129,7 @@ def slow_client_does_not_block_probe():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -190,11 +190,10 @@ def slow_client_does_not_block_probe():
         thread.join()
         server.server_close()
 
-    assert_same(
-        True,
-        response is not None and b'200 OK' in response,
-        'Expected a slow client not to block another probe',
-        )
+    testlib.assert_true(
+    response is not None and b'200 OK' in response,
+    'Expected a slow client not to block another probe',
+)
 
 @runner.test('keeps TLS handshake off the listening socket')
 def configured_server_uses_tls():
@@ -238,7 +237,7 @@ def configured_server_uses_tls():
         )
 
         with open(script_file, 'w') as file:
-            file.write('window.TRUSTED_MODE = true;')
+            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
 
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
@@ -271,7 +270,7 @@ def configured_server_uses_tls():
                 routeros_originals,
             )
 
-    assert_same(
+    testlib.assert_same(
         [
             ('SSLContext', 'tls-server'),
             (
@@ -283,7 +282,7 @@ def configured_server_uses_tls():
         calls,
     )
 
-    assert_same(
+    testlib.assert_same(
         'plain-socket',
         server.socket,
     )
@@ -331,7 +330,7 @@ def worker_wraps_client_connection_in_tls():
     finally:
         trusted_discovery.ThreadingHTTPServer = original
 
-    assert_same(
+    testlib.assert_same(
         [
             (
                 'wrap_socket',

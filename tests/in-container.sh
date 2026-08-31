@@ -31,6 +31,28 @@ matches_selector()
     return 1
 }
 
+# Language selection
+
+matches_language()
+{
+    local suite="$1"
+    shift
+
+    local language
+
+    if (( $# == 0 )); then
+        return 0
+    fi
+
+    for language in "$@"; do
+        if [[ "$suite" == "$language:"* ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 ran_shell_tests=false
 ran_php_tests=false
 ran_python_tests=false
@@ -40,6 +62,7 @@ print_failures_only=false
 
 selectors=()
 test_args=()
+languages=()
 selected_shell_tests=()
 selected_php_tests=()
 selected_python_tests=()
@@ -65,15 +88,15 @@ for arg in "$@"; do
             ;;
 
         php)
-            selectors+=("php:*")
+            languages+=("php")
             ;;
 
         python)
-            selectors+=("py:*")
+            languages+=("py")
             ;;
 
         shell)
-            selectors+=("sh:*")
+            languages+=("sh")
             ;;
 
         *)
@@ -119,7 +142,9 @@ for test in "${shell_tests[@]}"; do
     suite="${suite%.test.sh}"
     suite="sh:$suite"
 
-    if matches_selector "$suite" "${selectors[@]}"; then
+    if matches_selector "$suite" "${selectors[@]}" \
+        && matches_language "$suite" "${languages[@]}"
+    then
         selected_shell_tests+=("$test")
         selected_suite_ids+=("$suite")
     fi
@@ -131,7 +156,9 @@ for test in "${php_tests[@]}"; do
     suite="${suite%.test.php}"
     suite="php:$suite"
 
-    if matches_selector "$suite" "${selectors[@]}"; then
+    if matches_selector "$suite" "${selectors[@]}" \
+        && matches_language "$suite" "${languages[@]}"
+    then
         selected_php_tests+=("$test")
         selected_suite_ids+=("$suite")
     fi
@@ -143,7 +170,9 @@ for test in "${python_tests[@]}"; do
     suite="${suite%.test.py}"
     suite="py:$suite"
 
-    if matches_selector "$suite" "${selectors[@]}"; then
+    if matches_selector "$suite" "${selectors[@]}" \
+        && matches_language "$suite" "${languages[@]}"
+    then
         selected_python_tests+=("$test")
         selected_suite_ids+=("$suite")
     fi

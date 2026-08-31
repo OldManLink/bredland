@@ -98,6 +98,16 @@ run_step \
      sudo systemctl restart trusted-discovery.service"
 
 run_step \
+    "Removing trusted discovery staging files" \
+    execute_remote_command \
+    "$bredland_host" \
+    "rm -f \
+         /tmp/trusted_discovery.py \
+         /tmp/trusted.js \
+         /tmp/trusted.css \
+         /tmp/trusted-discovery.service"
+
+run_step \
     "Verifying trusted discovery service" \
     execute_remote_command \
     "$bredland_host" \
@@ -122,7 +132,7 @@ run_step \
 
      echo &&
 
-curl --fail --silent --show-error \
+     curl --fail --silent --show-error \
         --dump-header \"\$script_headers\" \
         '${BREDLAND_TRUSTED_BASE_URL}${BREDLAND_TRUSTED_SCRIPT_PATH}' \
         | head -3 &&

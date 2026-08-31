@@ -14,8 +14,8 @@ sys.path.insert(
     ),
 )
 
+import testlib
 from test_suite_runner import TestSuiteRunner
-from testlib import assert_same
 from trusted_discovery_testlib import load_trusted_discovery
 from trusted_discovery_testlib import stub_routeros_action_dependencies
 from trusted_discovery_testlib import restore_routeros_action_dependencies
@@ -26,7 +26,7 @@ trusted_discovery = load_trusted_discovery()
 
 @runner.test('renders the trusted discovery response')
 def discovery_response_is_rendered():
-    assert_same(
+    testlib.assert_same(
         '{"assets":{"script":"https://bredland.example/opaque-script",'
         '"stylesheet":"https://bredland.example/opaque-style"}}',
         trusted_discovery.render_discovery_response(
@@ -43,9 +43,7 @@ def discovery_endpoint_returns_json():
         None,
     )
 
-    assert_same(
-        True,
-        callable(create_server),
+    testlib.assert_true(callable(create_server),
         'Expected trusted discovery to provide create_server()',
     )
 
@@ -55,7 +53,7 @@ def discovery_endpoint_returns_json():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -77,16 +75,16 @@ def discovery_endpoint_returns_json():
 
         body = response.read().decode('utf-8')
 
-        assert_same(200, response.status)
-        assert_same(
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
             'application/json',
             response.headers.get_content_type(),
         )
-        assert_same(
+        testlib.assert_same(
             'no-store',
             response.headers.get('Cache-Control'),
         )
-        assert_same(
+        testlib.assert_same(
             '{"assets":{"script":"https://bredland.example/trusted-script-test",'
             '"stylesheet":"https://bredland.example/trusted-style-test"}}',
             body,
@@ -103,7 +101,7 @@ def discovery_endpoint_only_serves_probe_path():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -123,7 +121,7 @@ def discovery_endpoint_only_serves_probe_path():
             ),
         )
 
-        assert_same(200, response.status)
+        testlib.assert_same(200, response.status)
 
         try:
             urllib.request.urlopen(
@@ -132,13 +130,9 @@ def discovery_endpoint_only_serves_probe_path():
                 ),
             )
         except urllib.error.HTTPError as error:
-            assert_same(404, error.code)
+            testlib.assert_same(404, error.code)
         else:
-            assert_same(
-                True,
-                False,
-                'Expected unrelated path to return 404',
-            )
+            testlib.fail('Expected unrelated path to return 404')
     finally:
         server.shutdown()
         thread.join()
@@ -152,7 +146,7 @@ def discovery_endpoint_allows_noc_origin():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -172,7 +166,7 @@ def discovery_endpoint_allows_noc_origin():
             ),
         )
 
-        assert_same(
+        testlib.assert_same(
             'https://noc.arcanel.se',
             response.headers.get(
                 'Access-Control-Allow-Origin',
@@ -184,7 +178,7 @@ def discovery_endpoint_allows_noc_origin():
 
 @runner.test('uses rendered deployment configuration')
 def deployment_configuration_is_rendered():
-    assert_same(
+    testlib.assert_same(
         'https://bredland.example:8081',
         getattr(
             trusted_discovery,
@@ -193,7 +187,7 @@ def deployment_configuration_is_rendered():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         'https://noc.arcanel.se',
         getattr(
             trusted_discovery,
@@ -202,7 +196,7 @@ def deployment_configuration_is_rendered():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         '/trusted-script-test',
         getattr(
             trusted_discovery,
@@ -211,7 +205,7 @@ def deployment_configuration_is_rendered():
         ),
     )
 
-    assert_same(
+    testlib.assert_same(
         '/trusted-style-test',
         getattr(
             trusted_discovery,
@@ -234,7 +228,7 @@ def configured_server_uses_rendered_configuration():
         )
 
         with open(script_file, 'w') as file:
-            file.write('window.TRUSTED_MODE = true;')
+            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
 
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
@@ -292,13 +286,13 @@ def configured_server_uses_rendered_configuration():
 
             body = response.read().decode('utf-8')
 
-            assert_same(
+            testlib.assert_same(
                 '{"assets":{"script":"https://bredland.example:8081/trusted-script-test",'
                 '"stylesheet":"https://bredland.example:8081/trusted-style-test"}}',
                 body,
             )
 
-            assert_same(
+            testlib.assert_same(
                 'https://noc.arcanel.se',
                 response.headers.get(
                     'Access-Control-Allow-Origin',
@@ -324,7 +318,7 @@ def configured_server_serves_rendered_trusted_script():
         )
 
         with open(script_file, 'w') as file:
-            file.write('window.TRUSTED_MODE = true;')
+            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
 
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
@@ -393,7 +387,7 @@ def configured_server_serves_rendered_trusted_script():
 
                 body = response.read().decode('utf-8')
 
-                assert_same(
+                testlib.assert_same(
                     'window.CONFIGURED_RENDERER = true;',
                     body,
                 )
@@ -436,7 +430,7 @@ def main_runs_configured_server():
     finally:
         trusted_discovery.create_configured_server = original
 
-    assert_same(
+    testlib.assert_same(
         [
             ('0.0.0.0', 8081),
             'serve_forever',
@@ -469,15 +463,13 @@ def main_guard_comes_after_function_definitions():
         )
     ]
 
-    assert_same(
+    testlib.assert_same(
         1,
         len(main_guard_lines),
         'Expected exactly one __main__ guard',
     )
 
-    assert_same(
-        True,
-        main_guard_lines[0] > max(function_lines),
+    testlib.assert_true(main_guard_lines[0] > max(function_lines),
         '__main__ guard must come after all function definitions',
         )
 
@@ -511,7 +503,7 @@ def configured_server_wires_routeros_action_executor():
         )
 
         with open(script_file, 'w') as file:
-            file.write('window.TRUSTED_MODE = true;')
+            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
 
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
@@ -589,7 +581,7 @@ def configured_server_wires_routeros_action_executor():
                 original_create_executor
             )
 
-    assert_same(
+    testlib.assert_same(
         ['routeros-action-executor'],
         calls,
     )

@@ -12,8 +12,8 @@ sys.path.insert(
     ),
 )
 
+import testlib
 from test_suite_runner import TestSuiteRunner
-from testlib import assert_same
 from trusted_discovery_testlib import load_trusted_discovery
 from trusted_discovery_testlib import stub_routeros_action_dependencies
 from trusted_discovery_testlib import restore_routeros_action_dependencies
@@ -30,7 +30,7 @@ def trusted_script_is_served():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -52,17 +52,17 @@ def trusted_script_is_served():
 
         body = response.read().decode('utf-8')
 
-        assert_same(200, response.status)
-        assert_same(
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
             'application/javascript',
             response.headers.get_content_type(),
         )
-        assert_same(
+        testlib.assert_same(
             'no-store',
             response.headers.get('Cache-Control'),
         )
-        assert_same(
-            'window.TRUSTED_MODE = true;',
+        testlib.assert_same(
+            'window.TEST_TRUSTED_ASSET_LOADED = true;',
             body,
         )
     finally:
@@ -77,7 +77,7 @@ def trusted_stylesheet_is_served():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -99,16 +99,16 @@ def trusted_stylesheet_is_served():
 
         body = response.read().decode('utf-8')
 
-        assert_same(200, response.status)
-        assert_same(
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
             'text/css',
             response.headers.get_content_type(),
         )
-        assert_same(
+        testlib.assert_same(
             'no-store',
             response.headers.get('Cache-Control'),
         )
-        assert_same(
+        testlib.assert_same(
             'html { outline: 1px solid; }',
             body,
         )
@@ -124,7 +124,7 @@ def discovery_urls_match_served_asset_paths():
         'https://bredland.example',
         'https://noc.arcanel.se',
         '/trusted-script-test',
-        'window.TRUSTED_MODE = true;',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         '/trusted-style-test',
         'html { outline: 1px solid; }',
         None,
@@ -146,7 +146,7 @@ def discovery_urls_match_served_asset_paths():
 
         body = response.read().decode('utf-8')
 
-        assert_same(
+        testlib.assert_same(
             '{"assets":{"script":"https://bredland.example/trusted-script-test",'
             '"stylesheet":"https://bredland.example/trusted-style-test"}}',
             body,
@@ -171,7 +171,7 @@ def configured_server_loads_trusted_assets_from_files():
         )
 
         with open(script_file, 'w') as file:
-            file.write('window.TRUSTED_MODE = true;')
+            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
 
         with open(stylesheet_file, 'w') as file:
             file.write('html { outline: 1px solid; }')
@@ -235,19 +235,14 @@ def configured_server_loads_trusted_assets_from_files():
 
             script_body = script_response.read().decode('utf-8')
 
-            assert_same(
-                True,
-                'window.TRUSTED_CAPABILITIES = ' in script_body,
+            testlib.assert_string_contains(
+                'window.TRUSTED_CAPABILITIES = ',
+                script_body,
             )
 
-            assert_same(
-                True,
-                script_body.endswith(
-                    'window.TRUSTED_MODE = true;'
-                ),
-            )
+            testlib.assert_string_ends_with('window.TEST_TRUSTED_ASSET_LOADED = true;', script_body)
 
-            assert_same(
+            testlib.assert_same(
                 'html { outline: 1px solid; }',
                 stylesheet_response.read().decode('utf-8'),
             )

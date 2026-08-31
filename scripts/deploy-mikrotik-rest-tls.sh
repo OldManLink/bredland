@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+regenerate_ca=false
+
+if [[ "${1:-}" == "--regenerate-ca" ]]; then
+    regenerate_ca=true
+elif [[ $# -gt 0 ]]; then
+    echo "Usage: $0 [--regenerate-ca]" >&2
+    exit 2
+fi
 
 # shellcheck source=scripts/lib/bredland.sh
 source "$(dirname "$0")/lib/bredland.sh"
@@ -77,7 +85,14 @@ run_step \
     "Creating or preserving MikroTik REST CA on Bredland" \
     execute_remote_command \
     "$bredland_host" \
-    "if sudo test -s '$ca_cert' && sudo test -s '$ca_key'; then
+    "if [[ '$regenerate_ca' == 'true' ]]; then
+         sudo rm -f \
+             '$ca_cert' \
+             '$ca_key' \
+             '${ca_cert}.srl'
+     fi
+
+     if sudo test -s '$ca_cert' && sudo test -s '$ca_key'; then
          exit 0
      fi
 
@@ -88,11 +103,24 @@ run_step \
          -days 3650 \
          -nodes \
          -subj '/CN=Bredland MikroTik REST CA' \
+         -addext 'basicConstraints=critical,CA:TRUE' \
+         -addext 'keyUsage=critical,keyCertSign,cRLSign' \
          -keyout '$ca_key' \
          -out '$ca_cert' &&
 
      sudo chmod 0600 '$ca_key' &&
      sudo chmod 0644 '$ca_cert'"
+
+run_step \
+    "Verifying MikroTik REST CA on Bredland" \
+    execute_remote_command \
+    "$bredland_host" \
+    "sudo openssl x509 \
+         -in '$ca_cert' \
+         -noout \
+         -text \
+         | grep -A2 'X509v3 Key Usage: critical' \
+         | grep -q 'Certificate Sign'"
 
 run_step \
     "Setting MikroTik REST CA permissions on Bredland" \
@@ -271,9 +299,15 @@ run_step \
     "Removing uploaded MikroTik REST files" \
     ssh \
     "$router" \
-    "/file remove ${remote_server_cert}; \
-     /file remove ${remote_server_key}; \
-     /file remove ${remote_installer}"
+    ":foreach name in={ \
+         \"${remote_server_cert}\"; \
+         \"${remote_server_key}\"; \
+         \"${remote_installer}\" \
+     } do={ \
+         :foreach id in=[/file find name=\$name] do={ \
+             /file remove \$id \
+         } \
+     }"
 
 echo
 pass "MikroTik REST TLS deployed"

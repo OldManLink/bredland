@@ -1,10 +1,11 @@
 import base64
 import json
+import secrets
 import ssl
 import sys
 import time
+import threading
 import urllib.request
-import secrets
 
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
@@ -76,6 +77,7 @@ class CapabilityRegistry:
     def __init__(self, now):
         self.now = now
         self.capabilities = {}
+        self.lock = threading.Lock()
 
     def register(
         self,
@@ -91,25 +93,26 @@ class CapabilityRegistry:
         }
 
     def consume(
-        self,
-        resolution,
-        token,
+            self,
+            resolution,
+            token,
     ):
-        capability = self.capabilities.get(token)
+        with self.lock:
+            capability = self.capabilities.get(token)
 
-        if capability is None:
-            return None
+            if capability is None:
+                return None
 
-        if capability['resolution'] != resolution:
-            return None
+            if capability['resolution'] != resolution:
+                return None
 
-        if self.now() >= capability['expires_at']:
+            if self.now() >= capability['expires_at']:
+                del self.capabilities[token]
+                return None
+
             del self.capabilities[token]
-            return None
 
-        del self.capabilities[token]
-
-        return capability['script_name']
+            return capability['script_name']
 
 def resolutions_from_noc_html(html):
     parser = ResolutionParser()
@@ -177,6 +180,31 @@ def render_trusted_script(
         capabilities,
     )
 
+    banner_lines = script_body.splitlines(
+        True
+    )
+
+    if len(banner_lines) >= 3:
+        banner = ''.join(
+            banner_lines[:3]
+        )
+
+        script_body = ''.join(
+            banner_lines[3:]
+        )
+
+        return (
+            '{}\n'
+            'window.TRUSTED_BASE_URL = "{}";\n'
+            'window.TRUSTED_CAPABILITIES = {};\n{}'
+            .format(
+                banner,
+                base_url,
+                capability_json,
+                script_body,
+            )
+        )
+    
     return (
         'window.TRUSTED_BASE_URL = "{}";\n'
         'window.TRUSTED_CAPABILITIES = {};\n{}'
@@ -286,7 +314,7 @@ def load_routeros_rest_credentials(
 
     return {
         'username': values[
-            'MIKROTIK_REST_USERNAME'
+            'MIKROTIK_REST_USER'
         ],
         'password': values[
             'MIKROTIK_REST_PASSWORD'
@@ -597,11 +625,54 @@ def create_server(
                 self.end_headers()
                 return
 
+            if not isinstance(request, dict):
+                self.send_response(400)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
+                return
+
             resolution = request.get('resolution')
             token = request.get('token')
 
+            if not isinstance(resolution, str):
+                self.send_response(400)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
+                return
+
+            if not isinstance(token, str):
+                self.send_response(400)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
+                return
+
             if capability_registry is None:
                 self.send_response(500)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
                 self.send_header(
                     'Content-Length',
                     '0',
@@ -615,14 +686,60 @@ def create_server(
             )
 
             if script_name is None:
-                self.send_error(400)
+                self.send_response(400)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
                 return
 
             if action_executor is None:
-                self.send_error(500)
+                self.send_response(500)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
                 return
 
-            action_executor(script_name)
+            try:
+                succeeded = action_executor(
+                    script_name
+                )
+            except Exception:
+                self.send_response(500)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
+                return
+                
+            if not succeeded:
+                self.send_response(500)
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                self.send_header(
+                    'Content-Length',
+                    '0',
+                )
+                self.end_headers()
+                return
 
             self.send_response(200)
             self.send_header(
