@@ -13,6 +13,10 @@ test('trusted action button is added to notification panel', function () {
     var panel = {
         appendChild: function (element) {
             appended.push(element);
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 
@@ -85,12 +89,86 @@ test('trusted action button is added to notification panel', function () {
     delete global.document;
 });
 
+test('trusted action button is not duplicated', function () {
+    var appended = [];
+
+    var panel = {
+        appendChild: function (element) {
+            appended.push(element);
+        },
+
+        querySelector: function (selector) {
+            assert.equal(
+                selector,
+                '.trusted-action-button'
+            );
+
+            return appended.find(function (element) {
+                return element.className === 'trusted-action-button';
+            }) || null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        }
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function () {}
+            };
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    assert.equal(
+        appended.length,
+        1
+    );
+
+    delete global.window;
+    delete global.document;
+});
+
 test('trusted action button is not added without capability', function () {
     var appended = [];
 
     var panel = {
         appendChild: function (element) {
             appended.push(element);
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 
@@ -144,6 +222,10 @@ test('trusted action button posts resolution and token', async function () {
     var panel = {
         appendChild: function (element) {
             appended.push(element);
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 
@@ -261,7 +343,11 @@ test('trusted action button posts only after confirmation', async function () {
     var requests = [];
 
     var panel = {
-        appendChild: function () {}
+        appendChild: function () {},
+
+        querySelector: function () {
+            return null;
+        }
     };
 
     var notification = {
@@ -343,6 +429,10 @@ test('trusted action button disables while request is pending', function () {
     var panel = {
         appendChild: function (element) {
             button = element;
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 
@@ -416,6 +506,10 @@ test('trusted action shows success toast', async function () {
     var panel = {
         appendChild: function (element) {
             appended_to_panel.push(element);
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 
@@ -513,7 +607,11 @@ test('trusted action shows failure message', async function () {
     var appended_to_body = [];
 
     var panel = {
-        appendChild: function () {}
+        appendChild: function () {},
+
+        querySelector: function () {
+            return null;
+        }
     };
 
     var notification = {
@@ -601,6 +699,103 @@ test('trusted action shows failure message', async function () {
     delete global.document;
 });
 
+test('trusted action shows failure message when fetch rejects', async function () {
+    var click_handler = null;
+    var appended_to_body = [];
+
+    var panel = {
+        appendChild: function () {},
+
+        querySelector: function () {
+            return null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        },
+
+        confirm: function () {
+            return true;
+        }
+    };
+
+    global.fetch = function () {
+        return Promise.reject(
+            new Error('Network unavailable')
+        );
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function (
+                    event_name,
+                    handler
+                ) {
+                    if (event_name === 'click') {
+                        click_handler = handler;
+                    }
+                }
+            };
+        },
+
+        body: {
+            appendChild: function (element) {
+                appended_to_body.push(element);
+            }
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    click_handler();
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    assert.equal(
+        appended_to_body.length,
+        1
+    );
+
+    assert.equal(
+        appended_to_body[0].textContent,
+        'Update failed. Reload the page to try again.'
+    );
+
+    assert.equal(
+        appended_to_body[0].className,
+        'trusted-action-failure'
+    );
+
+    delete global.window;
+    delete global.fetch;
+    delete global.document;
+});
+
 test('trusted action success toast disappears', async function () {
     var click_handler = null;
     var animation_end_handler = null;
@@ -609,6 +804,10 @@ test('trusted action success toast disappears', async function () {
     var panel = {
         appendChild: function (element) {
             toast = element;
+        },
+
+        querySelector: function () {
+            return null;
         }
     };
 

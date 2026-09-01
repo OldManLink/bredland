@@ -23,6 +23,14 @@ document
             return;
         }
 
+        if (
+            panel.querySelector(
+                '.trusted-action-button'
+            ) !== null
+        ) {
+            return;
+        }
+
         var button = document.createElement(
             'button'
         );
@@ -44,6 +52,21 @@ document
 
                 button.disabled = true;
 
+                function showFailure() {
+                    var failure = document.createElement(
+                        'div'
+                    );
+
+                    failure.textContent = (
+                        'Update failed. Reload the page to try again.'
+                    );
+                    failure.className = 'trusted-action-failure';
+
+                    document.body.appendChild(
+                        failure
+                    );
+                }
+
                 fetch(
                     window.TRUSTED_BASE_URL + '/action',
                     {
@@ -62,19 +85,7 @@ document
                     }
                 ).then(function (response) {
                     if (!response.ok) {
-                        var failure = document.createElement(
-                            'div'
-                        );
-
-                        failure.textContent = (
-                            'Update failed. Reload the page to try again.'
-                        );
-                        failure.className = 'trusted-action-failure';
-
-                        document.body.appendChild(
-                            failure
-                        );
-
+                        showFailure();
                         return;
                     }
 
@@ -95,6 +106,8 @@ document
                             toast.remove();
                         }
                     );
+                }).catch(function () {
+                    showFailure();
                 });
             }
         );
