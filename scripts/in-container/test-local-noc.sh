@@ -468,12 +468,9 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
     mikrotik_preview_pid=$!
 
     for attempt in 1 2 3 4 5; do
-        if curl -s \
+        if curl -fsS \
             -o /dev/null \
-            -X POST \
-            -H 'Content-Type: application/json' \
-            --data '{".id":"noc-trusted-action-test"}' \
-            http://127.0.0.1:8082/rest/system/script/run
+            http://127.0.0.1:8082/rest/system/package/update
         then
             echo "✅ Mock MikroTik REST service ready"
             break
@@ -493,6 +490,7 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
 
     trusted_preview_env="$build_dir/trusted-preview.env"
     trusted_preview_server="$build_dir/trusted_discovery.py"
+    trusted_preview_routeros_rest="$build_dir/routeros_rest.py"
 
     cat > "$trusted_preview_env" <<'EOF'
 BREDLAND_TRUSTED_BASE_URL=http://127.0.0.1:8081
@@ -507,8 +505,17 @@ EOF
         templates/bredland/trusted_discovery.template.py \
         "$trusted_preview_server"
 
+    cp \
+        templates/bredland/routeros_rest.py \
+        "$trusted_preview_routeros_rest"
+
     if [[ ! -s "$trusted_preview_server" ]]; then
         echo "❌ Local trusted-discovery service was not rendered"
+        exit 1
+    fi
+
+    if [[ ! -s "$trusted_preview_routeros_rest" ]]; then
+        echo "❌ Local RouterOS REST support was not staged"
         exit 1
     fi
 

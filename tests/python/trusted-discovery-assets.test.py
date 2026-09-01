@@ -36,6 +36,11 @@ def trusted_script_is_served():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -83,6 +88,11 @@ def trusted_stylesheet_is_served():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -130,6 +140,11 @@ def discovery_urls_match_served_asset_paths():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(

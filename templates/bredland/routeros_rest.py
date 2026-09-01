@@ -117,6 +117,29 @@ def create_routeros_rest_poster(
 
     return post
 
+def create_routeros_rest_getter(
+        credentials,
+        context,
+        open_request,
+        get_json_function,
+):
+    authorization = routeros_rest_authorization(
+        credentials['username'],
+        credentials['password'],
+    )
+
+    def get(url):
+        return get_json_function(
+            url,
+            {
+                'Authorization': authorization,
+            },
+            context,
+            open_request,
+        )
+
+    return get
+
 def create_routeros_action_executor(
         base_url,
         post,
@@ -129,3 +152,51 @@ def create_routeros_action_executor(
         )
 
     return execute
+
+def routeros_update_available(
+        base_url,
+        get,
+):
+    update = get(
+        base_url + '/rest/system/package/update'
+    )
+
+    installed_version = update.get(
+        'installed-version'
+    )
+    latest_version = update.get(
+        'latest-version'
+    )
+    status = update.get(
+        'status'
+    )
+
+    return (
+            isinstance(installed_version, str)
+            and installed_version != ''
+            and isinstance(latest_version, str)
+            and latest_version != ''
+            and installed_version != latest_version
+            and status == 'New version is available'
+    )
+
+def get_json(
+        url,
+        headers,
+        context,
+        open_request,
+):
+    request = urllib.request.Request(
+        url,
+        headers=headers,
+        method='GET',
+    )
+
+    response = open_request(
+        request,
+        context=context,
+    )
+
+    return json.loads(
+        response.read().decode('utf-8')
+    )

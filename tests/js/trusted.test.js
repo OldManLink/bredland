@@ -602,12 +602,14 @@ test('trusted action shows success toast', async function () {
     delete global.setTimeout;
 });
 
-test('trusted action shows failure message', async function () {
+test('trusted action shows failure message when update already in progress', async function () {
     var click_handler = null;
-    var appended_to_body = [];
+    var appended_to_panel = [];
 
     var panel = {
-        appendChild: function () {},
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
 
         querySelector: function () {
             return null;
@@ -634,7 +636,8 @@ test('trusted action shows failure message', async function () {
 
     global.fetch = function () {
         return Promise.resolve({
-            ok: false
+            ok: false,
+            status: 423
         });
     };
 
@@ -658,12 +661,6 @@ test('trusted action shows failure message', async function () {
                     }
                 }
             };
-        },
-
-        body: {
-            appendChild: function (element) {
-                appended_to_body.push(element);
-            }
         }
     };
 
@@ -680,17 +677,393 @@ test('trusted action shows failure message', async function () {
     });
 
     assert.equal(
-        appended_to_body.length,
-        1
+        appended_to_panel.length,
+        2
     );
 
     assert.equal(
-        appended_to_body[0].textContent,
-        'Update failed. Reload the page to try again.'
+        appended_to_panel[1].textContent,
+        'Update request already in progress.'
     );
 
     assert.equal(
-        appended_to_body[0].className,
+        appended_to_panel[1].className,
+        'trusted-action-failure'
+    );
+
+    delete global.window;
+    delete global.fetch;
+    delete global.document;
+});
+
+test('trusted action shows failure message when update no longer available', async function () {
+    var click_handler = null;
+    var appended_to_panel = [];
+
+    var panel = {
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
+
+        querySelector: function () {
+            return null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        },
+
+        confirm: function () {
+            return true;
+        }
+    };
+
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: false,
+            status: 409
+        });
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function (
+                    event_name,
+                    handler
+                ) {
+                    if (event_name === 'click') {
+                        click_handler = handler;
+                    }
+                }
+            };
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    click_handler();
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    assert.equal(
+        appended_to_panel.length,
+        2
+    );
+
+    assert.equal(
+        appended_to_panel[1].textContent,
+        'The update is no longer available.'
+    );
+
+    assert.equal(
+        appended_to_panel[1].className,
+        'trusted-action-failure'
+    );
+
+    delete global.window;
+    delete global.fetch;
+    delete global.document;
+});
+
+test('trusted action shows failure message when request expires', async function () {
+    var click_handler = null;
+    var appended_to_panel = [];
+
+    var panel = {
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
+
+        querySelector: function () {
+            return null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        },
+
+        confirm: function () {
+            return true;
+        }
+    };
+
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: false,
+            status: 400
+        });
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function (
+                    event_name,
+                    handler
+                ) {
+                    if (event_name === 'click') {
+                        click_handler = handler;
+                    }
+                }
+            };
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    click_handler();
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    assert.equal(
+        appended_to_panel.length,
+        2
+    );
+
+    assert.equal(
+        appended_to_panel[1].textContent,
+        'Request expired. Reload the page and try again.'
+    );
+
+    assert.equal(
+        appended_to_panel[1].className,
+        'trusted-action-failure'
+    );
+
+    delete global.window;
+    delete global.fetch;
+    delete global.document;
+});
+
+test('trusted action shows failure message when RouterOS could not be reached', async function () {
+    var click_handler = null;
+    var appended_to_panel = [];
+
+    var panel = {
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
+
+        querySelector: function () {
+            return null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        },
+
+        confirm: function () {
+            return true;
+        }
+    };
+
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: false,
+            status: 503
+        });
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function (
+                    event_name,
+                    handler
+                ) {
+                    if (event_name === 'click') {
+                        click_handler = handler;
+                    }
+                }
+            };
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    click_handler();
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    assert.equal(
+        appended_to_panel.length,
+        2
+    );
+
+    assert.equal(
+        appended_to_panel[1].textContent,
+        'RouterOS could not be reached. Try again shortly.'
+    );
+
+    assert.equal(
+        appended_to_panel[1].className,
+        'trusted-action-failure'
+    );
+
+    delete global.window;
+    delete global.fetch;
+    delete global.document;
+});
+
+test('trusted action shows failure message when update request fails', async function () {
+    var click_handler = null;
+    var appended_to_panel = [];
+
+    var panel = {
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
+
+        querySelector: function () {
+            return null;
+        }
+    };
+
+    var notification = {
+        closest: function () {
+            return panel;
+        }
+    };
+
+    global.window = {
+        TRUSTED_BASE_URL: 'https://bredland.example:8081',
+
+        TRUSTED_CAPABILITIES: {
+            'install-routeros-update': 'test-token'
+        },
+
+        confirm: function () {
+            return true;
+        }
+    };
+
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: false,
+            status: 500
+        });
+    };
+
+    global.document = {
+        querySelectorAll: function () {
+            return [
+                notification
+            ];
+        },
+
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name,
+
+                addEventListener: function (
+                    event_name,
+                    handler
+                ) {
+                    if (event_name === 'click') {
+                        click_handler = handler;
+                    }
+                }
+            };
+        }
+    };
+
+    delete require.cache[
+        require.resolve(trusted_script)
+        ];
+
+    require(trusted_script);
+
+    click_handler();
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    assert.equal(
+        appended_to_panel.length,
+        2
+    );
+
+    assert.equal(
+        appended_to_panel[1].textContent,
+        'The update request failed.'
+    );
+
+    assert.equal(
+        appended_to_panel[1].className,
         'trusted-action-failure'
     );
 
@@ -701,10 +1074,12 @@ test('trusted action shows failure message', async function () {
 
 test('trusted action shows failure message when fetch rejects', async function () {
     var click_handler = null;
-    var appended_to_body = [];
+    var appended_to_panel = [];
 
     var panel = {
-        appendChild: function () {},
+        appendChild: function (element) {
+            appended_to_panel.push(element);
+        },
 
         querySelector: function () {
             return null;
@@ -755,12 +1130,6 @@ test('trusted action shows failure message when fetch rejects', async function (
                     }
                 }
             };
-        },
-
-        body: {
-            appendChild: function (element) {
-                appended_to_body.push(element);
-            }
         }
     };
 
@@ -777,17 +1146,17 @@ test('trusted action shows failure message when fetch rejects', async function (
     });
 
     assert.equal(
-        appended_to_body.length,
-        1
+        appended_to_panel.length,
+        2
     );
 
     assert.equal(
-        appended_to_body[0].textContent,
-        'Update failed. Reload the page to try again.'
+        appended_to_panel[1].textContent,
+        'Connection lost while requesting the update.'
     );
 
     assert.equal(
-        appended_to_body[0].className,
+        appended_to_panel[1].className,
         'trusted-action-failure'
     );
 

@@ -52,17 +52,15 @@ document
 
                 button.disabled = true;
 
-                function showFailure() {
+                function showFailure(message) {
                     var failure = document.createElement(
                         'div'
                     );
 
-                    failure.textContent = (
-                        'Update failed. Reload the page to try again.'
-                    );
+                    failure.textContent = message;
                     failure.className = 'trusted-action-failure';
 
-                    document.body.appendChild(
+                    panel.appendChild(
                         failure
                     );
                 }
@@ -85,7 +83,22 @@ document
                     }
                 ).then(function (response) {
                     if (!response.ok) {
-                        showFailure();
+                        var failureMessages = {
+                            400: 'Request expired. Reload the page and try again.',
+                            409: 'The update is no longer available.',
+                            423: 'Update request already in progress.',
+                            500: 'The update request failed.',
+                            503: 'RouterOS could not be reached. Try again shortly.'
+                        };
+
+                        var message = failureMessages[
+                            response.status
+                            ];
+
+                        showFailure(
+                            message ||
+                            'Update failed. Reload the page to try again.'
+                        );
                         return;
                     }
 
@@ -107,7 +120,9 @@ document
                         }
                     );
                 }).catch(function () {
-                    showFailure();
+                    showFailure(
+                        'Connection lost while requesting the update.'
+                    );
                 });
             }
         );

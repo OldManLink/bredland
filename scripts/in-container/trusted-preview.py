@@ -2,9 +2,9 @@
 
 import importlib.util
 import os
+import sys
 import time
 import urllib.request
-
 
 REPO_ROOT = '/app'
 BUILD_DIR = os.path.join(
@@ -45,9 +45,19 @@ def load_trusted_discovery():
         spec
     )
 
-    spec.loader.exec_module(
-        module
+    sys.path.insert(
+        0,
+        BUILD_DIR,
     )
+
+    try:
+        spec.loader.exec_module(
+            module
+        )
+    finally:
+        sys.path.remove(
+            BUILD_DIR
+        )
 
     return module
 
@@ -98,11 +108,33 @@ def main():
             },
             None,
             urllib.request.urlopen,
-            )
+        )
+
+    def preview_get(url):
+        return trusted_discovery.get_json(
+            url,
+            {},
+            None,
+            urllib.request.urlopen,
+        )
 
     execute_action = trusted_discovery.create_routeros_action_executor(
         trusted_discovery.MIKROTIK_REST_BASE_URL,
         preview_post,
+    )
+
+    def validate_action(resolution):
+        if resolution != 'install-routeros-update':
+            return False
+
+        return trusted_discovery.routeros_update_available(
+            trusted_discovery.MIKROTIK_REST_BASE_URL,
+            preview_get,
+        )
+
+    action_guard = trusted_discovery.ActionGuard(
+        time.time,
+        30,
     )
 
     server = trusted_discovery.create_server(
@@ -117,6 +149,8 @@ def main():
         execute_action,
         capability_registry,
         trusted_script_renderer,
+        validate_action,
+        action_guard,
     )
 
     print(

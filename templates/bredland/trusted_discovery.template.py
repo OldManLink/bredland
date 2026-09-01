@@ -12,10 +12,11 @@ from http.server import ThreadingHTTPServer
 from routeros_rest import create_routeros_action_executor
 from routeros_rest import create_routeros_rest_poster
 from routeros_rest import create_routeros_rest_tls_context
-from routeros_rest import execute_routeros_script
 from routeros_rest import load_routeros_rest_credentials
 from routeros_rest import post_json
-from routeros_rest import routeros_rest_authorization
+from routeros_rest import create_routeros_rest_getter
+from routeros_rest import routeros_update_available
+from routeros_rest import get_json
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -119,6 +120,44 @@ class CapabilityRegistry:
             del self.capabilities[token]
 
             return capability['script_name']
+
+class ActionGuard:
+    def __init__(self, now, cooldown):
+        self.now = now
+        self.cooldown = cooldown
+        self.claims = {}
+        self.lock = threading.Lock()
+
+    def claim(self, resolution):
+        with self.lock:
+            claim = self.claims.get(
+                resolution
+            )
+
+            if claim is None and resolution in self.claims:
+                return False
+
+            if claim is not None:
+                if self.now() < claim:
+                    return False
+
+                del self.claims[resolution]
+
+            self.claims[resolution] = None
+            return True
+
+    def release(self, resolution):
+        with self.lock:
+            self.claims.pop(
+                resolution,
+                None,
+            )
+
+    def complete(self, resolution):
+        with self.lock:
+            self.claims[resolution] = (
+                    self.now() + self.cooldown
+            )
 
 def resolutions_from_noc_html(html):
     parser = ResolutionParser()
@@ -301,9 +340,14 @@ def create_configured_server(
     with open(TRUSTED_STYLESHEET_FILE, 'r') as file:
         stylesheet_body = file.read()
 
-        capability_registry = CapabilityRegistry(
-            time.time,
-        )
+    capability_registry = CapabilityRegistry(
+        time.time,
+    )
+
+    action_guard = ActionGuard(
+        time.time,
+        30,
+    )
 
     def load_noc_html():
         return fetch_noc_html(
@@ -342,6 +386,22 @@ def create_configured_server(
         post_json,
     )
 
+    routeros_getter = create_routeros_rest_getter(
+        credentials,
+        routeros_tls_context,
+        urllib.request.urlopen,
+        get_json,
+    )
+
+    def action_validator(resolution):
+        if resolution != 'install-routeros-update':
+            return False
+
+        return routeros_update_available(
+            MIKROTIK_REST_BASE_URL,
+            routeros_getter,
+        )
+
     action_executor = create_routeros_action_executor(
         MIKROTIK_REST_BASE_URL,
         routeros_poster,
@@ -359,6 +419,8 @@ def create_configured_server(
         action_executor,
         capability_registry,
         trusted_script_renderer,
+        action_validator,
+        action_guard,
     )
 
     context = ssl.SSLContext(
@@ -386,7 +448,8 @@ def create_server(
     action_executor,
     capability_registry,
     trusted_script_renderer,
-    action_validator=None,
+    action_validator,
+    action_guard,
 ):
     script_url = base_url + script_path
     stylesheet_url = base_url + stylesheet_path
@@ -523,12 +586,34 @@ def create_server(
                 self._send_action_response(400)
                 return
 
-            if (action_validator is not None and not action_validator(resolution)):
+            try:
+                valid = action_validator(
+                    resolution
+                )
+            except Exception as error:
+                sys.stderr.write(
+                    'Trusted action validator failed: '
+                    'resolution={!r}, exception={}\n'.format(
+                        resolution,
+                        type(error).__name__,
+                    )
+                )
+
+                self._send_action_response(503)
+                return
+
+            if not valid:
                 self._send_action_response(409)
                 return
 
             if action_executor is None:
                 self._send_action_response(500)
+                return
+
+            if not action_guard.claim(
+                    resolution
+            ):
+                self._send_action_response(423)
                 return
 
             try:
@@ -545,12 +630,24 @@ def create_server(
                     )
                 )
 
+                action_guard.release(
+                    resolution
+                )
+
                 self._send_action_response(500)
                 return
-                
+
             if not succeeded:
+                action_guard.release(
+                    resolution
+                )
+
                 self._send_action_response(500)
                 return
+
+            action_guard.complete(
+                resolution
+            )
 
             self._send_action_response(200)
 

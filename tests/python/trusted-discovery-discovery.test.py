@@ -59,6 +59,11 @@ def discovery_endpoint_returns_json():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -107,6 +112,11 @@ def discovery_endpoint_only_serves_probe_path():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -152,6 +162,11 @@ def discovery_endpoint_allows_noc_origin():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -524,6 +539,9 @@ def configured_server_wires_routeros_action_executor():
         original_create_executor = (
             trusted_discovery.create_routeros_action_executor
         )
+        original_create_getter = (
+            trusted_discovery.create_routeros_rest_getter
+        )
 
         trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
         trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
@@ -549,9 +567,23 @@ def configured_server_wires_routeros_action_executor():
             lambda base_url, post: 'routeros-action-executor'
         )
 
+        trusted_discovery.create_routeros_rest_getter = (
+            lambda credentials, context, open_request, get_json_function:
+            (
+                lambda url: {
+                    'installed-version': '7.23.1',
+                    'latest-version': '7.24.1',
+                    'status': 'New version is available',
+                }
+            )
+        )
+
         def create_server(*args):
             calls.append(
-                args[8]
+                (
+                    args[8],
+                    args[11]
+                )
             )
 
             return FakeServer()
@@ -580,10 +612,32 @@ def configured_server_wires_routeros_action_executor():
             trusted_discovery.create_routeros_action_executor = (
                 original_create_executor
             )
+            trusted_discovery.create_routeros_rest_getter = (
+                original_create_getter
+            )
 
     testlib.assert_same(
-        ['routeros-action-executor'],
-        calls,
+        1,
+        len(calls),
+    )
+
+    testlib.assert_same(
+        'routeros-action-executor',
+        calls[0][0],
+    )
+
+    validator = calls[0][1]
+
+    testlib.assert_true(
+        validator(
+            'install-routeros-update'
+        )
+    )
+
+    testlib.assert_false(
+        validator(
+            'something-else'
+        )
     )
 
 runner.finish()

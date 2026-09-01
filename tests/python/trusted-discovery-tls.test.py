@@ -135,6 +135,11 @@ def slow_client_does_not_block_probe():
         None,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(

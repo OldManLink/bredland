@@ -75,6 +75,11 @@ def action_endpoint_executes_supported_resolution():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -141,6 +146,11 @@ def action_endpoint_rejects_unsupported_resolution():
         execute,
         registry,
         None,
+        lambda resolution: False,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -198,6 +208,11 @@ def action_endpoint_rejects_wrong_origin():
         execute,
         None,
         None,
+        lambda resolution: False,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -248,6 +263,11 @@ def action_endpoint_allows_preflight_from_noc_origin():
         lambda script_name: True,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -313,6 +333,11 @@ def action_endpoint_rejects_malformed_json():
         execute,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -365,6 +390,11 @@ def action_endpoint_rejects_non_object_json():
         execute,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -427,6 +457,11 @@ def action_endpoint_rejects_non_string_fields():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -494,6 +529,11 @@ def action_endpoint_rejects_missing_resolution():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -701,6 +741,132 @@ def consumes_capability_atomically_across_threads():
         results.count(None),
     )
 
+@runner.test('claims trusted action resolution only once')
+def claims_trusted_action_resolution_only_once():
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    testlib.assert_true(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+    testlib.assert_false(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+@runner.test('releases trusted action claim after failure')
+def releases_trusted_action_claim_after_failure():
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    testlib.assert_true(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+    guard.release(
+        'install-routeros-update'
+    )
+
+    testlib.assert_true(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+@runner.test('keeps trusted action claimed during cooldown')
+def keeps_trusted_action_claimed_during_cooldown():
+    now = [100]
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: now[0],
+        30,
+    )
+
+    testlib.assert_true(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+    guard.complete(
+        'install-routeros-update'
+    )
+
+    testlib.assert_false(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+    now[0] = 131
+
+    testlib.assert_true(
+        guard.claim(
+            'install-routeros-update'
+        )
+    )
+
+@runner.test('claims trusted action atomically across threads')
+def claims_trusted_action_atomically_across_threads():
+    results = []
+    errors = []
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    def claim():
+        try:
+            results.append(
+                guard.claim(
+                    'install-routeros-update'
+                )
+            )
+        except Exception as error:
+            errors.append(error)
+
+    threads = [
+        threading.Thread(target=claim),
+        threading.Thread(target=claim),
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    testlib.assert_same(
+        [],
+        errors,
+    )
+
+    testlib.assert_same(
+        2,
+        len(results),
+    )
+
+    testlib.assert_same(
+        1,
+        results.count(True),
+    )
+
+    testlib.assert_same(
+        1,
+        results.count(False),
+    )
+
 @runner.test('does not consume capability for wrong resolution')
 def does_not_consume_capability_for_wrong_resolution():
     registry = trusted_discovery.CapabilityRegistry(
@@ -826,6 +992,11 @@ def action_endpoint_consumes_capability_before_execution():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -901,6 +1072,11 @@ def action_endpoint_rejects_replayed_capability():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -961,6 +1137,109 @@ def action_endpoint_rejects_replayed_capability():
             calls,
         )
     finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint rejects second action during cooldown')
+def action_endpoint_rejects_second_action_during_cooldown():
+    calls = []
+
+    def execute(script_name):
+        calls.append(script_name)
+        return True
+
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'first-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'second-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        lambda resolution: True,
+        guard,
+    )
+
+    thread = threading.Thread(
+        target=server.serve_forever,
+    )
+    thread.start()
+
+    try:
+        def request(token):
+            return urllib.request.Request(
+                'http://127.0.0.1:{}/action'.format(
+                    server.server_port,
+                ),
+                data=json.dumps(
+                    {
+                        'resolution': 'install-routeros-update',
+                        'token': token,
+                    }
+                ).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://noc.arcanel.se',
+                },
+                method='POST',
+            )
+
+        response = urllib.request.urlopen(
+            request('first-token')
+        )
+
+        testlib.assert_same(
+            200,
+            response.status,
+        )
+
+        try:
+            urllib.request.urlopen(
+                request('second-token')
+            )
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                423,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected second action during cooldown to return 409'
+            )
+
+        testlib.assert_same(
+            ['noc-trusted-action-test'],
+            calls,
+        )
+    finally:
+        server.shutdown()
         thread.join()
         server.server_close()
 
@@ -1122,6 +1401,11 @@ def trusted_script_get_renders_current_capabilities():
         lambda script_name: True,
         registry,
         render,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1244,281 +1528,6 @@ def creates_trusted_script_renderer():
         ),
     )
 
-@runner.test('executes RouterOS script through REST')
-def executes_routeros_script_through_rest():
-    calls = []
-
-    def post(url, body):
-        calls.append(
-            (
-                url,
-                body,
-            )
-        )
-
-        return True
-
-    result = trusted_discovery.execute_routeros_script(
-        'https://192.168.88.1',
-        'noc-trusted-action-test',
-        post,
-    )
-
-    testlib.assert_same(
-        [
-            (
-                'https://192.168.88.1/rest/system/script/run',
-                {
-                    '.id': 'noc-trusted-action-test',
-                },
-            )
-        ],
-        calls,
-    )
-
-    testlib.assert_true(result)
-
-@runner.test('posts JSON to RouterOS REST')
-def posts_json_to_routeros_rest():
-    calls = []
-
-    class Response:
-        status = 200
-
-    def open_request(request, context=None):
-        calls.append(
-            (
-                request.full_url,
-                request.get_method(),
-                request.data,
-                request.headers,
-                context,
-            )
-        )
-
-        return Response()
-
-    result = trusted_discovery.post_json(
-        'https://192.168.88.1/rest/system/script/run',
-        {
-            '.id': 'noc-trusted-action-test',
-        },
-        {
-            'Authorization': 'Basic test',
-        },
-        'test-context',
-        open_request,
-    )
-
-    testlib.assert_true(result)
-
-    testlib.assert_same(
-        'https://192.168.88.1/rest/system/script/run',
-        calls[0][0],
-    )
-
-    testlib.assert_same(
-        'POST',
-        calls[0][1],
-    )
-
-    testlib.assert_same(
-        b'{".id":"noc-trusted-action-test"}',
-        calls[0][2],
-    )
-
-    testlib.assert_same(
-        'Basic test',
-        calls[0][3].get(
-            'Authorization',
-        ),
-    )
-
-    testlib.assert_same(
-        'application/json',
-        calls[0][3].get(
-            'Content-type',
-        ),
-    )
-
-    testlib.assert_same(
-        'test-context',
-        calls[0][4],
-    )
-
-@runner.test('loads RouterOS REST credentials')
-def loads_routeros_rest_credentials():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        credentials_file = os.path.join(
-            tmpdir,
-            'credentials.env',
-        )
-
-        with open(credentials_file, 'w') as file:
-            file.write(
-                'MIKROTIK_REST_USER=noc-rest-bredland\n'
-                'MIKROTIK_REST_PASSWORD=test-password\n'
-            )
-
-        credentials = (
-            trusted_discovery.load_routeros_rest_credentials(
-                credentials_file,
-            )
-        )
-
-        testlib.assert_same(
-            {
-                'username': 'noc-rest-bredland',
-                'password': 'test-password',
-            },
-            credentials,
-        )
-
-@runner.test('builds RouterOS REST authorization header')
-def builds_routeros_rest_authorization_header():
-    testlib.assert_same(
-        'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
-        trusted_discovery.routeros_rest_authorization(
-            'noc-rest-bredland',
-            'test-password',
-        ),
-    )
-
-@runner.test('creates RouterOS REST TLS context')
-def creates_routeros_rest_tls_context():
-    calls = []
-
-    class FakeSsl:
-        @staticmethod
-        def create_default_context(cafile=None):
-            calls.append(
-                cafile
-            )
-
-            return 'tls-context'
-
-    original_ssl = routeros_rest.ssl
-    routeros_rest.ssl = FakeSsl
-
-    try:
-        context = (
-            trusted_discovery.create_routeros_rest_tls_context(
-                '/etc/bredland/mikrotik-rest/ca.pem',
-            )
-        )
-    finally:
-        routeros_rest.ssl = original_ssl
-
-    testlib.assert_same(
-        [
-            '/etc/bredland/mikrotik-rest/ca.pem',
-        ],
-        calls,
-    )
-
-    testlib.assert_same(
-        'tls-context',
-        context,
-    )
-
-@runner.test('creates authenticated RouterOS REST poster')
-def creates_authenticated_routeros_rest_poster():
-    calls = []
-
-    def fake_post_json(
-            url,
-            body,
-            headers,
-            context,
-            open_request,
-    ):
-        calls.append(
-            (
-                url,
-                body,
-                headers,
-                context,
-                open_request,
-            )
-        )
-
-        return True
-
-    credentials = {
-        'username': 'noc-rest-bredland',
-        'password': 'test-password',
-    }
-
-    poster = trusted_discovery.create_routeros_rest_poster(
-        credentials,
-        'tls-context',
-        'open-request',
-        fake_post_json,
-    )
-
-    result = poster(
-        'https://192.168.88.1/rest/system/script/run',
-        {
-            '.id': 'noc-trusted-action-test',
-        },
-    )
-
-    testlib.assert_true(result)
-
-    testlib.assert_same(
-        'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
-        calls[0][2].get(
-            'Authorization',
-        ),
-    )
-
-    testlib.assert_same(
-        'tls-context',
-        calls[0][3],
-    )
-
-    testlib.assert_same(
-        'open-request',
-        calls[0][4],
-    )
-
-@runner.test('creates RouterOS action executor')
-def creates_routeros_action_executor():
-    calls = []
-
-    def post(url, body):
-        calls.append(
-            (
-                url,
-                body,
-            )
-        )
-
-        return True
-
-    executor = trusted_discovery.create_routeros_action_executor(
-        'https://192.168.88.1',
-        post,
-    )
-
-    result = executor(
-        'noc-trusted-action-test',
-    )
-
-    testlib.assert_true(result)
-
-    testlib.assert_same(
-        [
-            (
-                'https://192.168.88.1/rest/system/script/run',
-                {
-                    '.id': 'noc-trusted-action-test',
-                },
-            )
-        ],
-        calls,
-    )
-
 @runner.test('action endpoint rejects action when current state is invalid')
 def action_endpoint_rejects_invalid_current_state():
     registry = trusted_discovery.CapabilityRegistry(
@@ -1554,6 +1563,10 @@ def action_endpoint_rejects_invalid_current_state():
         registry,
         None,
         action_validator=lambda resolution: False,
+        action_guard=trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1634,6 +1647,10 @@ def action_endpoint_executes_valid_current_state():
         registry,
         None,
         action_validator=lambda resolution: True,
+        action_guard=trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1671,6 +1688,103 @@ def action_endpoint_executes_valid_current_state():
         thread.join()
         server.server_close()
 
+@runner.test('action endpoint handles validator exception')
+def action_endpoint_handles_validator_exception():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+
+    def validate(resolution):
+        raise urllib.error.URLError(
+            'RouterOS unavailable'
+        )
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+
+        return True
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=validate,
+        action_guard=trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                503,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected validator exception to return 503'
+            )
+
+        testlib.assert_same(
+            [],
+            executor_calls,
+        )
+
+        testlib.assert_same(
+            None,
+            registry.consume(
+                'install-routeros-update',
+                'test-token',
+            ),
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
 @runner.test('action endpoint reports executor failure')
 def action_endpoint_reports_executor_failure():
     registry = trusted_discovery.CapabilityRegistry(
@@ -1696,6 +1810,11 @@ def action_endpoint_reports_executor_failure():
         lambda script_name: False,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1734,6 +1853,207 @@ def action_endpoint_reports_executor_failure():
         thread.join()
         server.server_close()
 
+@runner.test('action endpoint releases claim after executor failure')
+def action_endpoint_releases_claim_after_executor_failure():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'first-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'second-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    outcomes = [False, True]
+
+    def execute(script_name):
+        return outcomes.pop(0)
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        lambda resolution: True,
+        guard,
+    )
+
+    thread = threading.Thread(
+        target=server.serve_forever,
+    )
+    thread.start()
+
+    try:
+        def request(token):
+            return urllib.request.Request(
+                'http://127.0.0.1:{}/action'.format(
+                    server.server_port,
+                ),
+                data=json.dumps(
+                    {
+                        'resolution': 'install-routeros-update',
+                        'token': token,
+                    }
+                ).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://noc.arcanel.se',
+                },
+                method='POST',
+            )
+
+        try:
+            urllib.request.urlopen(
+                request('first-token')
+            )
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected executor failure to return 500'
+            )
+
+        response = urllib.request.urlopen(
+            request('second-token')
+        )
+
+        testlib.assert_same(
+            200,
+            response.status,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint releases claim after executor exception')
+def action_endpoint_releases_claim_after_executor_exception():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'first-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'second-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    calls = []
+
+    def execute(script_name):
+        calls.append(script_name)
+
+        if len(calls) == 1:
+            raise RuntimeError(
+                'RouterOS unavailable'
+            )
+
+        return True
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        lambda resolution: True,
+        guard,
+    )
+
+    thread = threading.Thread(
+        target=server.serve_forever,
+    )
+    thread.start()
+
+    try:
+        def request(token):
+            return urllib.request.Request(
+                'http://127.0.0.1:{}/action'.format(
+                    server.server_port,
+                ),
+                data=json.dumps(
+                    {
+                        'resolution': 'install-routeros-update',
+                        'token': token,
+                    }
+                ).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://noc.arcanel.se',
+                },
+                method='POST',
+            )
+
+        try:
+            urllib.request.urlopen(
+                request('first-token')
+            )
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected executor exception to return 500'
+            )
+
+        response = urllib.request.urlopen(
+            request('second-token')
+        )
+
+        testlib.assert_same(
+            200,
+            response.status,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
 @runner.test('action endpoint handles executor exception')
 def action_endpoint_handles_executor_exception():
     registry = trusted_discovery.CapabilityRegistry(
@@ -1764,6 +2084,11 @@ def action_endpoint_handles_executor_exception():
         execute,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1857,6 +2182,11 @@ def action_endpoint_reports_missing_executor_with_cors():
         None,
         registry,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
@@ -1916,6 +2246,11 @@ def action_endpoint_reports_missing_registry_with_cors():
         lambda script_name: True,
         None,
         None,
+        lambda resolution: True,
+        trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
     )
 
     thread = threading.Thread(
