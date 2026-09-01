@@ -204,7 +204,7 @@ def render_trusted_script(
                 script_body,
             )
         )
-    
+
     return (
         'window.TRUSTED_BASE_URL = "{}";\n'
         'window.TRUSTED_CAPABILITIES = {};\n{}'
@@ -715,7 +715,16 @@ def create_server(
                 succeeded = action_executor(
                     script_name
                 )
-            except Exception:
+            except Exception as error:
+                sys.stderr.write(
+                    'Trusted action executor failed: '
+                    'resolution={!r}, script={!r}, exception={}\n'.format(
+                        resolution,
+                        script_name,
+                        type(error).__name__,
+                    )
+                )
+
                 self.send_response(500)
                 self.send_header(
                     'Access-Control-Allow-Origin',

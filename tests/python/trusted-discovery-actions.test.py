@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import sys
@@ -1635,15 +1636,45 @@ def action_endpoint_handles_executor_exception():
             method='POST',
         )
 
+        stderr = io.StringIO()
+        previous_stderr = sys.stderr
+        sys.stderr = stderr
+
         try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail(
+                    'Expected executor exception to return 500'
+                )
+        finally:
+            sys.stderr = previous_stderr
+
+        diagnostic = stderr.getvalue()
+
+        testlib.assert_string_contains(
+            "resolution='install-routeros-update'",
+            diagnostic,
+        )
+
+        testlib.assert_string_contains(
+            "script='noc-trusted-action-test'",
+            diagnostic,
+        )
+
+        testlib.assert_string_contains(
+            'exception=RuntimeError',
+            diagnostic,
+        )
+
+        testlib.assert_false(
+            'RouterOS unavailable' in diagnostic,
             )
-        else:
-            testlib.fail('Expected executor exception to return 500')
     finally:
         thread.join()
         server.server_close()
