@@ -24,6 +24,7 @@ from trusted_discovery_testlib import restore_routeros_action_dependencies
 
 runner = TestSuiteRunner('trusted-discovery-actions')
 trusted_discovery = load_trusted_discovery()
+routeros_rest = sys.modules['routeros_rest']
 
 @runner.test('maps supported resolution to RouterOS script')
 def supported_resolution_maps_to_routeros_script():
@@ -1396,8 +1397,8 @@ def creates_routeros_rest_tls_context():
 
             return 'tls-context'
 
-    original_ssl = trusted_discovery.ssl
-    trusted_discovery.ssl = FakeSsl
+    original_ssl = routeros_rest.ssl
+    routeros_rest.ssl = FakeSsl
 
     try:
         context = (
@@ -1406,7 +1407,7 @@ def creates_routeros_rest_tls_context():
             )
         )
     finally:
-        trusted_discovery.ssl = original_ssl
+        routeros_rest.ssl = original_ssl
 
     testlib.assert_same(
         [
@@ -1517,6 +1518,158 @@ def creates_routeros_action_executor():
         ],
         calls,
     )
+
+@runner.test('action endpoint rejects action when current state is invalid')
+def action_endpoint_rejects_invalid_current_state():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+
+        return True
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: False,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                409,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected invalid current state to reject action'
+            )
+
+        testlib.assert_same(
+            [],
+            executor_calls,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint executes action when current state is valid')
+def action_endpoint_executes_valid_current_state():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+
+        return True
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: True,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        response = urllib.request.urlopen(request)
+        testlib.assert_same(200, response.status)
+        testlib.assert_same(
+            [
+                'noc-trusted-action-test',
+            ],
+            executor_calls,
+        )
+    finally:
+        thread.join()
+        server.server_close()
 
 @runner.test('action endpoint reports executor failure')
 def action_endpoint_reports_executor_failure():

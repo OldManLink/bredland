@@ -34,6 +34,12 @@ run_step \
     "${bredland_host}:/tmp/trusted_discovery.py"
 
 run_step \
+    "Uploading RouterOS REST module" \
+    execute_rsync \
+    templates/bredland/routeros_rest.py \
+    "${bredland_host}:/tmp/routeros_rest.py"
+
+run_step \
     "Uploading trusted JavaScript" \
     execute_rsync \
     templates/bredland/static/trusted.js \
@@ -90,6 +96,7 @@ run_step \
     "$bredland_host" \
     "sudo install -d -m 755 /usr/local/lib/bredland/static &&
      sudo install -m 644 /tmp/trusted_discovery.py /usr/local/lib/bredland/trusted_discovery.py &&
+     sudo install -m 644 /tmp/routeros_rest.py /usr/local/lib/bredland/routeros_rest.py &&
      sudo install -m 644 /tmp/trusted.js /usr/local/lib/bredland/static/trusted.js &&
      sudo install -m 644 /tmp/trusted.css /usr/local/lib/bredland/static/trusted.css &&
      sudo install -m 644 /tmp/trusted-discovery.service /etc/systemd/system/trusted-discovery.service &&
@@ -103,6 +110,7 @@ run_step \
     "$bredland_host" \
     "rm -f \
          /tmp/trusted_discovery.py \
+         /tmp/routeros_rest.py \
          /tmp/trusted.js \
          /tmp/trusted.css \
          /tmp/trusted-discovery.service"

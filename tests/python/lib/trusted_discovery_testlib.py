@@ -2,7 +2,7 @@ import importlib.util
 import os
 import subprocess
 import tempfile
-
+import sys
 
 def load_trusted_discovery():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -38,13 +38,38 @@ def load_trusted_discovery():
             env=environment,
         )
 
+        routeros_rest = os.path.join(
+            tmpdir,
+            'routeros_rest.py',
+        )
+
+        subprocess.run(
+            [
+                'cp',
+                'templates/bredland/routeros_rest.py',
+                routeros_rest,
+            ],
+            check=True,
+        )
+
         spec = importlib.util.spec_from_file_location(
             'trusted_discovery',
             rendered,
         )
 
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+
+        sys.path.insert(
+            0,
+            tmpdir,
+        )
+
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.path.remove(
+                tmpdir
+            )
 
         return module
 

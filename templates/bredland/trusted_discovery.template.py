@@ -1,4 +1,3 @@
-import base64
 import json
 import secrets
 import ssl
@@ -10,6 +9,13 @@ import urllib.request
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
+from routeros_rest import create_routeros_action_executor
+from routeros_rest import create_routeros_rest_poster
+from routeros_rest import create_routeros_rest_tls_context
+from routeros_rest import execute_routeros_script
+from routeros_rest import load_routeros_rest_credentials
+from routeros_rest import post_json
+from routeros_rest import routeros_rest_authorization
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -258,132 +264,6 @@ def create_trusted_script_renderer(
 
     return render
 
-def execute_routeros_script(
-        base_url,
-        script_name,
-        post,
-):
-    return post(
-        base_url + '/rest/system/script/run',
-        {
-            '.id': script_name,
-        },
-        )
-
-def post_json(
-        url,
-        body,
-        headers,
-        context,
-        open_request,
-):
-    request_headers = dict(headers)
-    request_headers['Content-Type'] = 'application/json'
-
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(
-            body,
-            separators=(',', ':'),
-        ).encode('utf-8'),
-        headers=request_headers,
-        method='POST',
-    )
-
-    response = open_request(
-        request,
-        context=context,
-    )
-
-    return response.status == 200
-
-def load_routeros_rest_credentials(
-        credentials_file,
-):
-    values = {}
-
-    with open(credentials_file, 'r') as file:
-        for line in file:
-            line = line.strip()
-
-            if not line:
-                continue
-
-            key, value = line.split('=', 1)
-            values[key] = value
-
-    return {
-        'username': values[
-            'MIKROTIK_REST_USER'
-        ],
-        'password': values[
-            'MIKROTIK_REST_PASSWORD'
-        ],
-    }
-
-def routeros_rest_authorization(
-        username,
-        password,
-):
-    credentials = '{}:{}'.format(
-        username,
-        password,
-    ).encode('utf-8')
-
-    encoded = base64.b64encode(
-        credentials
-    ).decode('ascii')
-
-    return 'Basic {}'.format(
-        encoded
-    )
-
-def create_routeros_rest_tls_context(
-        ca_file,
-):
-    return ssl.create_default_context(
-        cafile=ca_file,
-    )
-
-def create_routeros_rest_poster(
-        credentials,
-        context,
-        open_request,
-        post_json_function,
-):
-    authorization = routeros_rest_authorization(
-        credentials['username'],
-        credentials['password'],
-    )
-
-    def post(
-            url,
-            body,
-    ):
-        return post_json_function(
-            url,
-            body,
-            {
-                'Authorization': authorization,
-            },
-            context,
-            open_request,
-        )
-
-    return post
-
-def create_routeros_action_executor(
-        base_url,
-        post,
-):
-    def execute(script_name):
-        return execute_routeros_script(
-            base_url,
-            script_name,
-            post,
-        )
-
-    return execute
 
 def main():
     server = create_configured_server(
@@ -506,6 +386,7 @@ def create_server(
     action_executor,
     capability_registry,
     trusted_script_renderer,
+    action_validator=None,
 ):
     script_url = base_url + script_path
     stylesheet_url = base_url + stylesheet_path
@@ -520,9 +401,7 @@ def create_server(
             if self.path == script_path:
                 rendered_script = script_body
                 if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(
-                        script_body
-                    )
+                    rendered_script = trusted_script_renderer(script_body)
                 body = rendered_script.encode('utf-8')
 
                 self.send_response(200)
@@ -613,71 +492,26 @@ def create_server(
                     request_body.decode('utf-8')
                 )
             except ValueError:
-                self.send_response(400)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(400)
                 return
 
             if not isinstance(request, dict):
-                self.send_response(400)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(400)
                 return
 
             resolution = request.get('resolution')
             token = request.get('token')
 
             if not isinstance(resolution, str):
-                self.send_response(400)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(400)
                 return
 
             if not isinstance(token, str):
-                self.send_response(400)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(400)
                 return
 
             if capability_registry is None:
-                self.send_response(500)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(500)
                 return
 
             script_name = capability_registry.consume(
@@ -686,29 +520,15 @@ def create_server(
             )
 
             if script_name is None:
-                self.send_response(400)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(400)
+                return
+
+            if (action_validator is not None and not action_validator(resolution)):
+                self._send_action_response(409)
                 return
 
             if action_executor is None:
-                self.send_response(500)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(500)
                 return
 
             try:
@@ -725,39 +545,24 @@ def create_server(
                     )
                 )
 
-                self.send_response(500)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(500)
                 return
                 
             if not succeeded:
-                self.send_response(500)
-                self.send_header(
-                    'Access-Control-Allow-Origin',
-                    allowed_origin,
-                )
-                self.send_header(
-                    'Content-Length',
-                    '0',
-                )
-                self.end_headers()
+                self._send_action_response(500)
                 return
 
-            self.send_response(200)
-            self.send_header(
-                'Content-Length',
-                '0',
-            )
+            self._send_action_response(200)
+
+        def _send_action_response(self, status):
+            self.send_response(status)
             self.send_header(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
+            )
+            self.send_header(
+                'Content-Length',
+                '0',
             )
             self.end_headers()
 
