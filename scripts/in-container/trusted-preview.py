@@ -96,6 +96,7 @@ def main():
             trusted_discovery.create_capability_token,
             capability_registry,
             expires_at,
+            time.time,
         )
     )
 

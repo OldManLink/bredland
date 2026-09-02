@@ -203,6 +203,7 @@ def render_trusted_script(
         token_generator,
         registry,
         expires_at,
+        server_time,
 ):
     noc_html = noc_html_loader()
 
@@ -225,6 +226,10 @@ def render_trusted_script(
         capabilities,
     )
 
+    server_time_millis = int(
+        server_time() * 1000
+    )
+
     banner_lines = script_body.splitlines(
         True
     )
@@ -241,21 +246,25 @@ def render_trusted_script(
         return (
             '{}\n'
             'window.TRUSTED_BASE_URL = "{}";\n'
-            'window.TRUSTED_CAPABILITIES = {};\n{}'
+            'window.TRUSTED_CAPABILITIES = {};\n'
+            'window.TRUSTED_SERVER_TIME = {};\n{}'
             .format(
                 banner,
                 base_url,
                 capability_json,
+                server_time_millis,
                 script_body,
             )
         )
 
     return (
         'window.TRUSTED_BASE_URL = "{}";\n'
-        'window.TRUSTED_CAPABILITIES = {};\n{}'
+        'window.TRUSTED_CAPABILITIES = {};\n'
+        'window.TRUSTED_SERVER_TIME = {};\n{}'
         .format(
             base_url,
             capability_json,
+            server_time_millis,
             script_body,
         )
     )
@@ -290,6 +299,7 @@ def create_trusted_script_renderer(
     token_generator,
     registry,
     expires_at,
+    server_time,
 ):
     def render(script_body):
         return render_trusted_script(
@@ -299,6 +309,7 @@ def create_trusted_script_renderer(
             token_generator,
             registry,
             expires_at(),
+            server_time,
         )
 
     return render
@@ -367,6 +378,7 @@ def create_configured_server(
         create_capability_token,
         capability_registry,
         expires_at,
+        time.time,
     )
 
     credentials = load_routeros_rest_credentials(

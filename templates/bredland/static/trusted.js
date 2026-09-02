@@ -3,6 +3,103 @@
 // BRD-030 trusted discovery asset
 var resolution = 'install-routeros-update';
 
+if (
+    typeof window.TRUSTED_SERVER_TIME === 'number'
+) {
+    window.TRUSTED_CLOCK_DELTA = (
+        window.TRUSTED_SERVER_TIME
+        - Date.now()
+    );
+}
+
+function heartbeat_confirmation_message() {
+    var message = 'Install the available RouterOS update?';
+
+    if (
+        typeof document.getElementById !== 'function'
+    ) {
+        return message;
+    }
+
+    var template_ids = [
+        'mikrotik-telemetry-template',
+        'bredland-telemetry-template'
+    ];
+
+    var bredland_now = (
+        Date.now()
+        + window.TRUSTED_CLOCK_DELTA
+    );
+
+    var remaining_seconds = null;
+
+    template_ids.forEach(function (template_id) {
+        var template = document.getElementById(
+            template_id
+        );
+
+        if (! template) {
+            return;
+        }
+
+        var heartbeat;
+
+        try {
+            var telemetry = template.content.querySelector('.telemetry');
+            heartbeat = JSON.parse(telemetry.textContent);
+        } catch (error) {
+            return;
+        }
+
+        var heartbeat_time = Date.parse(
+            heartbeat.ts
+        );
+
+        var expected_time = (
+            heartbeat_time
+            + (heartbeat.ttl * 1000)
+        );
+
+        var candidate = Math.floor(
+            (expected_time - bredland_now) / 1000
+        );
+
+        if (! Number.isFinite(candidate)) {
+            return;
+        }
+
+        if (candidate <= 0) {
+            return;
+        }
+
+        if (
+            remaining_seconds === null ||
+            candidate < remaining_seconds
+        ) {
+            remaining_seconds = candidate;
+        }
+    });
+
+    if (remaining_seconds === null) {
+        return message;
+    }
+
+    var minutes = Math.floor(
+        remaining_seconds / 60
+    );
+
+    var seconds = remaining_seconds % 60;
+
+    return (
+        message +
+        '\n\nNext heartbeat expected in ~' +
+        minutes +
+        'm ' +
+        seconds +
+        's.'
+    );
+}
+
 document
     .querySelectorAll(
         '[data-resolution="' + resolution + '"]'
@@ -44,7 +141,7 @@ document
             function () {
                 if (
                     !window.confirm(
-                        'Install the available RouterOS update?'
+                        heartbeat_confirmation_message()
                     )
                 ) {
                     return;

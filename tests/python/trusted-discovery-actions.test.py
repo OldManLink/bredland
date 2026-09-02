@@ -1295,6 +1295,7 @@ def trusted_script_includes_capability_for_rendered_resolution():
         lambda: 'test-token',
         registry,
         200,
+        lambda: 1788345803.417,
     )
 
     testlib.assert_string_contains(
@@ -1303,6 +1304,11 @@ def trusted_script_includes_capability_for_rendered_resolution():
     )
 
     testlib.assert_string_contains('window.TRUSTED_BASE_URL = "https://bredland.example:8081";', script)
+
+    testlib.assert_string_contains(
+        'window.TRUSTED_SERVER_TIME = 1788345803417;',
+        script,
+    )
 
 @runner.test('trusted script preserves static banner first')
 def trusted_script_preserves_static_banner_first():
@@ -1321,6 +1327,7 @@ def trusted_script_preserves_static_banner_first():
         lambda: 'test-token',
         registry,
         200,
+        lambda: 1788345803.417,
     )
 
     testlib.assert_same(
@@ -1356,6 +1363,7 @@ def trusted_script_has_no_capabilities_without_rendered_resolution():
         lambda: 'test-token',
         registry,
         200,
+        lambda: 1788345803.417,
     )
 
     testlib.assert_string_contains('window.TRUSTED_CAPABILITIES = {};', script)
@@ -1387,6 +1395,7 @@ def trusted_script_get_renders_current_capabilities():
             lambda: 'test-token',
             registry,
             200,
+            lambda: 1788345803.417,
         )
 
     server = trusted_discovery.create_server(
@@ -1513,6 +1522,7 @@ def creates_trusted_script_renderer():
         lambda: 'test-token',
         registry,
         lambda: 200,
+        lambda: 1788345803.417,
     )
 
     script = renderer(
@@ -1526,6 +1536,10 @@ def creates_trusted_script_renderer():
             'install-routeros-update',
             'test-token',
         ),
+    )
+    testlib.assert_string_contains(
+        'window.TRUSTED_SERVER_TIME = 1788345803417;',
+        script,
     )
 
 @runner.test('action endpoint rejects action when current state is invalid')

@@ -354,6 +354,7 @@ def configured_server_serves_rendered_trusted_script():
             token_generator,
             registry,
             expires_at,
+            server_time,
         ):
             return lambda script_body: (
                 'window.CONFIGURED_RENDERER = true;'
