@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 
 import json
+import sys
+import threading
+import time
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+def shutdown_after_delay(
+        server,
+        delay_ms,
+):
+    time.sleep(
+        delay_ms / 1000.0
+    )
+
+    server.shutdown()
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -46,6 +58,19 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+        if self.server.shutdown_delay_ms is not None:
+            thread = threading.Thread(
+                target=shutdown_after_delay,
+                args=(
+                    self.server,
+                    self.server.shutdown_delay_ms,
+                ),
+            )
+
+            thread.daemon = True
+            thread.start()
+
+
     def do_GET(self):
         if self.path != '/rest/system/package/update':
             self.send_error(404)
@@ -76,12 +101,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    shutdown_delay_ms = None
+
+    if len(sys.argv) > 1:
+        shutdown_delay_ms = int(
+            sys.argv[1]
+        )
+
     server = HTTPServer(
         ('0.0.0.0', 8082),
         Handler
     )
 
-    server.serve_forever()
+    server.shutdown_delay_ms = shutdown_delay_ms
+
+    server.serve_forever(
+        poll_interval=0.01
+    )
 
 
 if __name__ == '__main__':

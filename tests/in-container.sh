@@ -164,7 +164,7 @@ for test in "${php_tests[@]}"; do
     fi
 done
 
-python_tests=(tests/python/*.test.py)
+python_tests=(tests/python/{,tools/}*.test.py)
 for test in "${python_tests[@]}"; do
     suite="${test#tests/python/}"
     suite="${suite%.test.py}"

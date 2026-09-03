@@ -26,15 +26,27 @@ trap cleanup EXIT INT TERM
 docker_build_rc=0
 
 preview=false
+mikrotik_shutdown_delay_ms=""
 
 case "${1:-}" in
     "")
         ;;
+
     --preview)
         preview=true
+
+        if [[ -n "${2:-}" ]]; then
+            mikrotik_shutdown_delay_ms="$2"
+        fi
+
+        if [[ -n "${3:-}" ]]; then
+            echo "Usage: $0 [--preview [mikrotik-shutdown-delay-ms]]" >&2
+            exit 2
+        fi
         ;;
+
     *)
-        echo "Usage: $0 [--preview]" >&2
+        echo "Usage: $0 [--preview [mikrotik-shutdown-delay-ms]]" >&2
         exit 2
         ;;
 esac
@@ -50,8 +62,15 @@ if $preview; then
     docker_args+=(
         -p 127.0.0.1:8000:8000
         -p 127.0.0.1:8081:8081
+        -p 127.0.0.1:8082:8082
         -e LOCAL_NOC_PREVIEW=1
     )
+
+    if [[ -n "$mikrotik_shutdown_delay_ms" ]]; then
+        docker_args+=(
+            -e "MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS=$mikrotik_shutdown_delay_ms"
+        )
+    fi
 fi
 
 docker build \

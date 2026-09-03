@@ -462,8 +462,14 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
 
     mikrotik_preview_log="$build_dir/mikrotik-rest-preview.log"
 
-    python3 scripts/in-container/mikrotik-rest-preview.py \
-        >"$mikrotik_preview_log" 2>&1 &
+    if [ -n "${MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS:-}" ]; then
+        python3 scripts/in-container/mikrotik-rest-preview.py \
+            "$MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS" \
+            >"$mikrotik_preview_log" 2>&1 &
+    else
+        python3 scripts/in-container/mikrotik-rest-preview.py \
+            >"$mikrotik_preview_log" 2>&1 &
+    fi
 
     mikrotik_preview_pid=$!
 
