@@ -2,6 +2,7 @@ import datetime
 import os
 import socket
 import time
+import threading
 
 class Controller:
     def __init__(
@@ -20,6 +21,7 @@ class Controller:
         self.last_success_at_ns = None
         self.first_failure_at_ns = None
         self.first_failure_at_wall = None
+        self.stop_reason = None
 
     def status(self):
         return self.state
@@ -30,6 +32,7 @@ class Controller:
         self.first_failure_at_ns = None
         self.started_at_wall = self.wall_time()
         self.first_failure_at_wall = None
+        self.stop_reason = None
 
         self.target = (
             host,
@@ -39,6 +42,17 @@ class Controller:
         self.state = 'polling'
 
     def stop(self):
+        if self.state != 'polling':
+            return
+
+        self.finish(
+            'operator'
+        )
+
+    def finish(self, stop_reason):
+        self.stop_reason = stop_reason
+        self.write_report()
+
         self.target = None
         self.state = 'inert'
 
@@ -69,8 +83,9 @@ class Controller:
 
         self.first_failure_at_ns = self.monotonic_ns()
         self.first_failure_at_wall = self.wall_time()
-        self.write_report()
-        self.stop()
+        self.finish(
+            'probe-failure'
+        )
 
     def report(self):
         elapsed_to_failure_ns = None
@@ -96,6 +111,7 @@ class Controller:
             'first_failure_at_wall': self.first_failure_at_wall,
             'elapsed_to_failure_ns': elapsed_to_failure_ns,
             'failure_window_ns': failure_window_ns,
+            'stop_reason': self.stop_reason,
         }
 
     def write_report(self):
@@ -124,8 +140,8 @@ def default_config():
     return {
         'poll_interval_ms': 10,
         'connect_timeout_ms': 100,
-        'control_socket': '/tmp/routeros-rpi.sock',
-        'log_file': '/tmp/routeros-rpi.log',
+        'control_socket': '/tmp/rapid-poll-instrumentation.sock',
+        'log_file': '/tmp/rapid-poll-instrumentation.log',
     }
 
 def load_config(config_file):
@@ -165,6 +181,21 @@ def load_config(config_file):
 
     return config
 
+def start_polling(
+        controller,
+        probe,
+        sleep,
+        thread_factory,
+):
+    thread = thread_factory(
+        target=lambda: controller.poll(
+            probe,
+            sleep,
+        )
+    )
+
+    thread.start()
+
 def tcp_probe(
         host,
         port,
@@ -194,6 +225,7 @@ def format_report(report):
         'first_failure_at_wall={}\n'
         'elapsed_to_failure_ns={}\n'
         'failure_window_ns={}\n'
+        'stop_reason={}\n'
         .format(
             report['started_at_ns'],
             report['started_at_wall'],
@@ -202,6 +234,7 @@ def format_report(report):
             report['first_failure_at_wall'],
             report['elapsed_to_failure_ns'],
             report['failure_window_ns'],
+            report['stop_reason'],
         )
     )
 
@@ -243,6 +276,14 @@ def handle_command(controller, command):
     if parts[0] == 'status':
         return controller.status()
 
+    if command == 'stop':
+        controller.stop()
+        return 'ok'
+
+    if command == 'exit':
+        controller.stop()
+        return 'ok'
+
     return 'error: unknown command'
 
 def command_loop(
@@ -279,6 +320,7 @@ def serve_connection(
         controller,
         probe,
         sleep,
+        poll_runner,
 ):
     command = connection.recv(
         4096
@@ -303,10 +345,13 @@ def serve_connection(
             command.startswith('start ')
             and response == 'ok'
     ):
-        controller.poll(
+        poll_runner(
+            controller,
             probe,
             sleep,
         )
+
+    return command == 'exit'
 
 def create_control_socket(
         path,
@@ -341,14 +386,23 @@ def serve_forever(
         connection, _ = listener.accept()
 
         try:
-            serve_connection(
+            should_exit = serve_connection(
                 connection,
                 controller,
                 probe,
                 sleep,
+                lambda controller, probe, sleep: start_polling(
+                    controller,
+                    probe,
+                    sleep,
+                    threading.Thread,
+                ),
             )
         finally:
             connection.close()
+
+        if should_exit:
+            return
 
 
 def run(
@@ -400,7 +454,7 @@ def main(
 if __name__ == '__main__':
     config_file = os.path.join(
         os.path.dirname(__file__),
-        'routeros-rapid-poll.conf',
+        'rapid-poll-instrumentation.conf',
     )
 
     main(

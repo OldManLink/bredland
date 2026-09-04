@@ -31,7 +31,7 @@ tool_file = os.path.join(
     repo_root,
     'scripts',
     'tools',
-    'routeros-rapid-poll.py',
+    'rapid-poll-instrumentation.py',
 )
 
 
@@ -61,8 +61,8 @@ def uses_sensible_rapid_polling_defaults():
     assert config == {
         'poll_interval_ms': 10,
         'connect_timeout_ms': 100,
-        'control_socket': '/tmp/routeros-rpi.sock',
-        'log_file': '/tmp/routeros-rpi.log',
+        'control_socket': '/tmp/rapid-poll-instrumentation.sock',
+        'log_file': '/tmp/rapid-poll-instrumentation.log',
     }
 
 @runner.test('loads config overrides')
@@ -228,6 +228,44 @@ def stop_returns_controller_to_inert_state():
 
     assert controller.status() == 'inert'
     assert controller.target is None
+
+@runner.test('stop writes operator-stopped polling report')
+def stop_writes_operator_stopped_polling_report():
+    rapid_poll = load_tool()
+
+    written_reports = []
+
+    controller = rapid_poll.Controller(
+        rapid_poll.default_config(),
+        lambda: 1000000000,
+        lambda: '2026-09-04T09:30:00.000000Z',
+    )
+
+    controller.write_report = lambda: written_reports.append(
+        controller.report()
+    )
+
+    controller.start(
+        '127.0.0.1',
+        8082,
+    )
+
+    controller.stop()
+
+    assert_same(
+        1,
+        len(written_reports),
+    )
+
+    assert_same(
+        'operator',
+        written_reports[0]['stop_reason'],
+    )
+
+    assert_same(
+        'inert',
+        controller.status(),
+    )
 
 @runner.test('successful probe keeps controller polling')
 def successful_probe_keeps_controller_polling():
@@ -522,6 +560,7 @@ def reports_polling_run_timing():
         'first_failure_at_wall': None,
         'elapsed_to_failure_ns': 1510000000,
         'failure_window_ns': 10000000,
+        'stop_reason': None
     }
 
 @runner.test('reports incomplete polling run safely')
@@ -547,6 +586,7 @@ def reports_incomplete_polling_run_safely():
         'first_failure_at_wall': None,
         'elapsed_to_failure_ns': None,
         'failure_window_ns': None,
+        'stop_reason': None
     }
 
 @runner.test('formats completed polling report')
@@ -561,6 +601,7 @@ def formats_completed_polling_report():
         'first_failure_at_wall': '2026-09-02T14:30:01.510000Z',
         'elapsed_to_failure_ns': 1510000000,
         'failure_window_ns': 10000000,
+        'stop_reason': 'probe-failure',
     }
 
     text = rapid_poll.format_report(
@@ -575,6 +616,7 @@ def formats_completed_polling_report():
         'first_failure_at_wall=2026-09-02T14:30:01.510000Z\n'
         'elapsed_to_failure_ns=1510000000\n'
         'failure_window_ns=10000000\n'
+        'stop_reason=probe-failure\n'
     )
 
 @runner.test('start records wall clock time')
@@ -666,7 +708,7 @@ def writes_completed_polling_report_to_log_file():
     log_file = os.path.join(
         repo_root,
         'build',
-        'routeros-rpi-test.log',
+        'rapid-poll-instrumentation.log',
     )
 
     config = rapid_poll.default_config()
@@ -710,7 +752,7 @@ def appends_completed_polling_reports_to_log_file():
     log_file = os.path.join(
         repo_root,
         'build',
-        'routeros-rpi-test.log',
+        'rapid-poll-instrumentation.log',
     )
 
     config = rapid_poll.default_config()
@@ -820,6 +862,59 @@ def status_command_reports_controller_state():
     )
 
     assert_same('inert', result)
+
+@runner.test('stop command is harmless while inert')
+def stop_command_is_harmless_while_inert():
+    rapid_poll = load_tool()
+
+    calls = []
+
+    class FakeController:
+        def stop(self):
+            calls.append('stop')
+
+        def status(self):
+            return 'inert'
+
+    controller = FakeController()
+
+    result = rapid_poll.handle_command(
+        controller,
+        'stop',
+    )
+
+    assert_same('ok', result)
+    assert_same(['stop'], calls)
+    assert_same('inert', controller.status())
+
+@runner.test('exit command stops controller')
+def exit_command_stops_controller():
+    rapid_poll = load_tool()
+
+    calls = []
+
+    class FakeController:
+        def stop(self):
+            calls.append(
+                'stop'
+            )
+
+    result = rapid_poll.handle_command(
+        FakeController(),
+        'exit',
+    )
+
+    assert_same(
+        'ok',
+        result,
+    )
+
+    assert_same(
+        [
+            'stop',
+        ],
+        calls,
+    )
 
 @runner.test('rejects unknown command')
 def rejects_unknown_command():
@@ -1026,6 +1121,7 @@ def serves_one_command_over_a_connection():
         FakeController(),
         lambda host, port, timeout_ms: True,
         lambda seconds: None,
+        lambda controller, probe, sleep: None,
     )
 
     assert_same(
@@ -1033,6 +1129,179 @@ def serves_one_command_over_a_connection():
             b'inert\n',
         ],
         sent,
+    )
+
+@runner.test('serve forever stops after exit command')
+def serve_forever_stops_after_exit_command():
+    rapid_poll = load_tool()
+
+    events = []
+
+    class FakeConnection:
+        def recv(self, size):
+            return b'exit\n'
+
+        def sendall(self, data):
+            events.append(
+                (
+                    'send',
+                    data,
+                )
+            )
+
+        def close(self):
+            events.append(
+                'close'
+            )
+
+    class FakeListener:
+        def __init__(self):
+            self.calls = 0
+
+        def accept(self):
+            self.calls += 1
+
+            if self.calls == 1:
+                return (
+                    FakeConnection(),
+                    'client',
+                )
+
+            fail(
+                'serve_forever must stop after exit'
+            )
+
+    class FakeController:
+        def stop(self):
+            events.append(
+                'stop'
+            )
+
+    rapid_poll.serve_forever(
+        FakeListener(),
+        FakeController(),
+        'probe',
+        'sleep',
+    )
+
+    assert_same(
+        [
+            'stop',
+            (
+                'send',
+                b'ok\n',
+            ),
+            'close',
+        ],
+        events,
+    )
+
+@runner.test('start command delegates polling to poll runner')
+def start_command_delegates_polling_to_poll_runner():
+    rapid_poll = load_tool()
+
+    events = []
+    sent = []
+
+    class FakeConnection:
+        def recv(self, size):
+            return b'start 127.0.0.1 8082\n'
+
+        def sendall(self, data):
+            sent.append(
+                data
+            )
+
+    class FakeController:
+        def start(self, host, port):
+            events.append(
+                (
+                    'start',
+                    host,
+                    port,
+                )
+            )
+
+        def poll(self, probe, sleep):
+            fail(
+                'serve_connection must not poll synchronously'
+            )
+
+    controller = FakeController()
+
+    def poll_runner(
+            controller,
+            probe,
+            sleep,
+    ):
+        events.append(
+            'poll-runner'
+        )
+
+    rapid_poll.serve_connection(
+        FakeConnection(),
+        controller,
+        lambda host, port, timeout_ms: True,
+        lambda seconds: None,
+        poll_runner,
+    )
+
+    assert_same(
+        [
+            (
+                'start',
+                '127.0.0.1',
+                8082,
+            ),
+            'poll-runner',
+        ],
+        events,
+    )
+
+    assert_same(
+        [
+            b'ok\n',
+        ],
+        sent,
+    )
+
+@runner.test('poll runner starts polling in background thread')
+def poll_runner_starts_polling_in_background_thread():
+    rapid_poll = load_tool()
+
+    events = []
+
+    class FakeController:
+        def poll(self, probe, sleep):
+            events.append(
+                'poll'
+            )
+
+    class FakeThread:
+        def __init__(self, target):
+            events.append(
+                'thread-created'
+            )
+            self.target = target
+
+        def start(self):
+            events.append(
+                'thread-started'
+            )
+
+    rapid_poll.start_polling(
+        FakeController(),
+        lambda host, port, timeout_ms: True,
+        lambda seconds: None,
+        FakeThread,
+    )
+
+    assert_same(
+        [
+            'thread-created',
+            'thread-started',
+        ],
+        events,
     )
 
 @runner.test('creates unix control socket')
@@ -1200,8 +1469,13 @@ def serve_forever_accepts_and_serves_connections():
 
     original_serve_connection = rapid_poll.serve_connection
 
-    rapid_poll.serve_connection = (
-        lambda connection, controller, probe, sleep:
+    def fake_serve_connection(
+            connection,
+            controller,
+            probe,
+            sleep,
+            poll_runner,
+    ):
         events.append(
             (
                 'serve',
@@ -1209,9 +1483,11 @@ def serve_forever_accepts_and_serves_connections():
                 controller,
                 probe,
                 sleep,
+                poll_runner,
             )
         )
-    )
+
+    rapid_poll.serve_connection = fake_serve_connection
 
     controller = FakeController()
 
@@ -1255,9 +1531,122 @@ def serve_forever_accepts_and_serves_connections():
         events[0][4],
     )
 
+    assert_true(
+        callable(
+            events[0][5]
+        )
+    )
+
     assert_same(
         'close',
         events[1],
+    )
+
+@runner.test('stop command is accepted while polling')
+def stop_command_is_accepted_while_polling():
+    rapid_poll = load_tool()
+
+    events = []
+
+    class FakeConnection:
+        def __init__(self, command):
+            self.command = command
+            self.sent = []
+
+        def recv(self, size):
+            return (
+                    self.command + '\n'
+            ).encode('utf-8')
+
+        def sendall(self, data):
+            self.sent.append(
+                data
+            )
+
+        def close(self):
+            pass
+
+    start_connection = FakeConnection(
+        'start 127.0.0.1 8082'
+    )
+
+    stop_connection = FakeConnection(
+        'stop'
+    )
+
+    class FakeListener:
+        def __init__(self):
+            self.connections = iter([
+                start_connection,
+                stop_connection,
+            ])
+
+        def accept(self):
+            try:
+                return (
+                    next(self.connections),
+                    'client',
+                )
+            except StopIteration:
+                raise StopIteration()
+
+    class FakeController:
+        def __init__(self):
+            self.state = 'inert'
+
+        def start(self, host, port):
+            self.state = 'polling'
+            events.append(
+                'start'
+            )
+
+        def stop(self):
+            events.append(
+                'stop'
+            )
+            self.state = 'inert'
+
+        def poll(self, probe, sleep):
+            events.append(
+                'poll'
+            )
+
+        def status(self):
+            return self.state
+
+    controller = FakeController()
+
+    try:
+        rapid_poll.serve_forever(
+            FakeListener(),
+            controller,
+            'probe',
+            'sleep',
+        )
+    except StopIteration:
+        pass
+
+    assert_same(
+        [
+            b'ok\n',
+        ],
+        start_connection.sent,
+    )
+
+    assert_same(
+        [
+            b'ok\n',
+        ],
+        stop_connection.sent,
+    )
+
+    assert_true(
+        'stop' in events
+    )
+
+    assert_same(
+        'inert',
+        controller.status(),
     )
 
 @runner.test('runs rapid polling service from config')
@@ -1289,7 +1678,7 @@ def runs_rapid_polling_service_from_config():
 
     def create_control_socket(path):
         assert_same(
-            '/tmp/routeros-rpi.sock',
+            '/tmp/rapid-poll-instrumentation.sock',
             path,
         )
 
