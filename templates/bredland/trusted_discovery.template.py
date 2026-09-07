@@ -1,5 +1,7 @@
 import json
+import os
 import secrets
+import socket
 import ssl
 import sys
 import time
@@ -31,6 +33,7 @@ TRUSTED_KEY_FILE = '/etc/bredland/tls/privkey.pem'
 MIKROTIK_REST_BASE_URL = '__MIKROTIK_REST_BASE_URL__'
 MIKROTIK_REST_CREDENTIALS_FILE = '/etc/bredland/mikrotik-rest/credentials.env'
 MIKROTIK_REST_CA_FILE = '/etc/bredland/mikrotik-rest/ca.pem'
+RESOLUTIONS_FILE = '/etc/bredland/resolutions.json'
 
 class TrustedDiscoveryServer(ThreadingHTTPServer):
     tls_context = None
@@ -170,6 +173,143 @@ def supported_rendered_resolutions(resolutions):
         for resolution in resolutions
         if routeros_script_for_resolution(resolution) is not None
     ]
+
+def load_resolution_hook(
+        path,
+        resolution,
+):
+    if not os.path.exists(path):
+        return None
+
+    try:
+        with open(path, 'r') as handle:
+            hooks = json.load(
+                handle
+            )
+    except ValueError:
+        raise ValueError(
+            'Invalid resolutions JSON'
+        )
+
+    hook = hooks.get(
+        resolution
+    )
+
+    if hook is None:
+        return None
+
+    if (
+            not isinstance(hook, dict)
+            or 'socket' not in hook
+            or 'host' not in hook
+            or 'port' not in hook
+            or not isinstance(
+                hook['socket'],
+                str,
+            )
+            or not isinstance(
+                hook['host'],
+                str,
+            )
+            or not isinstance(
+                hook['port'],
+                int,
+            )
+            or hook['port'] < 1
+            or hook['port'] > 65535
+    ):
+        raise ValueError(
+            'Invalid resolution hook'
+        )
+
+    return hook
+
+def execute_resolution_hook(
+        hook,
+        socket_factory=socket.socket,
+):
+    connection = socket_factory(
+        socket.AF_UNIX,
+        socket.SOCK_STREAM,
+    )
+
+    try:
+        connection.connect(
+            hook['socket']
+        )
+
+        connection.sendall(
+            (
+                'start {} {}\n'.format(
+                    hook['host'],
+                    hook['port'],
+                )
+            ).encode('utf-8')
+        )
+
+        response = connection.recv(
+            4096
+        ).decode(
+            'utf-8'
+        ).strip()
+
+        return response == 'ok'
+    except OSError:
+        return False
+    finally:
+        connection.close()
+
+def execute_configured_resolution_hook(
+        path,
+        resolution,
+        hook_executor,
+        logger=lambda message: None,
+):
+    try:
+        hook = load_resolution_hook(
+            path,
+            resolution,
+        )
+    except ValueError:
+        logger(
+            'Pre-action hook configuration failed for {}'.format(
+                resolution
+            )
+        )
+        raise
+
+    if hook is None:
+        logger(
+            'No pre-action hook configured for {}'.format(
+                resolution
+            )
+        )
+        return True
+
+    logger(
+        'Pre-action hook configured for {}'.format(
+            resolution
+        )
+    )
+
+    succeeded = hook_executor(
+        hook
+    )
+
+    if succeeded:
+        logger(
+            'Pre-action hook succeeded for {}'.format(
+                resolution
+            )
+        )
+    else:
+        logger(
+            'Pre-action hook failed for {}'.format(
+                resolution
+            )
+        )
+
+    return succeeded
 
 def issue_capabilities(
         resolutions,
@@ -341,6 +481,11 @@ def routeros_script_for_resolution(resolution):
 
     return scripts.get(resolution)
 
+def log_trusted_action_hook(message):
+    sys.stderr.write(
+        message + '\n'
+    )
+
 def create_configured_server(
     host,
     port,
@@ -419,6 +564,14 @@ def create_configured_server(
         routeros_poster,
     )
 
+    def action_hook(resolution):
+        return execute_configured_resolution_hook(
+            RESOLUTIONS_FILE,
+            resolution,
+            execute_resolution_hook,
+            log_trusted_action_hook,
+        )
+
     server = create_server(
         host,
         port,
@@ -433,6 +586,7 @@ def create_configured_server(
         trusted_script_renderer,
         action_validator,
         action_guard,
+        action_hook,
     )
 
     context = ssl.SSLContext(
@@ -462,6 +616,7 @@ def create_server(
     trusted_script_renderer,
     action_validator,
     action_guard,
+    action_hook=None,
 ):
     script_url = base_url + script_path
     stylesheet_url = base_url + stylesheet_path
@@ -622,16 +777,41 @@ def create_server(
                 self._send_action_response(500)
                 return
 
-            if not action_guard.claim(
-                    resolution
-            ):
+            if not action_guard.claim(resolution):
                 self._send_action_response(423)
                 return
 
+            if action_hook is not None:
+                try:
+                    hook_succeeded = action_hook(
+                        resolution
+                    )
+                except Exception as error:
+                    sys.stderr.write(
+                        'Trusted action hook failed: '
+                        'resolution={!r}, exception={}\n'.format(
+                            resolution,
+                            type(error).__name__,
+                        )
+                    )
+
+                    action_guard.release(
+                        resolution
+                    )
+
+                    self._send_action_response(500)
+                    return
+
+                if not hook_succeeded:
+                    action_guard.release(
+                        resolution
+                    )
+
+                    self._send_action_response(500)
+                    return
+
             try:
-                succeeded = action_executor(
-                    script_name
-                )
+                succeeded = action_executor(script_name)
             except Exception as error:
                 sys.stderr.write(
                     'Trusted action executor failed: '
@@ -642,9 +822,7 @@ def create_server(
                     )
                 )
 
-                action_guard.release(
-                    resolution
-                )
+                action_guard.release(resolution)
 
                 self._send_action_response(500)
                 return

@@ -544,6 +544,10 @@ def configured_server_wires_routeros_action_executor():
             trusted_discovery.create_routeros_rest_getter
         )
 
+        original_execute_configured_resolution_hook = (
+            trusted_discovery.execute_configured_resolution_hook
+        )
+
         trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
         trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
         trusted_discovery.ssl = FakeSsl
@@ -579,11 +583,34 @@ def configured_server_wires_routeros_action_executor():
             )
         )
 
+        def execute_configured_resolution_hook(
+                path,
+                resolution,
+                hook_executor,
+                logger,
+        ):
+            calls.append(
+                (
+                    'configured-hook',
+                    path,
+                    resolution,
+                    hook_executor,
+                    logger,
+                )
+            )
+
+            return True
+
+        trusted_discovery.execute_configured_resolution_hook = (
+            execute_configured_resolution_hook
+        )
+
         def create_server(*args):
             calls.append(
                 (
                     args[8],
-                    args[11]
+                    args[11],
+                    args[13]
                 )
             )
 
@@ -595,6 +622,18 @@ def configured_server_wires_routeros_action_executor():
             trusted_discovery.create_configured_server(
                 '127.0.0.1',
                 8081,
+            )
+
+            action_hook = calls[0][2]
+
+            testlib.assert_true(
+                callable(action_hook)
+            )
+
+            testlib.assert_true(
+                action_hook(
+                    'install-routeros-update'
+                )
             )
         finally:
             trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
@@ -616,9 +655,12 @@ def configured_server_wires_routeros_action_executor():
             trusted_discovery.create_routeros_rest_getter = (
                 original_create_getter
             )
+            trusted_discovery.execute_configured_resolution_hook = (
+                original_execute_configured_resolution_hook
+            )
 
     testlib.assert_same(
-        1,
+        2,
         len(calls),
     )
 
@@ -638,6 +680,29 @@ def configured_server_wires_routeros_action_executor():
     testlib.assert_false(
         validator(
             'something-else'
+        )
+    )
+
+    configured_hook_call = calls[1]
+
+    testlib.assert_same(
+        'configured-hook',
+        configured_hook_call[0],
+    )
+
+    testlib.assert_same(
+        trusted_discovery.RESOLUTIONS_FILE,
+        configured_hook_call[1],
+    )
+
+    testlib.assert_same(
+        'install-routeros-update',
+        configured_hook_call[2],
+    )
+
+    testlib.assert_true(
+        callable(
+            configured_hook_call[4]
         )
     )
 

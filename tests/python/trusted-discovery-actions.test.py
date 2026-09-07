@@ -1867,6 +1867,421 @@ def action_endpoint_reports_executor_failure():
         thread.join()
         server.server_close()
 
+@runner.test('action endpoint aborts when resolution hook fails')
+def action_endpoint_aborts_when_resolution_hook_fails():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+    hook_calls = []
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+        return True
+
+    def execute_hook(resolution):
+        hook_calls.append(
+            resolution
+        )
+        return False
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: True,
+        action_guard=trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
+        action_hook=execute_hook,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected failed resolution hook to abort action'
+            )
+
+        testlib.assert_same(
+            [
+                'install-routeros-update',
+            ],
+            hook_calls,
+        )
+
+        testlib.assert_same(
+            [],
+            executor_calls,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint executes after resolution hook succeeds')
+def action_endpoint_executes_after_resolution_hook_succeeds():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    events = []
+
+    def execute_hook(resolution):
+        events.append(
+            (
+                'hook',
+                resolution,
+            )
+        )
+        return True
+
+    def execute(script_name):
+        events.append(
+            (
+                'executor',
+                script_name,
+            )
+        )
+        return True
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: True,
+        action_guard=trusted_discovery.ActionGuard(
+            lambda: 100,
+            30,
+        ),
+        action_hook=execute_hook,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        response = urllib.request.urlopen(
+            request
+        )
+
+        testlib.assert_same(
+            200,
+            response.status,
+        )
+
+        testlib.assert_same(
+            [
+                (
+                    'hook',
+                    'install-routeros-update',
+                ),
+                (
+                    'executor',
+                    'noc-trusted-action-test',
+                ),
+            ],
+            events,
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint handles resolution hook exception')
+def action_endpoint_handles_resolution_hook_exception():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+        return True
+
+    def execute_hook(resolution):
+        raise ValueError(
+            'Invalid resolutions JSON'
+        )
+
+    action_guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: True,
+        action_guard=action_guard,
+        action_hook=execute_hook,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected resolution hook exception to abort action'
+            )
+
+        testlib.assert_same(
+            [],
+            executor_calls,
+        )
+
+        testlib.assert_true(
+            action_guard.claim(
+                'install-routeros-update'
+            ),
+            'Action guard should be released after hook failure',
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
+@runner.test('action endpoint aborts when configured RPI hook is unavailable')
+def action_endpoint_aborts_when_configured_rpi_hook_is_unavailable():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'test-token',
+        'noc-trusted-action-test',
+        200,
+    )
+
+    executor_calls = []
+    log_messages = []
+
+    def execute(script_name):
+        executor_calls.append(
+            script_name
+        )
+        return True
+
+    def action_hook(resolution):
+        log_messages.append(
+            'Pre-action hook configured for {}'.format(
+                resolution
+            )
+        )
+
+        log_messages.append(
+            'Pre-action hook failed for {}'.format(
+                resolution
+            )
+        )
+
+        return False
+
+    action_guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = trusted_discovery.create_server(
+        '127.0.0.1',
+        0,
+        'https://bredland.example',
+        'https://noc.arcanel.se',
+        '/trusted-script-test',
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        '/trusted-style-test',
+        'html { outline: 1px solid; }',
+        execute,
+        registry,
+        None,
+        action_validator=lambda resolution: True,
+        action_guard=action_guard,
+        action_hook=action_hook,
+    )
+
+    thread = threading.Thread(
+        target=server.handle_request,
+    )
+    thread.start()
+
+    try:
+        request = urllib.request.Request(
+            'http://127.0.0.1:{}/action'.format(
+                server.server_port,
+            ),
+            data=json.dumps(
+                {
+                    'resolution': 'install-routeros-update',
+                    'token': 'test-token',
+                }
+            ).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://noc.arcanel.se',
+            },
+            method='POST',
+        )
+
+        try:
+            urllib.request.urlopen(request)
+        except urllib.error.HTTPError as error:
+            testlib.assert_same(
+                500,
+                error.code,
+            )
+        else:
+            testlib.fail(
+                'Expected unavailable RPI hook to abort action'
+            )
+
+        testlib.assert_same(
+            [],
+            executor_calls,
+        )
+
+        testlib.assert_same(
+            [
+                'Pre-action hook configured for install-routeros-update',
+                'Pre-action hook failed for install-routeros-update',
+            ],
+            log_messages,
+        )
+
+        testlib.assert_true(
+            action_guard.claim(
+                'install-routeros-update'
+            ),
+            'Action guard should be released after hook failure',
+        )
+    finally:
+        thread.join()
+        server.server_close()
+
 @runner.test('action endpoint releases claim after executor failure')
 def action_endpoint_releases_claim_after_executor_failure():
     registry = trusted_discovery.CapabilityRegistry(
