@@ -61,7 +61,7 @@ verify_routeros \
     "RouterOS update-action script has expected source" \
     ":local id [/system script find name=\"${script_name}\"]; \
      :local source [/system script get \$id source]; \
-     :local expected \":local installed [/system package update get installed-version]\n:local latest [/system package update get latest-version]\n:local status [/system package update get status]\n\n:if ((\\\$installed = \\\"\\\") || (\\\$latest = \\\"\\\") || (\\\$installed = \\\$latest) || (\\\$status != \\\"New version is available\\\")) do={\n    :log warning \\\"[NOC-ROUTEROS-UPDATE] update no longer available\\\"\n    :return\n}\n\n:log warning \\\"[NOC-ROUTEROS-UPDATE] SAFETY CATCH: would install RouterOS update\\\"\n:return\n\n:log warning \\\"[NOC-ROUTEROS-UPDATE] THIS SHOULD NEVER HAPPEN\\\"\"; \
+     :local expected \":local installed [/system package update get installed-version]\n:local latest [/system package update get latest-version]\n:local status [/system package update get status]\n\n:if ((\\\$installed = \\\"\\\") || (\\\$latest = \\\"\\\") || (\\\$installed = \\\$latest) || (\\\$status != \\\"New version is available\\\")) do={\n    :log warning \\\"[NOC-ROUTEROS-UPDATE] update no longer available\\\"\n} else={\n    :log warning \\\"[NOC-ROUTEROS-UPDATE] SAFETY CATCH: would install RouterOS update\\\"\n\n    :if (false) do={\n        :log warning \\\"[NOC-ROUTEROS-UPDATE] THIS SHOULD NEVER HAPPEN\\\"\n    }\n}\"; \
      :if (\$source = \$expected) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
