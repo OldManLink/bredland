@@ -32,26 +32,23 @@ router="${router_user}@${router_host}"
 
 trap cleanup EXIT
 
-echo "Rendering MikroTik trusted action test installer..."
-if scripts/render-template.sh "$template" "$rendered"; then
-    pass "Installer rendered"
-else
-    fail "Rendering installer"
-fi
+run_step \
+    "Render MikroTik trusted action test installer" \
+    scripts/render-template.sh \
+    "$template" \
+    "$rendered"
 
-echo "Uploading to MikroTik..."
-if scp "$rendered" "${router}:${remote_file}"; then
-    pass "Installer uploaded"
-else
-    fail "Uploading installer"
-fi
+run_step \
+    "Upload MikroTik trusted action test installer" \
+    scp \
+    "$rendered" \
+    "${router}:${remote_file}"
 
-echo "Importing on MikroTik..."
-if ssh "$router" "/import file-name=${remote_file}"; then
-    pass "Installer imported"
-else
-    fail "Importing installer"
-fi
+run_step \
+    "Import MikroTik trusted action test installer" \
+    ssh \
+    "$router" \
+    "/import file-name=${remote_file}"
 
 verify_routeros \
     "$router" \
@@ -94,12 +91,11 @@ else
     fail "Verifying trusted action test log entry"
 fi
 
-echo "Cleaning up uploaded installer..."
-if ssh "$router" "/file remove ${remote_file}"; then
-    pass "Uploaded installer removed"
-else
-    fail "Removing uploaded installer"
-fi
+run_step \
+    "Remove uploaded MikroTik trusted action test installer" \
+    ssh \
+    "$router" \
+    "/file remove ${remote_file}"
 
 echo
 echo "✅ MikroTik trusted action test deployed."

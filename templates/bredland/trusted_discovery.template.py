@@ -476,7 +476,7 @@ def render_discovery_response(script_url, stylesheet_url):
 
 def routeros_script_for_resolution(resolution):
     scripts = {
-        'install-routeros-update': 'noc-trusted-action-test',
+        'install-routeros-update': 'noc-install-routeros-update',
     }
 
     return scripts.get(resolution)

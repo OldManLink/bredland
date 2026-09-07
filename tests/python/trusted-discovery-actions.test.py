@@ -29,7 +29,7 @@ routeros_rest = sys.modules['routeros_rest']
 @runner.test('maps supported resolution to RouterOS script')
 def supported_resolution_maps_to_routeros_script():
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-install-routeros-update',
         trusted_discovery.routeros_script_for_resolution(
             'install-routeros-update',
         ),
@@ -1264,7 +1264,7 @@ def registers_issued_capability():
     )
 
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-install-routeros-update',
         registry.consume(
             'install-routeros-update',
             'test-token',
@@ -1531,7 +1531,7 @@ def creates_trusted_script_renderer():
 
     testlib.assert_string_contains('"install-routeros-update": "test-token"', script)
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-install-routeros-update',
         registry.consume(
             'install-routeros-update',
             'test-token',
