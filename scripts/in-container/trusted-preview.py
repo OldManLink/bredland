@@ -138,6 +138,14 @@ def main():
         30,
     )
 
+    def action_hook(resolution):
+        return trusted_discovery.execute_configured_resolution_hook(
+            trusted_discovery.RESOLUTIONS_FILE,
+            resolution,
+            trusted_discovery.execute_resolution_hook,
+            trusted_discovery.log_trusted_action_hook,
+        )
+
     server = trusted_discovery.create_server(
         '0.0.0.0',
         8081,
@@ -152,6 +160,7 @@ def main():
         trusted_script_renderer,
         validate_action,
         action_guard,
+        action_hook,
     )
 
     print(

@@ -71,6 +71,12 @@ if $preview; then
             -e "MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS=$mikrotik_shutdown_delay_ms"
         )
     fi
+
+    if [[ -f /etc/bredland/resolutions.json ]]; then
+        docker_args+=(
+            -v /etc/bredland/resolutions.json:/etc/bredland/resolutions.json:ro
+        )
+    fi
 fi
 
 docker build \
