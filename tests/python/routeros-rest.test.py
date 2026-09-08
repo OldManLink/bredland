@@ -453,6 +453,72 @@ def reports_no_routeros_update_without_latest_version():
         )
     )
 
+@runner.test('reports RouterBOOT update available')
+def reports_routerboot_update_available():
+    def get(url):
+        testlib.assert_same(
+            'https://mikrotik.example/rest/system/routerboard',
+            url,
+        )
+
+        return {
+            'current-firmware': '7.23.1',
+            'upgrade-firmware': '7.24.2',
+        }
+
+    testlib.assert_true(
+        routeros_rest.routerboot_update_available(
+            'https://mikrotik.example',
+            get,
+        )
+    )
+
+
+@runner.test('reports no RouterBOOT update when versions match')
+def reports_no_routerboot_update_when_versions_match():
+    def get(url):
+        return {
+            'current-firmware': '7.24.2',
+            'upgrade-firmware': '7.24.2',
+        }
+
+    testlib.assert_false(
+        routeros_rest.routerboot_update_available(
+            'https://mikrotik.example',
+            get,
+        )
+    )
+
+
+@runner.test('reports no RouterBOOT update when current firmware is missing')
+def reports_no_routerboot_update_without_current_firmware():
+    def get(url):
+        return {
+            'upgrade-firmware': '7.24.2',
+        }
+
+    testlib.assert_false(
+        routeros_rest.routerboot_update_available(
+            'https://mikrotik.example',
+            get,
+        )
+    )
+
+
+@runner.test('reports no RouterBOOT update when upgrade firmware is missing')
+def reports_no_routerboot_update_without_upgrade_firmware():
+    def get(url):
+        return {
+            'current-firmware': '7.23.1',
+        }
+
+    testlib.assert_false(
+        routeros_rest.routerboot_update_available(
+            'https://mikrotik.example',
+            get,
+        )
+    )
+
 @runner.test('gets JSON from RouterOS REST')
 def gets_json_from_routeros_rest():
     calls = []

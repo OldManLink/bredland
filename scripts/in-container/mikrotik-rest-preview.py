@@ -42,9 +42,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(400)
             return
 
-        if request != {
-            '.id': 'noc-trusted-action-test',
-        }:
+        if request not in (
+                {
+                    '.id': 'noc-trusted-action-test',
+                },
+                {
+                    '.id': 'noc-install-routerboot-update',
+                },
+        ):
             self.send_error(400)
             return
 
@@ -72,16 +77,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
     def do_GET(self):
-        if self.path != '/rest/system/package/update':
-            self.send_error(404)
-            return
-
-        body = json.dumps(
-            {
+        if self.path == '/rest/system/package/update':
+            response = {
                 'installed-version': '7.23.1',
                 'latest-version': '7.24.1',
                 'status': 'New version is available',
             }
+        elif self.path == '/rest/system/routerboard':
+            response = {
+                'current-firmware': '7.23.1',
+                'upgrade-firmware': '7.24.2',
+            }
+        else:
+            self.send_error(404)
+            return
+
+        body = json.dumps(
+            response
         ).encode('utf-8')
 
         self.send_response(200)

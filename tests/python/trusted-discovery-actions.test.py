@@ -46,6 +46,15 @@ def supported_resolution_maps_to_routeros_script():
         ),
     )
 
+@runner.test('maps supported resolution to RouterBoot script')
+def supported_resolution_maps_to_routerboot_script():
+    testlib.assert_same(
+        'noc-install-routerboot-update',
+        trusted_discovery.routeros_script_for_resolution(
+            'install-routerboot-update',
+        ),
+    )
+
 @runner.test('maps unsupported resolution to nothing')
 def unsupported_resolution_maps_to_nothing():
     testlib.assert_same(

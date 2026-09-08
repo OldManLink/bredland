@@ -125,17 +125,23 @@ def main():
     )
 
     def validate_action(resolution):
-        if resolution != 'install-routeros-update':
-            return False
+        if resolution == 'install-routeros-update':
+            return trusted_discovery.routeros_update_available(
+                trusted_discovery.MIKROTIK_REST_BASE_URL,
+                preview_get,
+            )
 
-        return trusted_discovery.routeros_update_available(
-            trusted_discovery.MIKROTIK_REST_BASE_URL,
-            preview_get,
-        )
+        if resolution == 'install-routerboot-update':
+            return trusted_discovery.routerboot_update_available(
+                trusted_discovery.MIKROTIK_REST_BASE_URL,
+                preview_get,
+            )
+
+        return False
 
     action_guard = trusted_discovery.ActionGuard(
         time.time,
-        30,
+        90,
     )
 
     def action_hook(resolution):

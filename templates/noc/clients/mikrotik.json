@@ -28,6 +28,23 @@
         "argument": ["Software update available:\nVersion {{latest_version}} ({{update_channel}})",
           "install-routeros-update"]
       }
+    },
+    {
+      "when": {
+        "field": "upgrade_firmware",
+        "operator": "versionGreaterThan",
+        "value": {
+          "field": "current_firmware"
+        }
+      },
+      "then": {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": [
+          "RouterBOOT firmware update available:\nVersion {{upgrade_firmware}}",
+          "install-routerboot-update"
+        ]
+      }
     }
   ],
   "order": 10

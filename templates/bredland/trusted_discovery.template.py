@@ -479,6 +479,7 @@ def render_discovery_response(script_url, stylesheet_url):
 def routeros_script_for_resolution(resolution):
     scripts = {
         'install-routeros-update': 'noc-install-routeros-update',
+        'install-routerboot-update': 'noc-install-routerboot-update',
     }
 
     return scripts.get(resolution)
@@ -570,13 +571,19 @@ def create_configured_server(
     )
 
     def action_validator(resolution):
-        if resolution != 'install-routeros-update':
-            return False
+        if resolution == 'install-routeros-update':
+            return routeros_update_available(
+                MIKROTIK_REST_BASE_URL,
+                routeros_getter,
+            )
 
-        return routeros_update_available(
-            MIKROTIK_REST_BASE_URL,
-            routeros_getter,
-        )
+        if resolution == 'install-routerboot-update':
+            return routerboot_update_available(
+                MIKROTIK_REST_BASE_URL,
+                routeros_getter,
+            )
+
+        return False
 
     action_executor = create_routeros_action_executor(
         MIKROTIK_REST_BASE_URL,

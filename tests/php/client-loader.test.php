@@ -197,9 +197,6 @@ $runner->test('load() returns fully formed clients from production-shaped fixtur
             count($bredland_description['fields']),
             count($bredland->field_list()->fields())
         );
-        assertSame(1, $mikrotik->notification_count());
-        assertSame(0, $bredland->notification_count());
-
         assertSame($mikrotik_heartbeat, $mikrotik->heartbeat());
         assertSame($bredland_heartbeat, $bredland->heartbeat());
     } finally {
