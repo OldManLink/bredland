@@ -4,6 +4,7 @@ require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/receiver-val.php';
 require_once __DIR__ . '/method-val.php';
+require_once __DIR__ . '/notification-val.php';
 
 /**
  * A compiled action to execute a method on a receiver.

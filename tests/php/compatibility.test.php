@@ -16,6 +16,16 @@ $runner->test('returns runtime types', function () {
     assertSame('integer', runtime_type(123));
     assertSame('float', runtime_type(1.5));
     assertSame('boolean', runtime_type(true));
+
+    assertSame('array', runtime_type(array()));
+    assertSame('array', runtime_type(array('foo')));
+    assertSame('array', runtime_type(array('foo', 'bar')));
+
+    assertSame('object', runtime_type(array('field' => 'version')));
+    assertSame('object', runtime_type(array(-1 => 'foo', 0 => 'bar')));
+    assertSame('object', runtime_type(array(1 => 'foo', 2 => 'bar')));
+    assertSame('object', runtime_type(array(0 => 'foo', 2 => 'bar')));
+    assertSame('object', runtime_type(array(1 => 'bar', 0 => 'foo')));
 });
 
 $runner->test('normalises php double to float', function () {

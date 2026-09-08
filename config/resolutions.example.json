@@ -1,0 +1,7 @@
+{
+  "install-routeros-update": {
+    "socket": "/tmp/rapid-poll-instrumentation.sock",
+    "host": "192.168.88.1",
+    "port": 443
+  }
+}

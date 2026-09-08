@@ -29,7 +29,7 @@ render_env="$build_dir/noc.env"
 
 cat > "$render_env" <<EOF
 TELEMETRY_CONFIG_FILE="$build_dir/telemetry.config.php"
-BREDLAND_TRUSTED_BASE_URL="https://bredland.example:8081"
+BREDLAND_TRUSTED_BASE_URL="http://127.0.0.1:8081"
 EOF
 
 BREDLAND_SECRETS_FILE="$render_env" \
@@ -95,7 +95,7 @@ if [[ -e "$static_dir/bootstrap.template.js" ]]; then
 fi
 
 if ! grep -Fq \
-    'https://bredland.example:8081/probe' \
+    'http://127.0.0.1:8081/probe' \
     "$static_dir/bootstrap.js"; then
 
     echo

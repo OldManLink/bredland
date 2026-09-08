@@ -43,7 +43,7 @@ $runner->test('compiles client', function () {
     assertSame(Client::class, $result->value()->receiver_class());
     $methods = $result->value()->compilable_methods();
     assertSame(HealthVal::class, $methods['setHealth']);
-    assertSame(SlotVal::class, $methods['addNotification']);
+    assertSame(NotificationVal::class, $methods['addNotification']);
 });
 
 $runner->test('compiles noc', function () {

@@ -13,10 +13,22 @@ server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
 server_pid=""
+mikrotik_preview_pid=""
+trusted_preview_pid=""
 jsonl_file=""
 
 cleanup()
 {
+    if [ -n "$mikrotik_preview_pid" ]; then
+        kill "$mikrotik_preview_pid" 2>/dev/null || true
+        wait "$mikrotik_preview_pid" 2>/dev/null || true
+    fi
+
+    if [[ -n "$trusted_preview_pid" ]]; then
+        kill "$trusted_preview_pid" 2>/dev/null || true
+        wait "$trusted_preview_pid" 2>/dev/null || true
+    fi
+
     if [[ -n "$server_pid" ]]; then
         kill "$server_pid" 2>/dev/null || true
         wait "$server_pid" 2>/dev/null || true
@@ -445,6 +457,115 @@ check_request \
 echo "✅ Rejected heartbeat that spoofs reserved field ts"
 
 if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
+    echo
+    echo "Starting mock MikroTik REST service..."
+
+    mikrotik_preview_log="$build_dir/mikrotik-rest-preview.log"
+
+    if [ -n "${MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS:-}" ]; then
+        python3 scripts/in-container/mikrotik-rest-preview.py \
+            "$MIKROTIK_PREVIEW_SHUTDOWN_DELAY_MS" \
+            >"$mikrotik_preview_log" 2>&1 &
+    else
+        python3 scripts/in-container/mikrotik-rest-preview.py \
+            >"$mikrotik_preview_log" 2>&1 &
+    fi
+
+    mikrotik_preview_pid=$!
+
+    for attempt in 1 2 3 4 5; do
+        if curl -fsS \
+            -o /dev/null \
+            http://127.0.0.1:8082/rest/system/package/update
+        then
+            echo "✅ Mock MikroTik REST service ready"
+            break
+        fi
+
+        if [ "$attempt" -eq 5 ]; then
+            echo "❌ Mock MikroTik REST service failed to start"
+            cat "$mikrotik_preview_log"
+            exit 1
+        fi
+
+        sleep 0.2
+    done
+
+    echo
+    echo "Rendering local trusted-discovery service..."
+
+    trusted_preview_env="$build_dir/trusted-preview.env"
+    trusted_preview_server="$build_dir/trusted_discovery.py"
+    trusted_preview_routeros_rest="$build_dir/routeros_rest.py"
+
+    cat > "$trusted_preview_env" <<'EOF'
+BREDLAND_TRUSTED_BASE_URL=http://127.0.0.1:8081
+BREDLAND_TRUSTED_ALLOWED_ORIGIN=http://127.0.0.1:8000
+BREDLAND_TRUSTED_SCRIPT_PATH=/trusted.js
+BREDLAND_TRUSTED_STYLESHEET_PATH=/trusted.css
+MIKROTIK_REST_BASE_URL=http://127.0.0.1:8082
+EOF
+
+    BREDLAND_SECRETS_FILE="$trusted_preview_env" \
+        scripts/render-template.sh \
+        templates/bredland/trusted_discovery.template.py \
+        "$trusted_preview_server"
+
+    cp \
+        templates/bredland/routeros_rest.py \
+        "$trusted_preview_routeros_rest"
+
+    if [[ ! -s "$trusted_preview_server" ]]; then
+        echo "❌ Local trusted-discovery service was not rendered"
+        exit 1
+    fi
+
+    if [[ ! -s "$trusted_preview_routeros_rest" ]]; then
+        echo "❌ Local RouterOS REST support was not staged"
+        exit 1
+    fi
+
+    echo "✅ Local trusted-discovery service rendered"
+
+    trusted_preview_log="$build_dir/trusted-preview.log"
+
+    python3 \
+        scripts/in-container/trusted-preview.py \
+        >"$trusted_preview_log" 2>&1 &
+
+    trusted_preview_pid=$!
+
+    echo "✅ Local trusted-discovery preview started"
+
+    trusted_preview_ready=false
+
+    for _ in 1 2 3 4 5; do
+        if curl \
+            --silent \
+            --fail \
+            --output /dev/null \
+            http://127.0.0.1:8081/probe; then
+
+            trusted_preview_ready=true
+            break
+        fi
+
+        sleep 1
+    done
+
+    if ! $trusted_preview_ready; then
+        echo "❌ Local trusted-discovery preview failed to start"
+
+        if [[ -s "$trusted_preview_log" ]]; then
+            echo "--- trusted-discovery preview log ---"
+            cat "$trusted_preview_log"
+        fi
+
+        exit 1
+    fi
+
+    echo "✅ Local trusted-discovery preview ready"
+
     echo
     echo "Posting short-lived heartbeat for preview..."
 

@@ -55,7 +55,7 @@ $runner->test('compiler tests: Rule', function () use ($ruleJson) {
 
     assertSame('client', $rule->action()->receiver()->name());
     assertSame('addNotification', $rule->action()->method()->name());
-    assertSame('Software update available', $rule->action()->argument()->parts()[0]->value());
+    assertSame('Software update available', $rule->action()->argument()->render(array())->text());
 
     assert_compile_error(Rule::compile(42, test_schema(), '42'), '42: must be an object');
 });
@@ -81,6 +81,34 @@ $runner->test('compiler tests: RuleList', function () use ($ruleJson) {
 
     $result = RuleList::compile(array(42), test_schema(), 'array(42)');
     assert_compile_error($result, 'array(42)[0]: must be an object');
+});
+
+$runner->test('compiles notification resolution', function () {
+    $ruleJson = from_json(<<<'JSON'
+    {
+        "when": {
+            "field": "update_available",
+            "operator": "equals",
+            "value": true
+        },
+        "then": {
+            "receiver": "client",
+            "method": "addNotification",
+            "argument": [
+                "Software update available",
+                "install-routeros-update"
+            ]
+        }
+    }
+JSON
+    );
+
+    $result = Rule::compile($ruleJson, test_schema(), 'Happy Path');
+    assert_compile_success($result);
+    $notification = $result->value()->action()->argument()->render(array());
+    assertSame('Software update available', $notification->text());
+    assertTrue($notification->has_resolution());
+    assertSame('install-routeros-update', $notification->resolution());
 });
 
 $runner->test('unsupported operator: greaterThan', function () use ($ruleJson) {

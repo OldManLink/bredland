@@ -77,7 +77,7 @@ $runner->test('render() does not render a notification panel when there are no n
 
 $runner->test('render() renders a notification panel when there are notifications', function () {
     $client = test_client();
-    $client->addNotification('RouterOS update available');
+    $client->addNotification(new Notification('RouterOS update available'));
 
     $card = new Card(1, $client);
     $html = $card->render();

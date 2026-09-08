@@ -11,7 +11,13 @@ class FieldVal implements Compilable, SlotPart {
 
     public static function compile($definition, $schema, $path) {
         if (is_array($definition)) {
-            $definition = $definition['field'];
+            if(count($definition) === 1 && isset($definition['field'])) {
+                $definition = $definition['field'];
+            }
+            else {
+                $json = json_encode($definition);
+                return CompilationResult::failure(array("$path: invalid definition: $json"));
+            }
         }
 
         $strValResult = StrVal::compile($definition, $schema, $path);

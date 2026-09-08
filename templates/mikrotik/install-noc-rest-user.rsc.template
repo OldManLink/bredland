@@ -1,0 +1,24 @@
+# Provision the restricted Bredland REST identity.
+
+:local groupName "noc-rest"
+:local userName "noc-rest-bredland"
+:local userAddress "192.168.88.5/32"
+:local userPassword "__MIKROTIK_REST_PASSWORD__"
+
+:foreach id in=[/user find name=$userName] do={
+    /user remove $id
+}
+
+:foreach id in=[/user group find name=$groupName] do={
+    /user group remove $id
+}
+
+/user group add \
+    name=$groupName \
+    policy=read,api,rest-api
+
+/user add \
+    name=$userName \
+    group=$groupName \
+    address=$userAddress \
+    password=$userPassword

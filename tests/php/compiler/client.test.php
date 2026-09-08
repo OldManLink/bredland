@@ -351,7 +351,7 @@ $runner->test('starts with no notifications', function () {
 $runner->test('adds notification', function () {
     $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
 
-    $client->addNotification('This is a test!');
+    $client->addNotification(new Notification('This is a test!'));
 
     assertSame(1, $client->notification_count());
     assertTrue($client->notifications()[0] instanceof Notification);
@@ -361,8 +361,8 @@ $runner->test('adds notification', function () {
 $runner->test('preserves notification order', function () {
     $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
 
-    $client->addNotification('First');
-    $client->addNotification('Second');
+    $client->addNotification(new Notification('First'));
+    $client->addNotification(new Notification('Second'));
 
     assertSame(2, $client->notification_count());
     assertSame('First', $client->notifications()[0]->text());

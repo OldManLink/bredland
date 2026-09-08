@@ -80,8 +80,9 @@ class TestSuiteRunner {
         fwrite(
             STDOUT,
             "$this->suiteName: $total tests run, " .
+            "$this->testsPassed passed, " .
             "$this->testsSkipped skipped, " .
-            "$this->testsPassed passed, $this->testsFailed failed\n"
+            "$this->testsFailed failed\n"
         );
 
         if ($this->testsFailed > 0) {
