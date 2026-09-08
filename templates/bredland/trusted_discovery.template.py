@@ -6,6 +6,7 @@ import ssl
 import sys
 import time
 import threading
+import urllib.error
 import urllib.request
 
 from html.parser import HTMLParser
@@ -502,7 +503,7 @@ def create_configured_server(
 
     action_guard = ActionGuard(
         time.time,
-        30,
+        90,
     )
 
     def load_noc_html():
@@ -815,10 +816,11 @@ def create_server(
             except Exception as error:
                 sys.stderr.write(
                     'Trusted action executor failed: '
-                    'resolution={!r}, script={!r}, exception={}\n'.format(
+                    'resolution={!r}, script={!r}, exception={}: {}\n'.format(
                         resolution,
                         script_name,
                         type(error).__name__,
+                        str(error),
                     )
                 )
 
@@ -837,6 +839,14 @@ def create_server(
 
             action_guard.complete(
                 resolution
+            )
+
+            sys.stderr.write(
+                'Trusted action executor succeeded: '
+                'resolution={!r}, script={!r}\n'.format(
+                    resolution,
+                    script_name,
+                )
             )
 
             self._send_action_response(200)

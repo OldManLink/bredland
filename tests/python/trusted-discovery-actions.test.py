@@ -2579,9 +2579,10 @@ def action_endpoint_handles_executor_exception():
             diagnostic,
         )
 
-        testlib.assert_false(
-            'RouterOS unavailable' in diagnostic,
-            )
+        testlib.assert_string_contains(
+            'RouterOS unavailable',
+            diagnostic,
+        )
     finally:
         thread.join()
         server.server_close()

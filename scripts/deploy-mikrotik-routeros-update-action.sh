@@ -61,13 +61,13 @@ verify_routeros \
     "RouterOS update-action script has expected source" \
     ":local id [/system script find name=\"${script_name}\"]; \
      :local source [/system script get \$id source]; \
-     :local expected \":local installed [/system package update get installed-version]\n:local latest [/system package update get latest-version]\n:local status [/system package update get status]\n\n:if ((\\\$installed = \\\"\\\") || (\\\$latest = \\\"\\\") || (\\\$installed = \\\$latest) || (\\\$status != \\\"New version is available\\\")) do={\n    :log warning \\\"[NOC-ROUTEROS-UPDATE] update no longer available\\\"\n} else={\n    :log warning \\\"[NOC-ROUTEROS-UPDATE] SAFETY CATCH: would install RouterOS update\\\"\n\n    :if (false) do={\n        :log warning \\\"[NOC-ROUTEROS-UPDATE] THIS SHOULD NEVER HAPPEN\\\"\n    }\n}\"; \
+     :local expected \"/system package update install\"; \
      :if (\$source = \$expected) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
     "RouterOS update-action script has expected policy" \
-    ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id policy] = \"reboot;read;write\") do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
+    ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id policy] = \"reboot;read;write;policy\") do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
@@ -81,4 +81,4 @@ run_step \
     "/file remove ${remote_file}"
 
 echo
-echo "✅ MikroTik RouterOS update action deployed with safety catch."
+echo "✅ MikroTik RouterOS update action deployed."

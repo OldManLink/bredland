@@ -1,9 +1,11 @@
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 
 sys.path.insert(
     0,
@@ -500,5 +502,45 @@ def gets_json_from_routeros_rest():
         ],
         calls,
     )
+
+@runner.test('preserves RouterOS REST error response')
+def preserves_routeros_rest_error_response():
+    response_body = (
+        b'{"detail":"something useful",'
+        b'"error":400,"message":"Bad Request"}'
+    )
+
+    def open_request(request, context=None):
+        raise urllib.error.HTTPError(
+            request.full_url,
+            400,
+            'Bad Request',
+            {},
+            io.BytesIO(response_body),
+        )
+
+    try:
+        routeros_rest.post_json(
+            'https://192.168.88.1/rest/system/script/run',
+            {
+                '.id': 'noc-install-routeros-update',
+            },
+            {
+                'Authorization': 'Basic test',
+            },
+            'test-context',
+            open_request,
+        )
+    except RuntimeError as error:
+        testlib.assert_same(
+            'RouterOS REST returned HTTP 400: '
+            '{"detail":"something useful",'
+            '"error":400,"message":"Bad Request"}',
+            str(error),
+        )
+    else:
+        testlib.fail(
+            'Expected RouterOS REST error response to be preserved'
+        )
 
 runner.finish()

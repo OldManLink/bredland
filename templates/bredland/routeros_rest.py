@@ -35,10 +35,23 @@ def post_json(
         method='POST',
     )
 
-    response = open_request(
-        request,
-        context=context,
-    )
+    try:
+        response = open_request(
+            request,
+            context=context,
+        )
+    except urllib.error.HTTPError as error:
+        response_body = error.read().decode(
+            'utf-8',
+            'replace',
+        )
+
+        raise RuntimeError(
+            'RouterOS REST returned HTTP {}: {}'.format(
+                error.code,
+                response_body,
+            )
+        )
 
     return response.status == 200
 
