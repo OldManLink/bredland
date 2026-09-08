@@ -97,11 +97,12 @@ class CapabilityRegistry:
         script_name,
         expires_at,
     ):
-        self.capabilities[token] = {
-            'resolution': resolution,
-            'script_name': script_name,
-            'expires_at': expires_at,
-        }
+        with self.lock:
+            self.capabilities[token] = {
+                'resolution': resolution,
+                'script_name': script_name,
+                'expires_at': expires_at,
+            }
 
     def consume(
             self,
@@ -487,6 +488,23 @@ def log_trusted_action_hook(message):
         message + '\n'
     )
 
+def parse_action_content_length(value):
+    try:
+        content_length = int(value)
+    except ValueError:
+        return None
+
+    if content_length <= 0 or content_length > 4096:
+        return None
+
+    return content_length
+
+def send_content_length(handler, body):
+    handler.send_header(
+        'Content-Length',
+        str(len(body))
+    )
+
 def create_configured_server(
     host,
     port,
@@ -644,10 +662,7 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                self.send_header(
-                    'Content-Length',
-                    str(len(body)),
-                )
+                send_content_length(self, body)
                 self.end_headers()
                 self.wfile.write(body)
                 return
@@ -664,10 +679,7 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                self.send_header(
-                    'Content-Length',
-                    str(len(body)),
-                )
+                send_content_length(self, body)
                 self.end_headers()
                 self.wfile.write(body)
                 return
@@ -689,10 +701,7 @@ def create_server(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
-            self.send_header(
-                'Content-Length',
-                str(len(response_body)),
-            )
+            send_content_length(self, response_body)
             self.end_headers()
             self.wfile.write(response_body)
 
@@ -707,12 +716,16 @@ def create_server(
                 self.send_error(403)
                 return
 
-            content_length = int(
+            content_length = parse_action_content_length(
                 self.headers.get(
                     'Content-Length',
                     '0',
                 )
             )
+
+            if content_length is None:
+                self._send_action_response(400)
+                return
 
             request_body = self.rfile.read(
                 content_length
@@ -857,10 +870,7 @@ def create_server(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
-            self.send_header(
-                'Content-Length',
-                '0',
-            )
+            send_content_length(self, '')
             self.end_headers()
 
         def do_OPTIONS(self):
@@ -887,10 +897,7 @@ def create_server(
                 'Access-Control-Allow-Headers',
                 'Content-Type',
             )
-            self.send_header(
-                'Content-Length',
-                '0',
-            )
+            send_content_length(self, '')
             self.end_headers()
 
         def log_message(self, format, *args):

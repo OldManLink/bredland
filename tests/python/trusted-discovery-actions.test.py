@@ -760,6 +760,60 @@ def consumes_capability_atomically_across_threads():
         results.count(None),
     )
 
+@runner.test('registers capability under registry lock')
+def registers_capability_under_registry_lock():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registered = threading.Event()
+    finished = threading.Event()
+
+    def register():
+        registered.set()
+
+        registry.register(
+            'install-routeros-update',
+            'test-token',
+            'noc-trusted-action-test',
+            200,
+        )
+
+        finished.set()
+
+    registry.lock.acquire()
+
+    try:
+        thread = threading.Thread(
+            target=register,
+        )
+
+        thread.start()
+
+        registered.wait(
+            1,
+        )
+
+        testlib.assert_false(
+            finished.is_set()
+        )
+    finally:
+        registry.lock.release()
+
+    thread.join()
+
+    testlib.assert_true(
+        finished.is_set()
+    )
+
+    testlib.assert_same(
+        'noc-trusted-action-test',
+        registry.consume(
+            'install-routeros-update',
+            'test-token',
+        ),
+    )
+
 @runner.test('claims trusted action resolution only once')
 def claims_trusted_action_resolution_only_once():
     guard = trusted_discovery.ActionGuard(
@@ -1913,6 +1967,41 @@ def action_endpoint_reports_executor_failure():
     finally:
         thread.join()
         server.server_close()
+
+@runner.test('action endpoint accepts valid action content length')
+def accepts_valid_action_content_length():
+    testlib.assert_same(
+        123,
+        trusted_discovery.parse_action_content_length('123'),
+    )
+
+@runner.test('action endpoint rejects malformed action content length')
+def rejects_malformed_action_content_length():
+    testlib.assert_same(
+        None,
+        trusted_discovery.parse_action_content_length('banana'),
+    )
+
+@runner.test('action endpoint rejects non-positive action content length')
+def rejects_non_positive_action_content_length():
+    testlib.assert_same(
+        None,
+        trusted_discovery.parse_action_content_length('0'),
+    )
+
+@runner.test('action endpoint rejects negative action content length')
+def rejects_non_positive_action_content_length():
+    testlib.assert_same(
+        None,
+        trusted_discovery.parse_action_content_length('-1'),
+    )
+
+@runner.test('action endpoint rejects oversized action content length')
+def rejects_oversized_action_content_length():
+    testlib.assert_same(
+        None,
+        trusted_discovery.parse_action_content_length('4097'),
+    )
 
 @runner.test('action endpoint aborts when resolution hook fails')
 def action_endpoint_aborts_when_resolution_hook_fails():
