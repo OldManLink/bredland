@@ -1990,7 +1990,7 @@ def rejects_non_positive_action_content_length():
     )
 
 @runner.test('action endpoint rejects negative action content length')
-def rejects_non_positive_action_content_length():
+def rejects_negative_action_content_length():
     testlib.assert_same(
         None,
         trusted_discovery.parse_action_content_length('-1'),

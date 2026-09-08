@@ -8,7 +8,7 @@ The example file lives in:
 
 ```text
 config/resolutions.example.json
-````
+```
 
 On Bredland, install it as:
 
