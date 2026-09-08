@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import os
@@ -25,6 +26,16 @@ from trusted_discovery_testlib import restore_routeros_action_dependencies
 runner = TestSuiteRunner('trusted-discovery-actions')
 trusted_discovery = load_trusted_discovery()
 routeros_rest = sys.modules['routeros_rest']
+
+@contextlib.contextmanager
+def suppress_stderr():
+    previous_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+
+    try:
+        yield
+    finally:
+        sys.stderr = previous_stderr
 
 @runner.test('maps supported resolution to RouterOS script')
 def supported_resolution_maps_to_routeros_script():
@@ -105,7 +116,8 @@ def action_endpoint_executes_supported_resolution():
             method='POST',
         )
 
-        response = urllib.request.urlopen(request)
+        with suppress_stderr():
+            response = urllib.request.urlopen(request)
 
         testlib.assert_same(200, response.status)
         testlib.assert_same(
@@ -176,12 +188,13 @@ def action_endpoint_rejects_unsupported_resolution():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(400, error.code)
-        else:
-            testlib.fail('Expected unsupported resolution to return 400')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(400, error.code)
+            else:
+                testlib.fail('Expected unsupported resolution to return 400')
 
         testlib.assert_same([], calls)
     finally:
@@ -237,12 +250,13 @@ def action_endpoint_rejects_wrong_origin():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(403, error.code)
-        else:
-            testlib.fail('Expected wrong origin to return 403')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(403, error.code)
+            else:
+                testlib.fail('Expected wrong origin to return 403')
 
         testlib.assert_same([], calls)
     finally:
@@ -288,7 +302,8 @@ def action_endpoint_allows_preflight_from_noc_origin():
             method='OPTIONS',
         )
 
-        response = urllib.request.urlopen(request)
+        with suppress_stderr():
+            response = urllib.request.urlopen(request)
 
         testlib.assert_same(204, response.status)
         testlib.assert_same(
@@ -358,12 +373,13 @@ def action_endpoint_rejects_malformed_json():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(400, error.code)
-        else:
-            testlib.fail('Expected malformed JSON to return 400')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(400, error.code)
+            else:
+                testlib.fail('Expected malformed JSON to return 400')
 
         testlib.assert_same([], calls)
     finally:
@@ -415,15 +431,16 @@ def action_endpoint_rejects_non_object_json():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                400,
-                error.code,
-            )
-        else:
-            testlib.fail('Expected non-object JSON to return 400')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    400,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected non-object JSON to return 400')
 
         testlib.assert_same(
             [],
@@ -487,15 +504,16 @@ def action_endpoint_rejects_non_string_fields():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                400,
-                error.code,
-            )
-        else:
-            testlib.fail('Expected non-string fields to return 400')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    400,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected non-string fields to return 400')
 
         testlib.assert_same(
             [],
@@ -554,12 +572,13 @@ def action_endpoint_rejects_missing_resolution():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(400, error.code)
-        else:
-            testlib.fail('Expected missing resolution to return 400')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(400, error.code)
+            else:
+                testlib.fail('Expected missing resolution to return 400')
 
         testlib.assert_same([], calls)
     finally:
@@ -1022,7 +1041,8 @@ def action_endpoint_consumes_capability_before_execution():
             method='POST',
         )
 
-        response = urllib.request.urlopen(request)
+        with suppress_stderr():
+            response = urllib.request.urlopen(request)
 
         testlib.assert_same(200, response.status)
         testlib.assert_same(
@@ -1106,9 +1126,9 @@ def action_endpoint_rejects_replayed_capability():
                 method='POST',
             )
 
-        first_response = urllib.request.urlopen(
-            request()
-        )
+        with suppress_stderr():
+            first_response = urllib.request.urlopen(request())
+
         testlib.assert_same(
             200,
             first_response.status,
@@ -1211,9 +1231,8 @@ def action_endpoint_rejects_second_action_during_cooldown():
                 method='POST',
             )
 
-        response = urllib.request.urlopen(
-            request('first-token')
-        )
+        with suppress_stderr():
+            response = urllib.request.urlopen(request('first-token'))
 
         testlib.assert_same(
             200,
@@ -1606,17 +1625,16 @@ def action_endpoint_rejects_invalid_current_state():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                409,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected invalid current state to reject action'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    409,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected invalid current state to reject action')
 
         testlib.assert_same(
             [],
@@ -1690,13 +1708,42 @@ def action_endpoint_executes_valid_current_state():
             method='POST',
         )
 
-        response = urllib.request.urlopen(request)
-        testlib.assert_same(200, response.status)
+        stderr = io.StringIO()
+        previous_stderr = sys.stderr
+        sys.stderr = stderr
+
+        try:
+            response = urllib.request.urlopen(request)
+        finally:
+            sys.stderr = previous_stderr
+
+        testlib.assert_same(
+            200,
+            response.status,
+        )
+
         testlib.assert_same(
             [
                 'noc-trusted-action-test',
             ],
             executor_calls,
+        )
+
+        diagnostic = stderr.getvalue()
+
+        testlib.assert_string_contains(
+            'Trusted action executor succeeded',
+            diagnostic,
+        )
+
+        testlib.assert_string_contains(
+            "resolution='install-routeros-update'",
+            diagnostic,
+        )
+
+        testlib.assert_string_contains(
+            "script='noc-trusted-action-test'",
+            diagnostic,
         )
     finally:
         thread.join()
@@ -1771,17 +1818,16 @@ def action_endpoint_handles_validator_exception():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                503,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected validator exception to return 503'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    503,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected validator exception to return 503')
 
         testlib.assert_same(
             [],
@@ -1854,15 +1900,16 @@ def action_endpoint_reports_executor_failure():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
-        else:
-            testlib.fail('Expected executor failure to return 500')
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected executor failure to return 500')
     finally:
         thread.join()
         server.server_close()
@@ -1938,17 +1985,16 @@ def action_endpoint_aborts_when_resolution_hook_fails():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected failed resolution hook to abort action'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected failed resolution hook to abort action' )
 
         testlib.assert_same(
             [
@@ -2041,9 +2087,8 @@ def action_endpoint_executes_after_resolution_hook_succeeds():
             method='POST',
         )
 
-        response = urllib.request.urlopen(
-            request
-        )
+        with suppress_stderr():
+            response = urllib.request.urlopen(request)
 
         testlib.assert_same(
             200,
@@ -2138,17 +2183,16 @@ def action_endpoint_handles_resolution_hook_exception():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected resolution hook exception to abort action'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected resolution hook exception to abort action')
 
         testlib.assert_same(
             [],
@@ -2247,17 +2291,16 @@ def action_endpoint_aborts_when_configured_rpi_hook_is_unavailable():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected unavailable RPI hook to abort action'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail('Expected unavailable RPI hook to abort action')
 
         testlib.assert_same(
             [],
@@ -2366,9 +2409,8 @@ def action_endpoint_releases_claim_after_executor_failure():
                 'Expected executor failure to return 500'
             )
 
-        response = urllib.request.urlopen(
-            request('second-token')
-        )
+        with suppress_stderr():
+            response = urllib.request.urlopen(request('second-token'))
 
         testlib.assert_same(
             200,
@@ -2456,23 +2498,21 @@ def action_endpoint_releases_claim_after_executor_exception():
                 method='POST',
             )
 
-        try:
-            urllib.request.urlopen(
-                request('first-token')
-            )
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
-        else:
-            testlib.fail(
-                'Expected executor exception to return 500'
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request('first-token'))
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
+            else:
+                testlib.fail(
+                    'Expected executor exception to return 500'
+                )
 
-        response = urllib.request.urlopen(
-            request('second-token')
-        )
+        with suppress_stderr():
+            response = urllib.request.urlopen(request('second-token'))
 
         testlib.assert_same(
             200,
@@ -2583,6 +2623,11 @@ def action_endpoint_handles_executor_exception():
             'RouterOS unavailable',
             diagnostic,
         )
+
+        testlib.assert_string_contains(
+            'Trusted action executor failed',
+            diagnostic,
+        )
     finally:
         thread.join()
         server.server_close()
@@ -2642,22 +2687,23 @@ def action_endpoint_reports_missing_executor_with_cors():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
 
-            testlib.assert_same(
-                'https://noc.arcanel.se',
-                error.headers.get(
-                    'Access-Control-Allow-Origin',
-                ),
-            )
-        else:
-            testlib.fail('Expected missing executor to return 500')
+                testlib.assert_same(
+                    'https://noc.arcanel.se',
+                    error.headers.get(
+                        'Access-Control-Allow-Origin',
+                    ),
+                )
+            else:
+                testlib.fail('Expected missing executor to return 500')
     finally:
         thread.join()
         server.server_close()
@@ -2706,22 +2752,23 @@ def action_endpoint_reports_missing_registry_with_cors():
             method='POST',
         )
 
-        try:
-            urllib.request.urlopen(request)
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                500,
-                error.code,
-            )
+        with suppress_stderr():
+            try:
+                urllib.request.urlopen(request)
+            except urllib.error.HTTPError as error:
+                testlib.assert_same(
+                    500,
+                    error.code,
+                )
 
-            testlib.assert_same(
-                'https://noc.arcanel.se',
-                error.headers.get(
-                    'Access-Control-Allow-Origin',
-                ),
-            )
-        else:
-            testlib.fail('Expected missing registry to return 500')
+                testlib.assert_same(
+                    'https://noc.arcanel.se',
+                    error.headers.get(
+                        'Access-Control-Allow-Origin',
+                    ),
+                )
+            else:
+                testlib.fail('Expected missing registry to return 500')
     finally:
         thread.join()
         server.server_close()
