@@ -1,3 +1,9 @@
+import contextlib
+import io
+import os
+import tempfile
+import urllib.error
+
 from test_suite_runner import AssertionFailed
 
 
@@ -123,3 +129,76 @@ def assert_throws(exception_class, expected_message, operation):
             expected_message,
         )
     )
+
+
+def assert_http_error(expected_status, operation, message=''):
+    try:
+        operation()
+    except urllib.error.HTTPError as error:
+        assert_same(
+            expected_status,
+            error.code,
+            message,
+        )
+
+        return error
+    except Exception as error:
+        raise AssertionFailed(
+            'Expected HTTP {}\nActual exception: {}: {}'.format(
+                expected_status,
+                type(error).__name__,
+                error,
+            )
+        )
+
+    raise AssertionFailed(
+        'Expected HTTP {}'.format(
+            expected_status,
+        )
+    )
+
+
+@contextlib.contextmanager
+def capture_stderr():
+    stream = io.StringIO()
+
+    with contextlib.redirect_stderr(
+        stream
+    ):
+        yield stream
+
+
+@contextlib.contextmanager
+def suppress_stderr():
+    with capture_stderr():
+        yield
+
+
+@contextlib.contextmanager
+def temporary_text_file(
+        contents='',
+        suffix='',
+        directory=None,
+):
+    handle = tempfile.NamedTemporaryFile(
+        mode='w',
+        suffix=suffix,
+        dir=directory,
+        delete=False,
+        encoding='utf-8',
+    )
+
+    path = handle.name
+
+    try:
+        with handle:
+            handle.write(
+                contents
+            )
+
+        yield path
+    finally:
+        if os.path.exists(path):
+            os.remove(
+                path
+            )
