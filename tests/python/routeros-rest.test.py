@@ -3,30 +3,12 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.error
-
-sys.path.insert(
-    0,
-    os.path.join(
-        os.path.dirname(__file__),
-        'lib',
-    ),
-)
-
-sys.path.insert(
-    0,
-    os.path.join(
-        os.path.dirname(__file__),
-        '..',
-        '..',
-        'templates',
-        'bredland',
-    ),
-)
-
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'templates', 'bredland'))
 from test_suite_runner import TestSuiteRunner
+from builtins import (object, open, str, staticmethod, RuntimeError)
 import testlib
 import routeros_rest
 
@@ -52,6 +34,10 @@ def executes_routeros_script_through_rest():
         post,
     )
 
+    testlib.assert_true(
+        result
+    )
+
     testlib.assert_same(
         [
             (
@@ -59,12 +45,10 @@ def executes_routeros_script_through_rest():
                 {
                     '.id': 'noc-trusted-action-test',
                 },
-            )
+            ),
         ],
         calls,
     )
-
-    testlib.assert_true(result)
 
 @runner.test('posts JSON to RouterOS REST')
 def posts_json_to_routeros_rest():
@@ -75,13 +59,18 @@ def posts_json_to_routeros_rest():
 
     def open_request(request, context=None):
         calls.append(
-            (
-                request.full_url,
-                request.get_method(),
-                request.data,
-                request.headers,
-                context,
-            )
+            {
+                'url': request.full_url,
+                'method': request.get_method(),
+                'data': request.data,
+                'authorization': request.get_header(
+                    'Authorization'
+                ),
+                'content_type': request.get_header(
+                    'Content-type'
+                ),
+                'context': context,
+            }
         )
 
         return Response()
@@ -98,69 +87,46 @@ def posts_json_to_routeros_rest():
         open_request,
     )
 
-    testlib.assert_true(result)
-
-    testlib.assert_same(
-        'https://192.168.88.1/rest/system/script/run',
-        calls[0][0],
+    testlib.assert_true(
+        result
     )
 
     testlib.assert_same(
-        'POST',
-        calls[0][1],
-    )
-
-    testlib.assert_same(
-        b'{".id":"noc-trusted-action-test"}',
-        calls[0][2],
-    )
-
-    testlib.assert_same(
-        'Basic test',
-        calls[0][3].get(
-            'Authorization',
-        ),
-    )
-
-    testlib.assert_same(
-        'application/json',
-        calls[0][3].get(
-            'Content-type',
-        ),
-    )
-
-    testlib.assert_same(
-        'test-context',
-        calls[0][4],
+        [
+            {
+                'url': 'https://192.168.88.1/rest/system/script/run',
+                'method': 'POST',
+                'data': b'{".id":"noc-trusted-action-test"}',
+                'authorization': 'Basic test',
+                'content_type': 'application/json',
+                'context': 'test-context',
+            },
+        ],
+        calls,
     )
 
 @runner.test('loads RouterOS REST credentials')
 def loads_routeros_rest_credentials():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        credentials_file = os.path.join(
-            tmpdir,
-            'credentials.env',
-        )
-
-        with open(credentials_file, 'w') as file:
-            file.write(
+    with testlib.temporary_text_file(
+            (
                 'MIKROTIK_REST_USER=noc-rest-bredland\n'
                 'MIKROTIK_REST_PASSWORD=test-password\n'
-            )
-
+            ),
+            suffix='.env',
+    ) as credentials_file:
         credentials = (
             routeros_rest.load_routeros_rest_credentials(
                 credentials_file,
             )
         )
 
-        testlib.assert_same(
-            {
-                'username': 'noc-rest-bredland',
-                'password': 'test-password',
-            },
-            credentials,
-        )
+    testlib.assert_same(
+        {
+            'username': 'noc-rest-bredland',
+            'password': 'test-password',
+        },
+        credentials,
+    )
 
 @runner.test('builds RouterOS REST authorization header')
 def builds_routeros_rest_authorization_header():
@@ -254,20 +220,21 @@ def creates_authenticated_routeros_rest_poster():
     testlib.assert_true(result)
 
     testlib.assert_same(
-        'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
-        calls[0][2].get(
-            'Authorization',
-        ),
-    )
-
-    testlib.assert_same(
-        'tls-context',
-        calls[0][3],
-    )
-
-    testlib.assert_same(
-        'open-request',
-        calls[0][4],
+        [
+            (
+                'https://192.168.88.1/rest/system/script/run',
+                {
+                    '.id': 'noc-trusted-action-test',
+                },
+                {
+                    'Authorization':
+                        'Basic bm9jLXJlc3QtYnJlZGxhbmQ6dGVzdC1wYXNzd29yZA==',
+                },
+                'tls-context',
+                'open-request',
+            ),
+        ],
+        calls,
     )
 
 @runner.test('creates RouterOS REST getter')
@@ -391,7 +358,7 @@ def reports_routeros_update_available():
 
 @runner.test('reports no RouterOS update when versions match')
 def reports_no_routeros_update_when_versions_match():
-    def get(url):
+    def get(_):
         return {
             'installed-version': '7.24.1',
             'latest-version': '7.24.1',
@@ -407,7 +374,7 @@ def reports_no_routeros_update_when_versions_match():
 
 @runner.test('reports no RouterOS update for unexpected status')
 def reports_no_routeros_update_for_unexpected_status():
-    def get(url):
+    def get(_):
         return {
             'installed-version': '7.23.1',
             'latest-version': '7.24.1',
@@ -424,7 +391,7 @@ def reports_no_routeros_update_for_unexpected_status():
 
 @runner.test('reports no RouterOS update when installed version is missing')
 def reports_no_routeros_update_without_installed_version():
-    def get(url):
+    def get(_):
         return {
             'latest-version': '7.24.1',
             'status': 'New version is available',
@@ -440,7 +407,7 @@ def reports_no_routeros_update_without_installed_version():
 
 @runner.test('reports no RouterOS update when latest version is missing')
 def reports_no_routeros_update_without_latest_version():
-    def get(url):
+    def get(_):
         return {
             'installed-version': '7.23.1',
             'status': 'New version is available',
@@ -476,7 +443,7 @@ def reports_routerboot_update_available():
 
 @runner.test('reports no RouterBOOT update when versions match')
 def reports_no_routerboot_update_when_versions_match():
-    def get(url):
+    def get(_):
         return {
             'current-firmware': '7.24.2',
             'upgrade-firmware': '7.24.2',
@@ -492,7 +459,7 @@ def reports_no_routerboot_update_when_versions_match():
 
 @runner.test('reports no RouterBOOT update when current firmware is missing')
 def reports_no_routerboot_update_without_current_firmware():
-    def get(url):
+    def get(_):
         return {
             'upgrade-firmware': '7.24.2',
         }
@@ -507,7 +474,7 @@ def reports_no_routerboot_update_without_current_firmware():
 
 @runner.test('reports no RouterBOOT update when upgrade firmware is missing')
 def reports_no_routerboot_update_without_upgrade_firmware():
-    def get(url):
+    def get(_):
         return {
             'current-firmware': '7.23.1',
         }
@@ -585,28 +552,26 @@ def preserves_routeros_rest_error_response():
             io.BytesIO(response_body),
         )
 
-    try:
-        routeros_rest.post_json(
-            'https://192.168.88.1/rest/system/script/run',
-            {
-                '.id': 'noc-install-routeros-update',
-            },
-            {
-                'Authorization': 'Basic test',
-            },
-            'test-context',
-            open_request,
-        )
-    except RuntimeError as error:
-        testlib.assert_same(
+    operation = lambda: routeros_rest.post_json(
+        'https://192.168.88.1/rest/system/script/run',
+        {
+            '.id': 'noc-install-routeros-update',
+        },
+        {
+            'Authorization': 'Basic test',
+        },
+        'test-context',
+        open_request,
+    )
+
+    testlib.assert_throws(
+        RuntimeError,
+        (
             'RouterOS REST returned HTTP 400: '
             '{"detail":"something useful",'
-            '"error":400,"message":"Bad Request"}',
-            str(error),
-        )
-    else:
-        testlib.fail(
-            'Expected RouterOS REST error response to be preserved'
-        )
+            '"error":400,"message":"Bad Request"}'
+        ),
+        operation,
+    )
 
 runner.finish()

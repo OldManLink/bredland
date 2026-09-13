@@ -9,6 +9,7 @@ repo_root = os.path.abspath(
         os.path.dirname(__file__),
         '..',
         '..',
+        '..',
     )
 )
 
@@ -47,15 +48,10 @@ def new_controller(
         config = rapid_poll.default_config()
 
     if monotonic_ns is None:
-        return rapid_poll.Controller(
-            config
-        )
+        monotonic_ns = lambda: 0
 
     if wall_time is None:
-        return rapid_poll.Controller(
-            config,
-            monotonic_ns,
-        )
+        wall_time = lambda: None
 
     return rapid_poll.Controller(
         config,

@@ -16,9 +16,7 @@ sys.path.insert(
 
 import testlib
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import load_trusted_discovery
-from trusted_discovery_testlib import stub_routeros_action_dependencies
-from trusted_discovery_testlib import restore_routeros_action_dependencies
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, server_url, serving)
 
 
 runner = TestSuiteRunner('trusted-discovery-discovery')
@@ -37,45 +35,16 @@ def discovery_response_is_rendered():
 
 @runner.test('serves the trusted discovery response over HTTP')
 def discovery_endpoint_returns_json():
-    create_server = getattr(
+    server = create_test_server(
         trusted_discovery,
-        'create_server',
-        None,
     )
 
-    testlib.assert_true(callable(create_server),
-        'Expected trusted discovery to provide create_server()',
-    )
-
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
-    )
-
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
-
-    try:
+    with serving(server):
         response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
+            server_url(
+                server,
+                '/probe',
+            )
         )
 
         body = response.read().decode('utf-8')
@@ -94,102 +63,54 @@ def discovery_endpoint_returns_json():
             '"stylesheet":"https://bredland.example/trusted-style-test"}}',
             body,
         )
-    finally:
-        thread.join()
-        server.server_close()
 
 @runner.test('serves discovery only on the probe path')
 def discovery_endpoint_only_serves_probe_path():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
+    server = create_test_server(
+        trusted_discovery,
     )
 
-    thread = threading.Thread(
-        target=server.serve_forever,
-    )
-    thread.start()
-
-    try:
+    with serving(server):
         response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
+            server_url(
+                server,
+                '/probe',
+            )
         )
 
         testlib.assert_same(200, response.status)
 
-        try:
-            urllib.request.urlopen(
-                'http://127.0.0.1:{}/anything'.format(
-                    server.server_port,
+        with testlib.suppress_stderr():
+            testlib.assert_http_error(
+                404,
+                lambda: urllib.request.urlopen(
+                    server_url(
+                        server,
+                        '/anything',
+                    )
                 ),
             )
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(404, error.code)
-        else:
-            testlib.fail('Expected unrelated path to return 404')
-    finally:
-        server.shutdown()
-        thread.join()
-        server.server_close()
 
 @runner.test('allows the NOC origin to read discovery')
 def discovery_endpoint_allows_noc_origin():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
+    server = create_test_server(
+        trusted_discovery,
+    )
+
+    with serving(server):
+        response = urllib.request.urlopen(
+            server_url(
+                server,
+                '/probe',
+            )
+        )
+
+    testlib.assert_same(
         'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
+        response.headers.get(
+            'Access-Control-Allow-Origin',
         ),
     )
-
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
-
-    try:
-        response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
-        )
-
-        testlib.assert_same(
-            'https://noc.arcanel.se',
-            response.headers.get(
-                'Access-Control-Allow-Origin',
-            ),
-        )
-    finally:
-        thread.join()
-        server.server_close()
 
 @runner.test('uses rendered deployment configuration')
 def deployment_configuration_is_rendered():
