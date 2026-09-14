@@ -47,6 +47,9 @@ class Handler(BaseHTTPRequestHandler):
                     '.id': 'noc-trusted-action-test',
                 },
                 {
+                    '.id': 'noc-install-routeros-update',
+                },
+                {
                     '.id': 'noc-install-routerboot-update',
                 },
         ):

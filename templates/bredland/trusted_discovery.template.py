@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_tls_context,
                            load_routeros_rest_credentials, post_json, create_routeros_rest_getter, routeros_update_available,
-                           get_json)
+                           routerboot_update_available, get_json)
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -887,9 +887,10 @@ def create_server(
             except Exception as error:
                 sys.stderr.write(
                     'Trusted action validator failed: '
-                    'resolution={!r}, exception={}\n'.format(
+                    'resolution={!r}, exception={}: {}\n'.format(
                         resolution,
                         type(error).__name__,
+                        error,
                     )
                 )
 

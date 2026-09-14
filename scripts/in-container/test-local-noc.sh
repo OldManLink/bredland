@@ -12,16 +12,22 @@ server_bind="0.0.0.0:8000"
 server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
-server_pid=""
 mikrotik_preview_pid=""
+rpi_pid=""
 trusted_preview_pid=""
+server_pid=""
 jsonl_file=""
 
 cleanup()
 {
-    if [ -n "$mikrotik_preview_pid" ]; then
+    if [[ -n "$mikrotik_preview_pid" ]]; then
         kill "$mikrotik_preview_pid" 2>/dev/null || true
         wait "$mikrotik_preview_pid" 2>/dev/null || true
+    fi
+
+    if [[ -n "$rpi_pid" ]]; then
+        kill "$rpi_pid" 2>/dev/null || true
+        wait "$rpi_pid" 2>/dev/null || true
     fi
 
     if [[ -n "$trusted_preview_pid" ]]; then
@@ -485,6 +491,36 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
         if [ "$attempt" -eq 5 ]; then
             echo "❌ Mock MikroTik REST service failed to start"
             cat "$mikrotik_preview_log"
+            exit 1
+        fi
+
+        sleep 0.2
+    done
+
+    echo
+    echo "Starting rapid-poll instrumentation..."
+
+    rpi_log="$build_dir/rapid-poll-instrumentation.log"
+
+    python3 scripts/tools/rapid-poll-instrumentation.py \
+        >"$rpi_log" 2>&1 &
+
+    rpi_pid=$!
+
+    for attempt in 1 2 3 4 5; do
+        if [[ -S /tmp/rapid-poll-instrumentation.sock ]]; then
+            echo "✅ Rapid-poll instrumentation ready"
+            break
+        fi
+
+        if [ "$attempt" -eq 5 ]; then
+            echo "❌ Rapid-poll instrumentation failed to start"
+
+            if [[ -s "$rpi_log" ]]; then
+                echo "--- rapid-poll instrumentation log ---"
+                cat "$rpi_log"
+            fi
+
             exit 1
         fi
 
