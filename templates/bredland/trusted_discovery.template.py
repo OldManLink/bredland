@@ -418,6 +418,17 @@ def render_trusted_script(
         )
     )
 
+def render_trusted_stylesheet(stylesheet_body, has_actions):
+    if has_actions:
+        return stylesheet_body
+
+    marker = '/* Trusted action styles */'
+
+    return stylesheet_body.split(
+        marker,
+        1,
+    )[0]
+
 def fetch_noc_html(
     allowed_origin,
     open_url,
@@ -617,12 +628,10 @@ def create_configured_server(
             log_trusted_action_hook,
         )
 
-    def has_trusted_actions():
-        return bool(
-            current_supported_resolutions(
-                'https://noc.arcanel.se',
-                urllib.request.urlopen,
-            )
+    def current_resolutions():
+        return current_supported_resolutions(
+            'https://noc.arcanel.se',
+            urllib.request.urlopen,
         )
 
     server = create_server(
@@ -638,7 +647,7 @@ def create_configured_server(
         action_validator,
         action_guard,
         create_asset_path,
-        has_trusted_actions,
+        current_resolutions,
         action_hook,
     )
 
@@ -668,14 +677,19 @@ def create_server(
     action_validator,
     action_guard,
     asset_path_factory,
-    has_trusted_actions,
+    current_resolutions,
     action_hook=None,
 ):
     generated_assets = {}
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            asset_type = generated_assets.get(self.path)
+            asset = generated_assets.get(self.path)
+            if asset is not None:
+                asset_type, resolutions = asset
+            else:
+                asset_type = None
+
             if (asset_type == 'script'):
                 rendered_script = script_body
                 if trusted_script_renderer is not None:
@@ -696,8 +710,11 @@ def create_server(
                 self.wfile.write(body)
                 return
 
-            if (asset_type == 'stylesheet'):
-                body = stylesheet_body.encode('utf-8')
+            if asset_type == 'stylesheet':
+                body = render_trusted_stylesheet(
+                    stylesheet_body,
+                    resolutions,
+                ).encode('utf-8')
 
                 self.send_response(200)
                 self.send_header(
@@ -734,18 +751,25 @@ def create_server(
             if self.path == '/probe':
                 stylesheet_asset_path = asset_path_factory()
 
+                resolutions = current_resolutions()
                 generated_assets[
                     stylesheet_asset_path
-                ] = 'stylesheet'
+                ] = (
+                    'stylesheet',
+                    resolutions,
+                )
 
                 script_asset_path = None
 
-                if has_trusted_actions():
+                if resolutions:
                     script_asset_path = asset_path_factory()
 
                     generated_assets[
                         script_asset_path
-                    ] = 'script'
+                    ] = (
+                        'script',
+                        resolutions,
+                    )
 
                 response_body = render_discovery_response(
                     base_url + stylesheet_asset_path,

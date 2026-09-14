@@ -196,7 +196,7 @@ def create_test_server(
         script_body=TEST_SCRIPT_BODY,
         stylesheet_body=TEST_STYLESHEET_BODY,
         asset_path_factory=None,
-        has_trusted_actions=None,
+        current_resolutions=None,
 ):
     if action_validator is _DEFAULT:
         action_validator = lambda resolution: True
@@ -207,8 +207,8 @@ def create_test_server(
             TEST_ACTION_COOLDOWN,
         )
 
-    if has_trusted_actions is None:
-        has_trusted_actions = lambda: True
+    if current_resolutions is None:
+        current_resolutions = lambda: ['install-routeros-update']
 
     if asset_path_factory is None:
         asset_number = [0]
@@ -233,7 +233,7 @@ def create_test_server(
         action_validator,
         action_guard,
         asset_path_factory,
-        has_trusted_actions,
+        current_resolutions,
         action_hook,
     )
 
@@ -530,13 +530,13 @@ def configured_server_wiring(
             action_validator,
             action_guard,
             asset_path_factory,
-            has_trusted_actions,
+            current_resolutions,
             action_hook=None,
     ):
         wired['executor'] = action_executor
         wired['validator'] = action_validator
         wired['action_hook'] = action_hook
-        wired['has_trusted_actions'] = has_trusted_actions
+        wired['current_resolutions'] = current_resolutions
 
         return FakeServer()
 

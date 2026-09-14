@@ -11,6 +11,8 @@ html::after {
     z-index: 2147483647;
 }
 
+/* Trusted action styles */
+
 .trusted-action-button {
     position: absolute;
     right: 1.25rem;

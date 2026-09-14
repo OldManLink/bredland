@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 import threading
-import urllib.request
+from urllib import (parse, request)
 
 sys.path.insert(
     0,
@@ -14,11 +14,22 @@ sys.path.insert(
 )
 
 import testlib
-from builtins import (iter, next)
+from builtins import (iter, len, next)
 from test_suite_runner import TestSuiteRunner
 from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, server_url, serving,
                                        TEST_STYLESHEET_BODY, TEST_SCRIPT_BODY)
 
+TRUSTED_STYLESHEET_WITH_ACTIONS = '''
+html::after {
+    border: 1px solid #777;
+}
+
+/* Trusted action styles */
+
+.trusted-action-button {
+    cursor: pointer;
+}
+'''
 
 runner = TestSuiteRunner('trusted-discovery-assets')
 trusted_discovery = load_trusted_discovery()
@@ -40,7 +51,7 @@ def generated_trusted_script_is_served():
             server
         )
 
-        response = urllib.request.urlopen(
+        response = request.urlopen(
             server_url(
                 server,
                 '/generated-script',
@@ -88,7 +99,7 @@ def generated_trusted_stylesheet_is_served():
             server
         )
 
-        response = urllib.request.urlopen(
+        response = request.urlopen(
             server_url(
                 server,
                 '/generated-style',
@@ -146,14 +157,14 @@ def discovery_urls_match_served_asset_paths():
             discovery['assets'],
         )
 
-        stylesheet = urllib.request.urlopen(
+        stylesheet = request.urlopen(
             server_url(
                 server,
                 '/generated-style',
             )
         )
 
-        script = urllib.request.urlopen(
+        script = request.urlopen(
             server_url(
                 server,
                 '/generated-script',
@@ -213,14 +224,14 @@ def later_discovery_does_not_invalidate_earlier_asset_paths():
             second['assets'],
         )
 
-        first_stylesheet = urllib.request.urlopen(
+        first_stylesheet = request.urlopen(
             server_url(
                 server,
                 '/style-one',
             )
         )
 
-        first_script = urllib.request.urlopen(
+        first_script = request.urlopen(
             server_url(
                 server,
                 '/script-one',
@@ -236,5 +247,115 @@ def later_discovery_does_not_invalidate_earlier_asset_paths():
             TEST_SCRIPT_BODY,
             first_script.read().decode('utf-8'),
         )
+
+@runner.test('trusted stylesheet without actions contains only trusted-mode chrome')
+def trusted_stylesheet_without_actions_contains_only_chrome():
+    stylesheet = trusted_discovery.render_trusted_stylesheet(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        False,
+    )
+
+    testlib.assert_string_contains(
+        'html::after',
+        stylesheet,
+    )
+
+    testlib.assert_string_not_contains(
+        '.trusted-action-button',
+        stylesheet,
+    )
+
+@runner.test('trusted stylesheet with actions preserves action styles')
+def trusted_stylesheet_with_actions_preserves_action_styles():
+    stylesheet = trusted_discovery.render_trusted_stylesheet(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        True,
+    )
+
+    testlib.assert_same(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        stylesheet,
+    )
+
+@runner.test('serves border-only stylesheet without trusted actions')
+def serves_border_only_stylesheet_without_trusted_actions():
+    stylesheet_body = TRUSTED_STYLESHEET_WITH_ACTIONS
+
+    server = create_test_server(
+        trusted_discovery,
+        stylesheet_body=stylesheet_body,
+        current_resolutions=lambda: [],
+    )
+
+    with serving(
+            server
+    ):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        asset_path = parse.urlparse(
+            discovery['assets'][0]
+        ).path
+
+        stylesheet = request.urlopen(
+            server_url(server, asset_path)
+        ).read().decode('utf-8')
+
+    testlib.assert_string_contains(
+        'html::after',
+        stylesheet,
+    )
+
+    testlib.assert_string_not_contains(
+        '.trusted-action-button',
+        stylesheet,
+    )
+
+@runner.test('generated stylesheet reuses resolutions from discovery')
+def generated_stylesheet_reuses_resolutions_from_discovery():
+    calls = []
+
+    def current_resolutions():
+        calls.append(
+            True
+        )
+
+        return [
+            'install-routeros-update',
+        ]
+
+    server = create_test_server(
+        trusted_discovery,
+        stylesheet_body=TRUSTED_STYLESHEET_WITH_ACTIONS,
+        current_resolutions=current_resolutions,
+    )
+
+    with serving(
+            server
+    ):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        asset_path = parse.urlparse(
+            discovery['assets'][0]
+        ).path
+
+        request.urlopen(
+            server_url(
+                server,
+                asset_path,
+            )
+        ).read()
+
+    testlib.assert_same(
+        1,
+        len(calls),
+    )
 
 runner.finish()

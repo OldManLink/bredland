@@ -90,6 +90,24 @@ def assert_string_contains(expected_substring, actual, message=''):
 
         raise AssertionFailed(detail)
 
+def assert_string_not_contains(unexpected_substring, actual, message=''):
+    assert_true(
+        isinstance(actual, str),
+        'Actual value must be a string',
+    )
+
+    if unexpected_substring in actual:
+        detail = (
+                'String-not-contains assertion failed'
+                + (': ' + message if message else '')
+                + '\nUnexpected substring: {!r}\nActual:               {!r}'.format(
+            unexpected_substring,
+            actual,
+        )
+        )
+
+        raise AssertionFailed(detail)
+
 def assert_string_ends_with(expected_suffix, actual, message=''):
     assert_true(
         isinstance(actual, str),

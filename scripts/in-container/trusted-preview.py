@@ -152,12 +152,10 @@ def main():
             trusted_discovery.log_trusted_action_hook,
         )
 
-    def has_trusted_actions():
-        return bool(
-            trusted_discovery.current_supported_resolutions(
-                'https://noc.arcanel.se',
-                urllib.request.urlopen,
-            )
+    def current_resolutions():
+        return trusted_discovery.current_supported_resolutions(
+            trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
+            urllib.request.urlopen,
         )
 
     server = trusted_discovery.create_server(
@@ -173,7 +171,7 @@ def main():
         validate_action,
         action_guard,
         trusted_discovery.create_asset_path,
-        has_trusted_actions,
+        current_resolutions,
         action_hook,
     )
 

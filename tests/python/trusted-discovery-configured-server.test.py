@@ -362,7 +362,7 @@ def configured_server_wires_trusted_action_availability():
 
     testlib.assert_true(
         callable(
-            wired['has_trusted_actions']
+            wired['current_resolutions']
         )
     )
 
@@ -403,8 +403,11 @@ def configured_server_checks_current_supported_resolutions():
                         8081,
                     )
 
-            testlib.assert_true(
-                wired['has_trusted_actions']()
+            testlib.assert_same(
+                [
+                    'install-routerboot-update',
+                ],
+                wired['current_resolutions'](),
             )
 
     testlib.assert_same(
@@ -414,7 +417,7 @@ def configured_server_checks_current_supported_resolutions():
         calls,
     )
 
-@runner.test('configured server reports no trusted actions when none are supported')
+@runner.test('configured server reports no current resolutions when none are supported')
 def configured_server_reports_no_trusted_actions_when_none_are_supported():
     def current_supported_resolutions(
             noc_url,
@@ -443,8 +446,9 @@ def configured_server_reports_no_trusted_actions_when_none_are_supported():
                         8081,
                     )
 
-            testlib.assert_false(
-                wired['has_trusted_actions']()
+            testlib.assert_same(
+                [],
+                wired['current_resolutions'](),
             )
 
 @runner.test('configured discovery omits script without trusted actions')

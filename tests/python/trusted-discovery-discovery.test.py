@@ -208,7 +208,7 @@ def discovery_omits_script_without_applicable_trusted_action():
         trusted_discovery,
         asset_path_factory=lambda: next(paths),
         # new seam still to introduce:
-        has_trusted_actions=lambda: False,
+        current_resolutions=lambda: [],
     )
 
     with serving(
