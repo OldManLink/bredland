@@ -1,8 +1,6 @@
 // Bredland trusted-mode JavaScript
 // Served only from the trusted network
 // BRD-030 trusted discovery asset
-var resolution = 'install-routeros-update';
-
 if (
     typeof window.TRUSTED_SERVER_TIME === 'number'
 ) {
@@ -12,9 +10,7 @@ if (
     );
 }
 
-function heartbeat_confirmation_message() {
-    var message = 'Install the available RouterOS update?';
-
+function heartbeat_confirmation_message(message) {
     if (
         typeof document.getElementById !== 'function'
     ) {
@@ -100,131 +96,133 @@ function heartbeat_confirmation_message() {
     );
 }
 
-document
-    .querySelectorAll(
-        '[data-resolution="' + resolution + '"]'
-    )
-    .forEach(function (notification) {
-        if (
-            !window.TRUSTED_CAPABILITIES ||
-            !window.TRUSTED_CAPABILITIES[resolution]
-        ) {
-            return;
-        }
+function render_trusted_action(
+    resolution,
+    confirmation_message
+) {
+    document
+        .querySelectorAll(
+            '[data-resolution="' + resolution + '"]'
+        )
+        .forEach(function (notification) {
+            if (
+                !window.TRUSTED_CAPABILITIES ||
+                !window.TRUSTED_CAPABILITIES[resolution]
+            ) {
+                return;
+            }
 
-        var panel = notification.closest(
-            '.notification-panel'
-        );
+            if (
+                notification.querySelector(
+                    '.trusted-action-button'
+                ) !== null
+            ) {
+                return;
+            }
 
-        if (panel === null) {
-            return;
-        }
+            var button = document.createElement(
+                'button'
+            );
 
-        if (
-            panel.querySelector(
-                '.trusted-action-button'
-            ) !== null
-        ) {
-            return;
-        }
+            button.type = 'button';
+            button.textContent = 'Update';
+            button.className = 'trusted-action-button';
 
-        var button = document.createElement(
-            'button'
-        );
-
-        button.type = 'button';
-        button.textContent = 'Update';
-        button.className = 'trusted-action-button';
-
-        button.addEventListener(
-            'click',
-            function () {
-                if (
-                    !window.confirm(
-                        heartbeat_confirmation_message()
-                    )
-                ) {
-                    return;
-                }
-
-                button.disabled = true;
-
-                function showFailure(message) {
-                    var failure = document.createElement(
-                        'div'
-                    );
-
-                    failure.textContent = message;
-                    failure.className = 'trusted-action-failure';
-
-                    panel.appendChild(
-                        failure
-                    );
-                }
-
-                fetch(
-                    window.TRUSTED_BASE_URL + '/action',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(
-                            {
-                                resolution: resolution,
-                                token: window.TRUSTED_CAPABILITIES[
-                                    resolution
-                                    ]
-                            }
+            button.addEventListener(
+                'click',
+                function () {
+                    if (
+                        !window.confirm(
+                            heartbeat_confirmation_message(confirmation_message)
                         )
-                    }
-                ).then(function (response) {
-                    if (!response.ok) {
-                        var failureMessages = {
-                            400: 'Request expired. Reload the page and try again.',
-                            409: 'The update is no longer available.',
-                            423: 'Update request already in progress.',
-                            500: 'The update request failed.',
-                            503: 'RouterOS could not be reached. Try again shortly.'
-                        };
-
-                        var message = failureMessages[
-                            response.status
-                            ];
-
-                        showFailure(
-                            message ||
-                            'Update failed. Reload the page to try again.'
-                        );
+                    ) {
                         return;
                     }
 
-                    var toast = document.createElement(
-                        'div'
-                    );
+                    button.disabled = true;
 
-                    toast.textContent = 'Update requested';
-                    toast.className = 'trusted-action-success';
+                    function showFailure(message) {
+                        var failure = document.createElement(
+                            'div'
+                        );
 
-                    panel.appendChild(
-                        toast
-                    );
+                        failure.textContent = message;
+                        failure.className = 'trusted-action-failure';
 
-                    toast.addEventListener(
-                        'animationend',
-                        function () {
-                            toast.remove();
+                        notification.appendChild(
+                            failure
+                        );
+                    }
+
+                    fetch(
+                        window.TRUSTED_BASE_URL + '/action',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(
+                                {
+                                    resolution: resolution,
+                                    token: window.TRUSTED_CAPABILITIES[
+                                        resolution
+                                        ]
+                                }
+                            )
                         }
-                    );
-                }).catch(function () {
-                    showFailure(
-                        'Connection lost while requesting the update.'
-                    );
-                });
-            }
-        );
+                    ).then(function (response) {
+                        if (!response.ok) {
+                            var failureMessages = {
+                                400: 'Request expired. Reload the page and try again.',
+                                409: 'The update is no longer available.',
+                                423: 'Update request already in progress.',
+                                500: 'The update request failed.',
+                                503: 'RouterOS could not be reached. Try again shortly.'
+                            };
 
-        panel.appendChild(
-            button
-        );
-    });
+                            var message = failureMessages[
+                                response.status
+                                ];
+
+                            showFailure(
+                                message ||
+                                'Update failed. Reload the page to try again.'
+                            );
+                            return;
+                        }
+
+                        var toast = document.createElement(
+                            'div'
+                        );
+
+                        toast.textContent = 'Update requested';
+                        toast.className = 'trusted-action-success';
+
+                        notification.appendChild(
+                            toast
+                        );
+
+                        toast.addEventListener(
+                            'animationend',
+                            function () {
+                                toast.remove();
+                            }
+                        );
+                    }).catch(function () {
+                        showFailure(
+                            'Connection lost while requesting the update.'
+                        );
+                    });
+                }
+            );
+
+            notification.appendChild(
+                button
+            );
+        });
+}
+
+render_trusted_action(
+    'install-routeros-update',
+    'Install the available RouterOS update?'
+);

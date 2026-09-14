@@ -12,6 +12,7 @@ sys.path.insert(
 )
 
 import testlib
+from builtins import (iter)
 from test_suite_runner import TestSuiteRunner
 from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, fixture_loader, serving, server_url)
 
@@ -26,14 +27,12 @@ def trusted_script_includes_capability_for_rendered_resolution():
         lambda: 100,
     )
 
-    load_noc_html = fixture_loader(
-        'noc-with-resolution.html'
-    )
-
     script = trusted_discovery.render_trusted_script(
         'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        [
+            'install-routeros-update',
+        ],
         'https://bredland.example:8081',
-        load_noc_html,
         lambda: 'test-token',
         registry,
         200,
@@ -64,8 +63,8 @@ def trusted_script_preserves_static_banner_first():
         '// BRD-030 trusted discovery asset\n'
         '\n'
         'console.log("trusted");',
+        ['install-routeros-update'],
         'https://bredland.example:8081',
-        lambda: '<div data-resolution="install-routeros-update"></div>',
         lambda: 'test-token',
         registry,
         200,
@@ -81,30 +80,6 @@ def trusted_script_preserves_static_banner_first():
         ),
     )
 
-@runner.test('trusted script has no capabilities without rendered resolution')
-def trusted_script_has_no_capabilities_without_rendered_resolution():
-    registry = trusted_discovery.CapabilityRegistry(
-        lambda: 100,
-    )
-
-    load_noc_html = fixture_loader(
-        'noc-without-resolution.html'
-    )
-
-    script = trusted_discovery.render_trusted_script(
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        'https://bredland.example:8081',
-        load_noc_html,
-        lambda: 'test-token',
-        registry,
-        200,
-        lambda: 1788345803.417,
-    )
-
-    testlib.assert_string_contains('window.TRUSTED_CAPABILITIES = {};', script)
-    testlib.assert_string_ends_with('window.TEST_TRUSTED_ASSET_LOADED = true;', script)
-
-
 @runner.test('trusted script GET renders current capabilities')
 def trusted_script_get_renders_current_capabilities():
     paths = iter([
@@ -116,15 +91,14 @@ def trusted_script_get_renders_current_capabilities():
         lambda: 100,
     )
 
-    load_noc_html = fixture_loader(
-        'noc-with-resolution.html'
-    )
-
-    def render(script_body):
+    def render(
+            script_body,
+            resolutions,
+    ):
         return trusted_discovery.render_trusted_script(
             script_body,
+            resolutions,
             'https://bredland.example:8081',
-            load_noc_html,
             lambda: 'test-token',
             registry,
             200,
@@ -163,13 +137,8 @@ def creates_trusted_script_renderer():
         lambda: 100,
     )
 
-    load_noc_html = fixture_loader(
-        'noc-with-resolution.html'
-    )
-
     renderer = trusted_discovery.create_trusted_script_renderer(
         'https://bredland.example:8081',
-        load_noc_html,
         lambda: 'test-token',
         registry,
         lambda: 200,
@@ -177,7 +146,8 @@ def creates_trusted_script_renderer():
     )
 
     script = renderer(
-        'window.TEST_TRUSTED_ASSET_LOADED = true;'
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        ['install-routeros-update'],
     )
 
     testlib.assert_string_contains('"install-routeros-update": "test-token"', script)

@@ -347,25 +347,15 @@ def issue_capabilities(
 
 def render_trusted_script(
         script_body,
+        resolutions,
         base_url,
-        noc_html_loader,
         token_generator,
         registry,
         expires_at,
         server_time,
 ):
-    noc_html = noc_html_loader()
-
-    resolutions = resolutions_from_noc_html(
-        noc_html
-    )
-
-    supported_resolutions = supported_rendered_resolutions(
-        resolutions
-    )
-
     capabilities = issue_capabilities(
-        supported_resolutions,
+        resolutions,
         token_generator,
         registry,
         expires_at,
@@ -455,17 +445,16 @@ def capability_expiry(
 
 def create_trusted_script_renderer(
     base_url,
-    noc_html_loader,
     token_generator,
     registry,
     expires_at,
     server_time,
 ):
-    def render(script_body):
+    def render(script_body, resolutions):
         return render_trusted_script(
             script_body,
+            resolutions,
             base_url,
-            noc_html_loader,
             token_generator,
             registry,
             expires_at(),
@@ -555,12 +544,6 @@ def create_configured_server(
         90,
     )
 
-    def load_noc_html():
-        return fetch_noc_html(
-            TRUSTED_ALLOWED_ORIGIN,
-            urllib.request.urlopen,
-        )
-
     def expires_at():
         return capability_expiry(
             time.time,
@@ -569,7 +552,6 @@ def create_configured_server(
 
     trusted_script_renderer = create_trusted_script_renderer(
         TRUSTED_BASE_URL,
-        load_noc_html,
         create_capability_token,
         capability_registry,
         expires_at,
@@ -693,7 +675,7 @@ def create_server(
             if (asset_type == 'script'):
                 rendered_script = script_body
                 if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(script_body)
+                    rendered_script = trusted_script_renderer(script_body, resolutions)
                 body = rendered_script.encode('utf-8')
 
                 self.send_response(200)

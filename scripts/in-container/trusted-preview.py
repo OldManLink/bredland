@@ -77,12 +77,6 @@ def main():
         )
     )
 
-    def load_noc_html():
-        return trusted_discovery.fetch_noc_html(
-            trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
-            urllib.request.urlopen,
-        )
-
     def expires_at():
         return trusted_discovery.capability_expiry(
             time.time,
@@ -92,7 +86,6 @@ def main():
     trusted_script_renderer = (
         trusted_discovery.create_trusted_script_renderer(
             trusted_discovery.TRUSTED_BASE_URL,
-            load_noc_html,
             trusted_discovery.create_capability_token,
             capability_registry,
             expires_at,
