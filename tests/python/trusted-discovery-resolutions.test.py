@@ -138,4 +138,28 @@ def discovers_current_supported_rendered_resolutions():
         resolutions,
     )
 
+@runner.test('defines RouterOS trusted action')
+def defines_routeros_trusted_action():
+    testlib.assert_same(
+        {
+            'script': 'noc-install-routeros-update',
+            'confirmation': 'Install the available RouterOS update?',
+        },
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
+            'install-routeros-update'
+        ],
+    )
+
+@runner.test('defines RouterBOOT trusted action')
+def defines_routerboot_trusted_action():
+    testlib.assert_same(
+        {
+            'script': 'noc-install-routerboot-update',
+            'confirmation': 'Install the available RouterBOOT firmware update?',
+        },
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
+            'install-routerboot-update'
+        ],
+    )
+
 runner.finish()

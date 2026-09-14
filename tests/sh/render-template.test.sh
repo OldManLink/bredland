@@ -134,6 +134,20 @@ grep -q 'https://mikrotik.example' "$tmpdir/trusted_discovery.py"
 
 echo "OK"
 
+# Test trusted.js
+echo -n "Testing bredland/static/trusted.js ... "
+cat > "$tmpdir/trusted.env" <<'EOF'
+TRUSTED_ACTIONS=TEST_TRUSTED_ACTIONS
+EOF
+
+run_render templates/bredland/static/trusted.js \
+    "$tmpdir/trusted.js" \
+    "$tmpdir/trusted.env"
+
+grep -q 'TEST_TRUSTED_ACTIONS' "$tmpdir/trusted.js"
+
+echo "OK"
+
 # Test bootstrap.template.js
 echo -n "Testing noc/static/bootstrap.template.js ... "
 cat > "$tmpdir/bootstrap.env" <<'EOF'

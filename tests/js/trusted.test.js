@@ -1,10 +1,37 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
-var trusted_script = path.join(
+var trusted_template = path.join(
     process.cwd(),
     'templates/bredland/static/trusted.js'
+);
+
+var trusted_script = path.join(
+    os.tmpdir(),
+    'bredland-trusted-test.js'
+);
+
+var trusted_source = fs
+    .readFileSync(
+        trusted_template,
+        'utf8'
+    )
+    .replace(
+        '__TRUSTED_ACTIONS__',
+        [
+            'render_trusted_action(',
+            "    'test-resolution',",
+            "    'Perform the test action?'",
+            ');'
+        ].join('\n')
+    );
+
+fs.writeFileSync(
+    trusted_script,
+    trusted_source
 );
 
 function create_notification() {
@@ -66,7 +93,7 @@ test('trusted action button is added to notification', function () {
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         }
     };
 
@@ -74,7 +101,7 @@ test('trusted action button is added to notification', function () {
         querySelectorAll: function (selector) {
             assert.equal(
                 selector,
-                '[data-resolution="install-routeros-update"]'
+                '[data-resolution="test-resolution"]'
             );
 
             return [
@@ -146,7 +173,7 @@ notification.appendChild = function (element) {
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         }
     };
 
@@ -249,7 +276,7 @@ test('trusted action button posts resolution and token', async function () {
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
         confirm: function () {
             return true;
@@ -338,7 +365,7 @@ test('trusted action button posts resolution and token', async function () {
             requests[0].options.body
         ),
         {
-            resolution: 'install-routeros-update',
+            resolution: 'test-resolution',
             token: 'test-token'
         }
     );
@@ -363,7 +390,7 @@ test('trusted action button posts only after confirmation', async function () {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -446,13 +473,13 @@ test('trusted action confirmation shows time until next heartbeat', async functi
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -573,13 +600,13 @@ test('trusted action confirmation ignores overdue heartbeat', async function () 
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -700,13 +727,13 @@ test('trusted action confirmation falls back when all heartbeats are overdue', a
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?'
+                'Perform the test action?'
             );
 
             return false;
@@ -826,13 +853,13 @@ test('trusted action confirmation ignores malformed heartbeat', async function (
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -953,13 +980,13 @@ test('trusted action confirmation falls back without usable heartbeat', async fu
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?'
+                'Perform the test action?'
             );
 
             return false;
@@ -1079,13 +1106,13 @@ test('trusted action confirmation ignores malformed heartbeat JSON', async funct
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -1203,7 +1230,7 @@ test('trusted action button disables while request is pending', function () {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1272,7 +1299,7 @@ test('trusted action shows success toast', async function () {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1367,7 +1394,7 @@ test('trusted action shows failure message when update already in progress', asy
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1453,7 +1480,7 @@ test('trusted action shows failure message when update no longer available', asy
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1539,7 +1566,7 @@ test('trusted action shows failure message when request expires', async function
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1625,7 +1652,7 @@ test('trusted action shows failure message when RouterOS could not be reached', 
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1711,7 +1738,7 @@ test('trusted action shows failure message when update request fails', async fun
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1797,7 +1824,7 @@ test('trusted action shows failure message when fetch rejects', async function (
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1883,7 +1910,7 @@ test('trusted action success toast disappears', async function () {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {

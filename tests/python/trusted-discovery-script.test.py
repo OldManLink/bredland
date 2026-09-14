@@ -163,4 +163,113 @@ def creates_trusted_script_renderer():
         script,
     )
 
+@runner.test('trusted script renders action placeholder')
+def trusted_script_renders_action_placeholder():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'TRUSTED_ACTION_DEFINITIONS',
+            {
+                'test-resolution': {
+                    'script': 'test-script',
+                    'confirmation': 'Perform the test action?',
+                },
+            },
+    ):
+        script = trusted_discovery.render_trusted_script(
+            '__TRUSTED_ACTIONS__',
+            [
+                'test-resolution',
+            ],
+            'https://bredland.example:8081',
+            lambda: 'test-token',
+            registry,
+            200,
+            lambda: 1788345803.417,
+        )
+
+    testlib.assert_string_contains(
+        "render_trusted_action(\n"
+        "    'test-resolution',\n"
+        "    'Perform the test action?'\n"
+        ");",
+        script,
+    )
+
+    testlib.assert_string_not_contains(
+        '__TRUSTED_ACTIONS__',
+        script,
+    )
+
+@runner.test('maps trusted resolution to confirmation')
+def maps_trusted_resolution_to_confirmation():
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'TRUSTED_ACTION_DEFINITIONS',
+            {
+                'test-resolution': {
+                    'script': 'test-script',
+                    'confirmation': 'Perform the test action?',
+                },
+            },
+    ):
+        testlib.assert_same(
+            'Perform the test action?',
+            trusted_discovery.confirmation_for_resolution(
+                'test-resolution'
+            ),
+        )
+
+@runner.test('trusted script renders multiple actions in order')
+def trusted_script_renders_multiple_actions_in_order():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'TRUSTED_ACTION_DEFINITIONS',
+            {
+                'first-resolution': {
+                    'script': 'first-script',
+                    'confirmation': 'Perform the first action?',
+                },
+                'second-resolution': {
+                    'script': 'second-script',
+                    'confirmation': 'Perform the second action?',
+                },
+            },
+    ):
+        script = trusted_discovery.render_trusted_script(
+            '__TRUSTED_ACTIONS__',
+            [
+                'first-resolution',
+                'second-resolution',
+            ],
+            'https://bredland.example:8081',
+            lambda: 'test-token',
+            registry,
+            200,
+            lambda: 1788345803.417,
+        )
+
+    expected = (
+        "render_trusted_action(\n"
+        "    'first-resolution',\n"
+        "    'Perform the first action?'\n"
+        ");\n\n"
+        "render_trusted_action(\n"
+        "    'second-resolution',\n"
+        "    'Perform the second action?'\n"
+        ");"
+    )
+
+    testlib.assert_string_contains(
+        expected,
+        script,
+    )
+
 runner.finish()

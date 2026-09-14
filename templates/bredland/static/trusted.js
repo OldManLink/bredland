@@ -222,7 +222,4 @@ function render_trusted_action(
         });
 }
 
-render_trusted_action(
-    'install-routeros-update',
-    'Install the available RouterOS update?'
-);
+__TRUSTED_ACTIONS__

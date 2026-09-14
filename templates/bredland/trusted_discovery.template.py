@@ -29,6 +29,17 @@ MIKROTIK_REST_BASE_URL = '__MIKROTIK_REST_BASE_URL__'
 MIKROTIK_REST_CREDENTIALS_FILE = '/etc/bredland/mikrotik-rest/credentials.env'
 MIKROTIK_REST_CA_FILE = '/etc/bredland/mikrotik-rest/ca.pem'
 RESOLUTIONS_FILE = '/etc/bredland/resolutions.json'
+TRUSTED_ACTION_DEFINITIONS = {
+    'install-routeros-update': {
+        'script': 'noc-install-routeros-update',
+        'confirmation': 'Install the available RouterOS update?',
+    },
+
+    'install-routerboot-update': {
+        'script': 'noc-install-routerboot-update',
+        'confirmation': 'Install the available RouterBOOT firmware update?',
+    },
+}
 
 class TrustedDiscoveryServer(ThreadingHTTPServer):
     tls_context = None
@@ -369,19 +380,52 @@ def render_trusted_script(
         server_time() * 1000
     )
 
-    banner_lines = script_body.splitlines(
+    actions = []
+
+    for resolution in resolutions:
+        actions.append(
+            "render_trusted_action(\n"
+            "    {!r},\n"
+            "    {!r}\n"
+            ");".format(
+                resolution,
+                confirmation_for_resolution(resolution),
+            )
+        )
+
+    trusted_actions_placeholder = (
+            '__'
+            + 'TRUSTED_ACTIONS'
+            + '__'
+    )
+
+    script_body = script_body.replace(
+        trusted_actions_placeholder,
+        '\n\n'.join(actions),
+    )
+
+    banner_lines = []
+    body_lines = script_body.splitlines(
         True
     )
 
-    if len(banner_lines) >= 3:
-        banner = ''.join(
-            banner_lines[:3]
+    while (
+            body_lines
+            and body_lines[0].startswith('// ')
+    ):
+        banner_lines.append(
+            body_lines.pop(0)
         )
 
-        script_body = ''.join(
-            banner_lines[3:]
-        )
+    banner = ''.join(
+        banner_lines
+    )
 
+    script_body = ''.join(
+        body_lines
+    )
+
+    if banner:
         return (
             '{}\n'
             'window.TRUSTED_BASE_URL = "{}";\n'
@@ -496,12 +540,20 @@ def create_asset_path():
     return '/' + secrets.token_hex(16)
 
 def routeros_script_for_resolution(resolution):
-    scripts = {
-        'install-routeros-update': 'noc-install-routeros-update',
-        'install-routerboot-update': 'noc-install-routerboot-update',
-    }
+    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
 
-    return scripts.get(resolution)
+    if action is None:
+        return None
+
+    return action['script']
+
+def confirmation_for_resolution(resolution):
+    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
+
+    if action is None:
+        return None
+
+    return action['confirmation']
 
 def log_trusted_action_hook(message):
     sys.stderr.write(
