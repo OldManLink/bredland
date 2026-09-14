@@ -342,4 +342,153 @@ def configured_server_wires_configured_action_hook():
         )
     )
 
+@runner.test('configured server wires trusted action availability')
+def configured_server_wires_trusted_action_availability():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_true(
+        callable(
+            wired['has_trusted_actions']
+        )
+    )
+
+@runner.test('configured server checks current supported resolutions')
+def configured_server_checks_current_supported_resolutions():
+    calls = []
+
+    def current_supported_resolutions(
+            noc_url,
+            open_url,
+    ):
+        calls.append(
+            noc_url
+        )
+
+        return [
+            'install-routerboot-update',
+        ]
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'current_supported_resolutions',
+            current_supported_resolutions,
+    ):
+        with configured_server_wiring(
+                trusted_discovery,
+        ) as wiring:
+            wired, hook_calls = wiring
+
+            with temporary_trusted_assets(
+                    trusted_discovery,
+            ):
+                with passthrough_tls(
+                        trusted_discovery,
+                ):
+                    trusted_discovery.create_configured_server(
+                        '127.0.0.1',
+                        8081,
+                    )
+
+            testlib.assert_true(
+                wired['has_trusted_actions']()
+            )
+
+    testlib.assert_same(
+        [
+            'https://noc.arcanel.se',
+        ],
+        calls,
+    )
+
+@runner.test('configured server reports no trusted actions when none are supported')
+def configured_server_reports_no_trusted_actions_when_none_are_supported():
+    def current_supported_resolutions(
+            noc_url,
+            open_url,
+    ):
+        return []
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'current_supported_resolutions',
+            current_supported_resolutions,
+    ):
+        with configured_server_wiring(
+                trusted_discovery,
+        ) as wiring:
+            wired, hook_calls = wiring
+
+            with temporary_trusted_assets(
+                    trusted_discovery,
+            ):
+                with passthrough_tls(
+                        trusted_discovery,
+                ):
+                    trusted_discovery.create_configured_server(
+                        '127.0.0.1',
+                        8081,
+                    )
+
+            testlib.assert_false(
+                wired['has_trusted_actions']()
+            )
+
+@runner.test('configured discovery omits script without trusted actions')
+def configured_discovery_omits_script_without_trusted_actions():
+    paths = iter([
+        '/configured-style',
+    ])
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'current_supported_resolutions',
+            lambda noc_url, open_url: [],
+    ):
+        with testlib.patched_attribute(
+                trusted_discovery,
+                'create_asset_path',
+                lambda: next(paths),
+        ):
+            with temporary_trusted_assets(
+                    trusted_discovery,
+            ):
+                with passthrough_tls(
+                        trusted_discovery,
+                ):
+                    with stubbed_routeros_action_dependencies(
+                            trusted_discovery,
+                    ):
+                        server = trusted_discovery.create_configured_server(
+                            '127.0.0.1',
+                            0,
+                        )
+
+                        with serving(server):
+                            body = probe(
+                                server
+                            )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example:8081/configured-style"'
+            ']}'
+        ),
+        body,
+    )
+
 runner.finish()

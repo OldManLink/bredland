@@ -99,4 +99,43 @@ def fetches_current_noc_html():
         html,
     )
 
+@runner.test('discovers current supported rendered resolutions')
+def discovers_current_supported_rendered_resolutions():
+    requested_urls = []
+
+    def open_url(url):
+        requested_urls.append(
+            url
+        )
+
+        class Response:
+            def read(self):
+                return (
+                    b'<div data-resolution="install-routeros-update"></div>'
+                    b'<div data-resolution="future-resolution"></div>'
+                )
+
+        return Response()
+
+    resolutions = (
+        trusted_discovery.current_supported_resolutions(
+            'https://noc.arcanel.se',
+            open_url,
+        )
+    )
+
+    testlib.assert_same(
+        [
+            'https://noc.arcanel.se/',
+        ],
+        requested_urls,
+    )
+
+    testlib.assert_same(
+        [
+            'install-routeros-update',
+        ],
+        resolutions,
+    )
+
 runner.finish()

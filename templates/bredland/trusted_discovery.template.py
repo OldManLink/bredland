@@ -9,17 +9,13 @@ import threading
 import urllib.error
 import urllib.request
 
+from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, isinstance)
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
-from routeros_rest import create_routeros_action_executor
-from routeros_rest import create_routeros_rest_poster
-from routeros_rest import create_routeros_rest_tls_context
-from routeros_rest import load_routeros_rest_credentials
-from routeros_rest import post_json
-from routeros_rest import create_routeros_rest_getter
-from routeros_rest import routeros_update_available
-from routeros_rest import get_json
+from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_tls_context,
+                           load_routeros_rest_credentials, post_json, create_routeros_rest_getter, routeros_update_available,
+                           get_json)
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -173,6 +169,19 @@ def supported_rendered_resolutions(resolutions):
         for resolution in resolutions
         if routeros_script_for_resolution(resolution) is not None
     ]
+
+def current_supported_resolutions(
+        noc_url,
+        open_url,
+):
+    return supported_rendered_resolutions(
+        resolutions_from_noc_html(
+            fetch_noc_html(
+                noc_url,
+                open_url,
+            )
+        )
+    )
 
 def load_resolution_hook(
         path,
@@ -608,6 +617,14 @@ def create_configured_server(
             log_trusted_action_hook,
         )
 
+    def has_trusted_actions():
+        return bool(
+            current_supported_resolutions(
+                'https://noc.arcanel.se',
+                urllib.request.urlopen,
+            )
+        )
+
     server = create_server(
         host,
         port,
@@ -620,8 +637,9 @@ def create_configured_server(
         trusted_script_renderer,
         action_validator,
         action_guard,
-        action_hook,
         create_asset_path,
+        has_trusted_actions,
+        action_hook,
     )
 
     context = ssl.SSLContext(
@@ -649,8 +667,9 @@ def create_server(
     trusted_script_renderer,
     action_validator,
     action_guard,
+    asset_path_factory,
+    has_trusted_actions,
     action_hook=None,
-    asset_path_factory=None,
 ):
     generated_assets = {}
 
@@ -714,14 +733,27 @@ def create_server(
 
             if self.path == '/probe':
                 stylesheet_asset_path = asset_path_factory()
-                script_asset_path = asset_path_factory()
 
-                generated_assets[stylesheet_asset_path] = 'stylesheet'
-                generated_assets[script_asset_path] = 'script'
+                generated_assets[
+                    stylesheet_asset_path
+                ] = 'stylesheet'
+
+                script_asset_path = None
+
+                if has_trusted_actions():
+                    script_asset_path = asset_path_factory()
+
+                    generated_assets[
+                        script_asset_path
+                    ] = 'script'
 
                 response_body = render_discovery_response(
                     base_url + stylesheet_asset_path,
-                    base_url + script_asset_path,
+                    (
+                        base_url + script_asset_path
+                        if script_asset_path is not None
+                        else None
+                    ),
                     ).encode('utf-8')
 
             send_content_length(self, response_body)

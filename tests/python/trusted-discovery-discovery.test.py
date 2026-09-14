@@ -198,4 +198,33 @@ def deployment_configuration_is_rendered():
         ),
     )
 
+@runner.test('discovery omits script without applicable trusted action')
+def discovery_omits_script_without_applicable_trusted_action():
+    paths = iter([
+        '/style-only',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+        # new seam still to introduce:
+        has_trusted_actions=lambda: False,
+    )
+
+    with serving(
+            server,
+    ):
+        body = probe(
+            server
+        )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-only"'
+            ']}'
+        ),
+        body,
+    )
+
 runner.finish()

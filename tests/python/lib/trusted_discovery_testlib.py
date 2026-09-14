@@ -196,6 +196,7 @@ def create_test_server(
         script_body=TEST_SCRIPT_BODY,
         stylesheet_body=TEST_STYLESHEET_BODY,
         asset_path_factory=None,
+        has_trusted_actions=None,
 ):
     if action_validator is _DEFAULT:
         action_validator = lambda resolution: True
@@ -205,6 +206,9 @@ def create_test_server(
             lambda: TEST_NOW,
             TEST_ACTION_COOLDOWN,
         )
+
+    if has_trusted_actions is None:
+        has_trusted_actions = lambda: True
 
     if asset_path_factory is None:
         asset_number = [0]
@@ -228,8 +232,9 @@ def create_test_server(
         script_renderer,
         action_validator,
         action_guard,
-        action_hook=action_hook,
-        asset_path_factory=asset_path_factory,
+        asset_path_factory,
+        has_trusted_actions,
+        action_hook,
     )
 
 def probe(server):
@@ -524,12 +529,14 @@ def configured_server_wiring(
             trusted_script_renderer,
             action_validator,
             action_guard,
+            asset_path_factory,
+            has_trusted_actions,
             action_hook=None,
-            asset_path_factory=None,
     ):
         wired['executor'] = action_executor
         wired['validator'] = action_validator
         wired['action_hook'] = action_hook
+        wired['has_trusted_actions'] = has_trusted_actions
 
         return FakeServer()
 
@@ -550,53 +557,76 @@ def configured_server_wiring(
 
         return True
 
-    with testlib.patched_attribute(
-            trusted_discovery,
-            'create_server',
-            create_server,
-    ):
-        with testlib.patched_attribute(
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_server',
+                create_server,
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
                 trusted_discovery,
                 'load_routeros_rest_credentials',
                 lambda credentials_file: {
                     'username': 'test-user',
                     'password': 'test-password',
                 },
-        ):
-            with testlib.patched_attribute(
-                    trusted_discovery,
-                    'create_routeros_rest_tls_context',
-                    lambda ca_file: 'routeros-tls-context',
-            ):
-                with testlib.patched_attribute(
-                        trusted_discovery,
-                        'create_routeros_rest_poster',
-                        lambda credentials, context, open_request,
-                               post_json_function: 'routeros-poster',
-                ):
-                    with testlib.patched_attribute(
-                            trusted_discovery,
-                            'create_routeros_action_executor',
-                            lambda base_url, post:
-                            'routeros-action-executor',
-                    ):
-                        with testlib.patched_attribute(
-                                trusted_discovery,
-                                'create_routeros_rest_getter',
-                                lambda credentials, context, open_request,
-                                       get_json_function:
-                                lambda url: {
-                                    'installed-version': '7.23.1',
-                                    'latest-version': '7.24.1',
-                                    'status': 'New version is available',
-                                },
-                        ):
-                            with testlib.patched_attribute(
-                                    trusted_discovery,
-                                    'execute_configured_resolution_hook',
-                                    execute_configured_resolution_hook,
-                            ):
-                                yield wired, hook_calls
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_rest_tls_context',
+                lambda ca_file: 'routeros-tls-context',
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_rest_poster',
+                lambda credentials, context, open_request,
+                       post_json_function:
+                'routeros-poster',
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_action_executor',
+                lambda base_url, post:
+                'routeros-action-executor',
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_rest_getter',
+                lambda credentials, context, open_request,
+                       get_json_function:
+                lambda url: {
+                    'installed-version': '7.23.1',
+                    'latest-version': '7.24.1',
+                    'status': 'New version is available',
+                },
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'execute_configured_resolution_hook',
+                execute_configured_resolution_hook,
+            )
+        )
+
+        yield wired, hook_calls
 
 def recording_action_executor(result=True):
     calls = []
