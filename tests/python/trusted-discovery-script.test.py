@@ -13,7 +13,7 @@ sys.path.insert(
 
 import testlib
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, fixture_loader, serving, server_url)
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, fixture_loader, serving, server_url)
 
 
 runner = TestSuiteRunner('trusted-discovery-script')
@@ -107,6 +107,11 @@ def trusted_script_has_no_capabilities_without_rendered_resolution():
 
 @runner.test('trusted script GET renders current capabilities')
 def trusted_script_get_renders_current_capabilities():
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
+
     registry = trusted_discovery.CapabilityRegistry(
         lambda: 100,
     )
@@ -130,13 +135,18 @@ def trusted_script_get_renders_current_capabilities():
         trusted_discovery,
         registry=registry,
         script_renderer=render,
+        asset_path_factory=lambda: next(paths),
     )
 
     with serving(server):
+        probe(
+            server
+        )
+
         response = urllib.request.urlopen(
             server_url(
                 server,
-                '/trusted-script-test',
+                '/generated-script',
             )
         )
 

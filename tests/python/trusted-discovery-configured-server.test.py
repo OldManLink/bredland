@@ -5,11 +5,13 @@ import tempfile
 import threading
 import urllib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
-from builtins import (callable, isinstance, len, max, open, staticmethod)
+from builtins import (callable, isinstance, iter, len, max, next, open, staticmethod)
 import testlib
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import (load_trusted_discovery, passthrough_tls, restore_routeros_action_dependencies,
-                                       server_url, serving, stubbed_routeros_action_dependencies, temporary_trusted_assets)
+from trusted_discovery_testlib import (configured_server_wiring, load_trusted_discovery, passthrough_tls, probe,
+                                       restore_routeros_action_dependencies, server_url, serving,
+                                       stubbed_routeros_action_dependencies, temporary_trusted_assets,
+                                       TEST_STYLESHEET_BODY, TEST_SCRIPT_BODY)
 
 
 runner = TestSuiteRunner(
@@ -18,93 +20,112 @@ runner = TestSuiteRunner(
 
 trusted_discovery = load_trusted_discovery()
 
-@runner.test('loads trusted assets from fixed local files')
-def configured_server_loads_trusted_assets_from_files():
-    with temporary_trusted_assets(
+@runner.test('loads trusted asset bodies from local files')
+def configured_server_loads_trusted_asset_bodies_from_local_files():
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
+
+    with testlib.patched_attribute(
             trusted_discovery,
+            'create_asset_path',
+            lambda: next(paths),
     ):
-        with passthrough_tls(
+        with temporary_trusted_assets(
                 trusted_discovery,
         ):
-            with stubbed_routeros_action_dependencies(
+            with passthrough_tls(
                     trusted_discovery,
             ):
-                server = trusted_discovery.create_configured_server(
-                    '127.0.0.1',
-                    0,
-                )
+                with stubbed_routeros_action_dependencies(
+                        trusted_discovery,
+                ):
+                    server = trusted_discovery.create_configured_server(
+                        '127.0.0.1',
+                        0,
+                    )
 
-                with serving(server):
-                    script_response = urllib.request.urlopen(
-                        server_url(
-                            server,
-                            '/trusted-script-test',
+                    with serving(server):
+                        probe(
+                            server
                         )
-                    )
 
-                    stylesheet_response = urllib.request.urlopen(
-                        server_url(
-                            server,
-                            '/trusted-style-test',
+                        stylesheet = urllib.request.urlopen(
+                            server_url(
+                                server,
+                                '/generated-style',
+                            )
                         )
-                    )
 
-                    script_body = (
-                        script_response
-                        .read()
-                        .decode('utf-8')
-                    )
+                        script = urllib.request.urlopen(
+                            server_url(
+                                server,
+                                '/generated-script',
+                            )
+                        )
 
-                    stylesheet_body = (
-                        stylesheet_response
-                        .read()
-                        .decode('utf-8')
-                    )
+                        stylesheet_body = (
+                            stylesheet.read().decode('utf-8')
+                        )
 
-    testlib.assert_string_contains(
-        'window.TRUSTED_CAPABILITIES = ',
-        script_body,
+                        script_body = (
+                            script.read().decode('utf-8')
+                        )
+
+    testlib.assert_same(
+        TEST_STYLESHEET_BODY,
+        stylesheet_body,
     )
 
     testlib.assert_string_ends_with(
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        TEST_SCRIPT_BODY,
         script_body,
-    )
-
-    testlib.assert_same(
-        'html { outline: 1px solid; }',
-        stylesheet_body,
     )
 
 @runner.test('creates a server from rendered deployment configuration')
 def configured_server_uses_rendered_configuration():
-    with temporary_trusted_assets(
+    paths = iter([
+        '/configured-style',
+        '/configured-script',
+    ])
+
+    with testlib.patched_attribute(
             trusted_discovery,
+            'create_asset_path',
+            lambda: next(paths),
     ):
-        with passthrough_tls(
+        with temporary_trusted_assets(
                 trusted_discovery,
         ):
-            with stubbed_routeros_action_dependencies(
+            with passthrough_tls(
                     trusted_discovery,
             ):
-                server = trusted_discovery.create_configured_server(
-                    '127.0.0.1',
-                    0,
-                )
-
-                with serving(server):
-                    response = urllib.request.urlopen(
-                        server_url(
-                            server,
-                            '/probe',
-                        )
+                with stubbed_routeros_action_dependencies(
+                        trusted_discovery,
+                ):
+                    server = trusted_discovery.create_configured_server(
+                        '127.0.0.1',
+                        0,
                     )
 
-                    body = response.read().decode('utf-8')
+                    with serving(server):
+                        response = urllib.request.urlopen(
+                            server_url(
+                                server,
+                                '/probe',
+                            )
+                        )
+
+                        body = response.read().decode('utf-8')
 
     testlib.assert_same(
-        '{"assets":{"script":"https://bredland.example:8081/trusted-script-test",'
-        '"stylesheet":"https://bredland.example:8081/trusted-style-test"}}',
+        (
+            '{"assets":['
+            '"https://bredland.example:8081/configured-style",'
+            '"https://bredland.example:8081/configured-script"'
+            ']}'
+        ),
         body,
     )
 
@@ -117,27 +138,16 @@ def configured_server_uses_rendered_configuration():
 
 @runner.test('configured server serves rendered trusted script')
 def configured_server_serves_rendered_trusted_script():
-    original_renderer_factory = (
-        trusted_discovery.create_trusted_script_renderer
-    )
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
 
-    def create_renderer(
-            base_url,
-            noc_html_loader,
-            token_generator,
-            registry,
-            expires_at,
-            server_time,
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'create_asset_path',
+            lambda: next(paths),
     ):
-        return lambda script_body: (
-            'window.CONFIGURED_RENDERER = true;'
-        )
-
-    trusted_discovery.create_trusted_script_renderer = (
-        create_renderer
-    )
-
-    try:
         with temporary_trusted_assets(
                 trusted_discovery,
         ):
@@ -147,34 +157,27 @@ def configured_server_serves_rendered_trusted_script():
                 with stubbed_routeros_action_dependencies(
                         trusted_discovery,
                 ):
-                    server = (
-                        trusted_discovery
-                        .create_configured_server(
-                            '127.0.0.1',
-                            0,
-                        )
+                    server = trusted_discovery.create_configured_server(
+                        '127.0.0.1',
+                        0,
                     )
 
                     with serving(server):
+                        probe(
+                            server
+                        )
+
                         response = urllib.request.urlopen(
                             server_url(
                                 server,
-                                '/trusted-script-test',
+                                '/generated-script',
                             )
                         )
 
-                        body = (
-                            response
-                            .read()
-                            .decode('utf-8')
-                        )
-    finally:
-        trusted_discovery.create_trusted_script_renderer = (
-            original_renderer_factory
-        )
+                        body = response.read().decode('utf-8')
 
-    testlib.assert_same(
-        'window.CONFIGURED_RENDERER = true;',
+    testlib.assert_string_ends_with(
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
         body,
     )
 
@@ -243,90 +246,11 @@ def main_guard_comes_after_function_definitions():
 
 @runner.test('configured server wires RouterOS action executor')
 def configured_server_wires_routeros_action_executor():
-    wired = {}
-    hook_calls = []
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
 
-    class FakeServer:
-        tls_context = None
-
-    originals = {
-        'create_server':
-            trusted_discovery.create_server,
-        'load_credentials':
-            trusted_discovery.load_routeros_rest_credentials,
-        'create_tls_context':
-            trusted_discovery.create_routeros_rest_tls_context,
-        'create_poster':
-            trusted_discovery.create_routeros_rest_poster,
-        'create_executor':
-            trusted_discovery.create_routeros_action_executor,
-        'create_getter':
-            trusted_discovery.create_routeros_rest_getter,
-        'execute_configured_hook':
-            trusted_discovery.execute_configured_resolution_hook,
-    }
-
-    trusted_discovery.load_routeros_rest_credentials = (
-        lambda credentials_file: {
-            'username': 'test-user',
-            'password': 'test-password',
-        }
-    )
-
-    trusted_discovery.create_routeros_rest_tls_context = (
-        lambda ca_file: 'routeros-tls-context'
-    )
-
-    trusted_discovery.create_routeros_rest_poster = (
-        lambda credentials, context, open_request, post_json_function:
-        'routeros-poster'
-    )
-
-    trusted_discovery.create_routeros_action_executor = (
-        lambda base_url, post:
-        'routeros-action-executor'
-    )
-
-    trusted_discovery.create_routeros_rest_getter = (
-        lambda credentials, context, open_request, get_json_function:
-        lambda url: {
-            'installed-version': '7.23.1',
-            'latest-version': '7.24.1',
-            'status': 'New version is available',
-        }
-    )
-
-    def execute_configured_resolution_hook(
-            path,
-            resolution,
-            hook_executor,
-            logger,
-    ):
-        hook_calls.append(
-            (
-                path,
-                resolution,
-                hook_executor,
-                logger,
-            )
-        )
-
-        return True
-
-    trusted_discovery.execute_configured_resolution_hook = (
-        execute_configured_resolution_hook
-    )
-
-    def create_server(*args):
-        wired['executor'] = args[8]
-        wired['validator'] = args[11]
-        wired['action_hook'] = args[13]
-
-        return FakeServer()
-
-    trusted_discovery.create_server = create_server
-
-    try:
         with temporary_trusted_assets(
                 trusted_discovery,
         ):
@@ -338,22 +262,58 @@ def configured_server_wires_routeros_action_executor():
                     8081,
                 )
 
-        testlib.assert_same(
-            'routeros-action-executor',
-            wired['executor'],
-        )
+    testlib.assert_same(
+        'routeros-action-executor',
+        wired['executor'],
+    )
 
-        testlib.assert_true(
-            wired['validator'](
-                'install-routeros-update'
-            )
-        )
+@runner.test('configured server wires RouterOS action validator')
+def configured_server_wires_routeros_action_validator():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
 
-        testlib.assert_false(
-            wired['validator'](
-                'something-else'
-            )
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_true(
+        wired['validator'](
+            'install-routeros-update'
         )
+    )
+
+    testlib.assert_false(
+        wired['validator'](
+            'something-else'
+        )
+    )
+
+@runner.test('configured server wires configured action hook')
+def configured_server_wires_configured_action_hook():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
 
         testlib.assert_true(
             wired['action_hook'](
@@ -361,47 +321,25 @@ def configured_server_wires_routeros_action_executor():
             )
         )
 
-        testlib.assert_same(
-            1,
-            len(hook_calls),
-        )
+    testlib.assert_same(
+        1,
+        len(hook_calls),
+    )
 
-        testlib.assert_same(
-            trusted_discovery.RESOLUTIONS_FILE,
-            hook_calls[0][0],
-        )
+    testlib.assert_same(
+        trusted_discovery.RESOLUTIONS_FILE,
+        hook_calls[0][0],
+    )
 
-        testlib.assert_same(
-            'install-routeros-update',
-            hook_calls[0][1],
-        )
+    testlib.assert_same(
+        'install-routeros-update',
+        hook_calls[0][1],
+    )
 
-        testlib.assert_true(
-            callable(
-                hook_calls[0][3]
-            )
+    testlib.assert_true(
+        callable(
+            hook_calls[0][3]
         )
-    finally:
-        trusted_discovery.create_server = (
-            originals['create_server']
-        )
-        trusted_discovery.load_routeros_rest_credentials = (
-            originals['load_credentials']
-        )
-        trusted_discovery.create_routeros_rest_tls_context = (
-            originals['create_tls_context']
-        )
-        trusted_discovery.create_routeros_rest_poster = (
-            originals['create_poster']
-        )
-        trusted_discovery.create_routeros_action_executor = (
-            originals['create_executor']
-        )
-        trusted_discovery.create_routeros_rest_getter = (
-            originals['create_getter']
-        )
-        trusted_discovery.execute_configured_resolution_hook = (
-            originals['execute_configured_hook']
-        )
+    )
 
 runner.finish()

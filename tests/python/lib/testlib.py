@@ -5,7 +5,7 @@ import tempfile
 import urllib.error
 
 from test_suite_runner import AssertionFailed
-
+from builtins import (Exception, getattr, isinstance, setattr, str, type)
 
 def assert_same(expected, actual, message=''):
     if expected != actual:
@@ -202,3 +202,29 @@ def temporary_text_file(
             os.remove(
                 path
             )
+
+@contextlib.contextmanager
+def patched_attribute(
+        target,
+        name,
+        value,
+):
+    original = getattr(
+        target,
+        name,
+    )
+
+    setattr(
+        target,
+        name,
+        value,
+    )
+
+    try:
+        yield
+    finally:
+        setattr(
+            target,
+            name,
+            original,
+        )

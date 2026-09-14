@@ -5,18 +5,11 @@ import tempfile
 import threading
 import urllib.error
 import urllib.request
-
-sys.path.insert(
-    0,
-    os.path.join(
-        os.path.dirname(__file__),
-        'lib',
-    ),
-)
-
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 import testlib
+from builtins import (iter, getattr, next)
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, server_url, serving)
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, server_url, serving)
 
 
 runner = TestSuiteRunner('trusted-discovery-discovery')
@@ -25,18 +18,42 @@ trusted_discovery = load_trusted_discovery()
 @runner.test('renders the trusted discovery response')
 def discovery_response_is_rendered():
     testlib.assert_same(
-        '{"assets":{"script":"https://bredland.example/opaque-script",'
-        '"stylesheet":"https://bredland.example/opaque-style"}}',
+        (
+            '{"assets":['
+            '"https://bredland.example/opaque-style",'
+            '"https://bredland.example/opaque-script"'
+            ']}'
+        ),
         trusted_discovery.render_discovery_response(
-            'https://bredland.example/opaque-script',
             'https://bredland.example/opaque-style',
+            'https://bredland.example/opaque-script',
+        ),
+    )
+
+@runner.test('renders stylesheet-only trusted discovery response')
+def stylesheet_only_discovery_response_is_rendered():
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/opaque-style"'
+            ']}'
+        ),
+        trusted_discovery.render_discovery_response(
+            'https://bredland.example/opaque-style',
+            None,
         ),
     )
 
 @runner.test('serves the trusted discovery response over HTTP')
 def discovery_endpoint_returns_json():
+    paths = iter([
+        '/style-test',
+        '/script-test',
+    ])
+
     server = create_test_server(
         trusted_discovery,
+        asset_path_factory=lambda: next(paths),
     )
 
     with serving(server):
@@ -58,11 +75,60 @@ def discovery_endpoint_returns_json():
             'no-store',
             response.headers.get('Cache-Control'),
         )
-        testlib.assert_same(
-            '{"assets":{"script":"https://bredland.example/trusted-script-test",'
-            '"stylesheet":"https://bredland.example/trusted-style-test"}}',
-            body,
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-test",'
+            '"https://bredland.example/script-test"'
+            ']}'
+        ),
+        body,
+    )
+
+@runner.test('each discovery generates fresh asset paths')
+def each_discovery_generates_fresh_asset_paths():
+    paths = iter([
+        '/style-one',
+        '/script-one',
+        '/style-two',
+        '/script-two',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
+
+    with serving(
+            server,
+    ):
+        first = probe(
+            server
         )
+
+        second = probe(
+            server
+        )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-one",'
+            '"https://bredland.example/script-one"'
+            ']}'
+        ),
+        first,
+    )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-two",'
+            '"https://bredland.example/script-two"'
+            ']}'
+        ),
+        second,
+    )
 
 @runner.test('serves discovery only on the probe path')
 def discovery_endpoint_only_serves_probe_path():
@@ -128,24 +194,6 @@ def deployment_configuration_is_rendered():
         getattr(
             trusted_discovery,
             'TRUSTED_ALLOWED_ORIGIN',
-            None,
-        ),
-    )
-
-    testlib.assert_same(
-        '/trusted-script-test',
-        getattr(
-            trusted_discovery,
-            'TRUSTED_SCRIPT_PATH',
-            None,
-        ),
-    )
-
-    testlib.assert_same(
-        '/trusted-style-test',
-        getattr(
-            trusted_discovery,
-            'TRUSTED_STYLESHEET_PATH',
             None,
         ),
     )

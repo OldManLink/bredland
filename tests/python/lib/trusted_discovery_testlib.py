@@ -7,13 +7,13 @@ import tempfile
 import threading
 import sys
 import urllib.request
+import testlib
+from builtins import(callable, getattr, isinstance, object, open, staticmethod, str)
 
 
 TEST_BASE_URL = 'https://bredland.example'
 TEST_ALLOWED_ORIGIN = 'https://noc.arcanel.se'
-TEST_SCRIPT_PATH = '/trusted-script-test'
 TEST_SCRIPT_BODY = 'window.TEST_TRUSTED_ASSET_LOADED = true;'
-TEST_STYLESHEET_PATH = '/trusted-style-test'
 TEST_STYLESHEET_BODY = 'html { outline: 1px solid; }'
 TEST_RESOLUTION = 'install-routeros-update'
 TEST_TOKEN = 'test-token'
@@ -41,8 +41,6 @@ def load_trusted_discovery():
             file.write(
                 'BREDLAND_TRUSTED_BASE_URL=https://bredland.example:8081\n'
                 'BREDLAND_TRUSTED_ALLOWED_ORIGIN=https://noc.arcanel.se\n'
-                'BREDLAND_TRUSTED_SCRIPT_PATH=/trusted-script-test\n'
-                'BREDLAND_TRUSTED_STYLESHEET_PATH=/trusted-style-test\n'
                 'MIKROTIK_REST_BASE_URL=https://mikrotik.example\n'
             )
 
@@ -195,10 +193,9 @@ def create_test_server(
         port=0,
         base_url=TEST_BASE_URL,
         allowed_origin=TEST_ALLOWED_ORIGIN,
-        script_path=TEST_SCRIPT_PATH,
         script_body=TEST_SCRIPT_BODY,
-        stylesheet_path=TEST_STYLESHEET_PATH,
         stylesheet_body=TEST_STYLESHEET_BODY,
+        asset_path_factory=None,
 ):
     if action_validator is _DEFAULT:
         action_validator = lambda resolution: True
@@ -209,14 +206,22 @@ def create_test_server(
             TEST_ACTION_COOLDOWN,
         )
 
+    if asset_path_factory is None:
+        asset_number = [0]
+
+        def asset_path_factory():
+            asset_number[0] += 1
+
+            return '/test-asset-{}'.format(
+                asset_number[0]
+            )
+
     return trusted_discovery.create_server(
         host,
         port,
         base_url,
         allowed_origin,
-        script_path,
         script_body,
-        stylesheet_path,
         stylesheet_body,
         action_executor,
         registry,
@@ -224,8 +229,16 @@ def create_test_server(
         action_validator,
         action_guard,
         action_hook=action_hook,
+        asset_path_factory=asset_path_factory,
     )
 
+def probe(server):
+    return urllib.request.urlopen(
+        server_url(
+            server,
+            '/probe',
+        )
+    ).read().decode('utf-8')
 
 @contextlib.contextmanager
 def serving(server):
@@ -489,6 +502,101 @@ def temporary_resolutions_file(resolutions):
                 path
             )
 
+@contextlib.contextmanager
+def configured_server_wiring(
+        trusted_discovery,
+):
+    wired = {}
+    hook_calls = []
+
+    class FakeServer:
+        tls_context = None
+
+    def create_server(
+            host,
+            port,
+            base_url,
+            allowed_origin,
+            script_body,
+            stylesheet_body,
+            action_executor,
+            capability_registry,
+            trusted_script_renderer,
+            action_validator,
+            action_guard,
+            action_hook=None,
+            asset_path_factory=None,
+    ):
+        wired['executor'] = action_executor
+        wired['validator'] = action_validator
+        wired['action_hook'] = action_hook
+
+        return FakeServer()
+
+    def execute_configured_resolution_hook(
+            path,
+            resolution,
+            hook_executor,
+            logger,
+    ):
+        hook_calls.append(
+            (
+                path,
+                resolution,
+                hook_executor,
+                logger,
+            )
+        )
+
+        return True
+
+    with testlib.patched_attribute(
+            trusted_discovery,
+            'create_server',
+            create_server,
+    ):
+        with testlib.patched_attribute(
+                trusted_discovery,
+                'load_routeros_rest_credentials',
+                lambda credentials_file: {
+                    'username': 'test-user',
+                    'password': 'test-password',
+                },
+        ):
+            with testlib.patched_attribute(
+                    trusted_discovery,
+                    'create_routeros_rest_tls_context',
+                    lambda ca_file: 'routeros-tls-context',
+            ):
+                with testlib.patched_attribute(
+                        trusted_discovery,
+                        'create_routeros_rest_poster',
+                        lambda credentials, context, open_request,
+                               post_json_function: 'routeros-poster',
+                ):
+                    with testlib.patched_attribute(
+                            trusted_discovery,
+                            'create_routeros_action_executor',
+                            lambda base_url, post:
+                            'routeros-action-executor',
+                    ):
+                        with testlib.patched_attribute(
+                                trusted_discovery,
+                                'create_routeros_rest_getter',
+                                lambda credentials, context, open_request,
+                                       get_json_function:
+                                lambda url: {
+                                    'installed-version': '7.23.1',
+                                    'latest-version': '7.24.1',
+                                    'status': 'New version is available',
+                                },
+                        ):
+                            with testlib.patched_attribute(
+                                    trusted_discovery,
+                                    'execute_configured_resolution_hook',
+                                    execute_configured_resolution_hook,
+                            ):
+                                yield wired, hook_calls
 
 def recording_action_executor(result=True):
     calls = []

@@ -157,9 +157,7 @@ def main():
         8081,
         trusted_discovery.TRUSTED_BASE_URL,
         trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
-        trusted_discovery.TRUSTED_SCRIPT_PATH,
         script_body,
-        trusted_discovery.TRUSTED_STYLESHEET_PATH,
         stylesheet_body,
         execute_action,
         capability_registry,
@@ -167,6 +165,7 @@ def main():
         validate_action,
         action_guard,
         action_hook,
+        asset_path_factory=trusted_discovery.create_asset_path,
     )
 
     print(

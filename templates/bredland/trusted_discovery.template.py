@@ -23,8 +23,6 @@ from routeros_rest import get_json
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
-TRUSTED_SCRIPT_PATH = '__BREDLAND_TRUSTED_SCRIPT_PATH__'
-TRUSTED_STYLESHEET_PATH = '__BREDLAND_TRUSTED_STYLESHEET_PATH__'
 TRUSTED_SCRIPT_FILE = '/usr/local/lib/bredland/static/trusted.js'
 TRUSTED_STYLESHEET_FILE = '/usr/local/lib/bredland/static/trusted.css'
 TRUSTED_BIND_HOST = '0.0.0.0'
@@ -465,16 +463,28 @@ def main():
 
     server.serve_forever()
 
-def render_discovery_response(script_url, stylesheet_url):
+def render_discovery_response(
+        stylesheet_url,
+        script_url=None,
+):
+    assets = [
+        stylesheet_url,
+    ]
+
+    if script_url is not None:
+        assets.append(
+            script_url
+        )
+
     return json.dumps(
         {
-            'assets': {
-                'script': script_url,
-                'stylesheet': stylesheet_url,
-            },
+            'assets': assets,
         },
         separators=(',', ':'),
     )
+
+def create_asset_path():
+    return '/' + secrets.token_hex(16)
 
 def routeros_script_for_resolution(resolution):
     scripts = {
@@ -603,9 +613,7 @@ def create_configured_server(
         port,
         TRUSTED_BASE_URL,
         TRUSTED_ALLOWED_ORIGIN,
-        TRUSTED_SCRIPT_PATH,
         script_body,
-        TRUSTED_STYLESHEET_PATH,
         stylesheet_body,
         action_executor,
         capability_registry,
@@ -613,6 +621,7 @@ def create_configured_server(
         action_validator,
         action_guard,
         action_hook,
+        create_asset_path,
     )
 
     context = ssl.SSLContext(
@@ -633,9 +642,7 @@ def create_server(
     port,
     base_url,
     allowed_origin,
-    script_path,
     script_body,
-    stylesheet_path,
     stylesheet_body,
     action_executor,
     capability_registry,
@@ -643,18 +650,14 @@ def create_server(
     action_validator,
     action_guard,
     action_hook=None,
+    asset_path_factory=None,
 ):
-    script_url = base_url + script_path
-    stylesheet_url = base_url + stylesheet_path
-
-    response_body = render_discovery_response(
-        script_url,
-        stylesheet_url,
-    ).encode('utf-8')
+    generated_assets = {}
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == script_path:
+            asset_type = generated_assets.get(self.path)
+            if (asset_type == 'script'):
                 rendered_script = script_body
                 if trusted_script_renderer is not None:
                     rendered_script = trusted_script_renderer(script_body)
@@ -674,7 +677,7 @@ def create_server(
                 self.wfile.write(body)
                 return
 
-            if self.path == stylesheet_path:
+            if (asset_type == 'stylesheet'):
                 body = stylesheet_body.encode('utf-8')
 
                 self.send_response(200)
@@ -708,6 +711,19 @@ def create_server(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
+
+            if self.path == '/probe':
+                stylesheet_asset_path = asset_path_factory()
+                script_asset_path = asset_path_factory()
+
+                generated_assets[stylesheet_asset_path] = 'stylesheet'
+                generated_assets[script_asset_path] = 'script'
+
+                response_body = render_discovery_response(
+                    base_url + stylesheet_asset_path,
+                    base_url + script_asset_path,
+                    ).encode('utf-8')
+
             send_content_length(self, response_body)
             self.end_headers()
             self.wfile.write(response_body)
