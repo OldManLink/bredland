@@ -1,0 +1,4 @@
+Sep 15 02:01:07 bredland python3[608493]: Pre-action hook configured for install-routerboot-update
+Sep 15 02:01:07 bredland python3[608493]: Pre-action hook succeeded for install-routerboot-update
+Sep 15 02:01:08 bredland python3[608493]: Trusted action timing: resolution='install-routerboot-update', script='noc-install-routerboot-update', validator_ns=385758475, hook_ns=1327016, executor_ns=757570370, response_ns=434827, total_ns=1145148910
+Sep 15 02:01:08 bredland python3[608493]: Trusted action executor succeeded: resolution='install-routerboot-update', script='noc-install-routerboot-update'

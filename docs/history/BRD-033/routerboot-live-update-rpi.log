@@ -1,0 +1,8 @@
+started_at_ns=6787393407281619
+started_at_wall=2026-09-15T00:01:07.528423Z
+last_success_at_ns=6787394184961826
+first_failure_at_ns=6787394195490885
+first_failure_at_wall=2026-09-15T00:01:08.316612Z
+elapsed_to_failure_ns=788209266
+failure_window_ns=10529059
+stop_reason=probe-failure
