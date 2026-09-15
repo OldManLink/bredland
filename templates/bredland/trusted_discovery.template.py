@@ -9,22 +9,16 @@ import threading
 import urllib.error
 import urllib.request
 
+from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, isinstance)
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
-from routeros_rest import create_routeros_action_executor
-from routeros_rest import create_routeros_rest_poster
-from routeros_rest import create_routeros_rest_tls_context
-from routeros_rest import load_routeros_rest_credentials
-from routeros_rest import post_json
-from routeros_rest import create_routeros_rest_getter
-from routeros_rest import routeros_update_available
-from routeros_rest import get_json
+from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_tls_context,
+                           load_routeros_rest_credentials, post_json, create_routeros_rest_getter, routeros_update_available,
+                           routerboot_update_available, get_json)
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
-TRUSTED_SCRIPT_PATH = '__BREDLAND_TRUSTED_SCRIPT_PATH__'
-TRUSTED_STYLESHEET_PATH = '__BREDLAND_TRUSTED_STYLESHEET_PATH__'
 TRUSTED_SCRIPT_FILE = '/usr/local/lib/bredland/static/trusted.js'
 TRUSTED_STYLESHEET_FILE = '/usr/local/lib/bredland/static/trusted.css'
 TRUSTED_BIND_HOST = '0.0.0.0'
@@ -35,6 +29,17 @@ MIKROTIK_REST_BASE_URL = '__MIKROTIK_REST_BASE_URL__'
 MIKROTIK_REST_CREDENTIALS_FILE = '/etc/bredland/mikrotik-rest/credentials.env'
 MIKROTIK_REST_CA_FILE = '/etc/bredland/mikrotik-rest/ca.pem'
 RESOLUTIONS_FILE = '/etc/bredland/resolutions.json'
+TRUSTED_ACTION_DEFINITIONS = {
+    'install-routeros-update': {
+        'script': 'noc-install-routeros-update',
+        'confirmation': 'Install the available RouterOS update?',
+    },
+
+    'install-routerboot-update': {
+        'script': 'noc-install-routerboot-update',
+        'confirmation': 'Install the available RouterBOOT firmware update?',
+    },
+}
 
 class TrustedDiscoveryServer(ThreadingHTTPServer):
     tls_context = None
@@ -175,6 +180,19 @@ def supported_rendered_resolutions(resolutions):
         for resolution in resolutions
         if routeros_script_for_resolution(resolution) is not None
     ]
+
+def current_supported_resolutions(
+        noc_url,
+        open_url,
+):
+    return supported_rendered_resolutions(
+        resolutions_from_noc_html(
+            fetch_noc_html(
+                noc_url,
+                open_url,
+            )
+        )
+    )
 
 def load_resolution_hook(
         path,
@@ -340,25 +358,15 @@ def issue_capabilities(
 
 def render_trusted_script(
         script_body,
+        resolutions,
         base_url,
-        noc_html_loader,
         token_generator,
         registry,
         expires_at,
         server_time,
 ):
-    noc_html = noc_html_loader()
-
-    resolutions = resolutions_from_noc_html(
-        noc_html
-    )
-
-    supported_resolutions = supported_rendered_resolutions(
-        resolutions
-    )
-
     capabilities = issue_capabilities(
-        supported_resolutions,
+        resolutions,
         token_generator,
         registry,
         expires_at,
@@ -372,19 +380,52 @@ def render_trusted_script(
         server_time() * 1000
     )
 
-    banner_lines = script_body.splitlines(
+    actions = []
+
+    for resolution in resolutions:
+        actions.append(
+            "render_trusted_action(\n"
+            "    {!r},\n"
+            "    {!r}\n"
+            ");".format(
+                resolution,
+                confirmation_for_resolution(resolution),
+            )
+        )
+
+    trusted_actions_placeholder = (
+            '__'
+            + 'TRUSTED_ACTIONS'
+            + '__'
+    )
+
+    script_body = script_body.replace(
+        trusted_actions_placeholder,
+        '\n\n'.join(actions),
+    )
+
+    banner_lines = []
+    body_lines = script_body.splitlines(
         True
     )
 
-    if len(banner_lines) >= 3:
-        banner = ''.join(
-            banner_lines[:3]
+    while (
+            body_lines
+            and body_lines[0].startswith('// ')
+    ):
+        banner_lines.append(
+            body_lines.pop(0)
         )
 
-        script_body = ''.join(
-            banner_lines[3:]
-        )
+    banner = ''.join(
+        banner_lines
+    )
 
+    script_body = ''.join(
+        body_lines
+    )
+
+    if banner:
         return (
             '{}\n'
             'window.TRUSTED_BASE_URL = "{}";\n'
@@ -410,6 +451,17 @@ def render_trusted_script(
             script_body,
         )
     )
+
+def render_trusted_stylesheet(stylesheet_body, has_actions):
+    if has_actions:
+        return stylesheet_body
+
+    marker = '/* Trusted action styles */'
+
+    return stylesheet_body.split(
+        marker,
+        1,
+    )[0]
 
 def fetch_noc_html(
     allowed_origin,
@@ -437,17 +489,16 @@ def capability_expiry(
 
 def create_trusted_script_renderer(
     base_url,
-    noc_html_loader,
     token_generator,
     registry,
     expires_at,
     server_time,
 ):
-    def render(script_body):
+    def render(script_body, resolutions):
         return render_trusted_script(
             script_body,
+            resolutions,
             base_url,
-            noc_html_loader,
             token_generator,
             registry,
             expires_at(),
@@ -465,23 +516,44 @@ def main():
 
     server.serve_forever()
 
-def render_discovery_response(script_url, stylesheet_url):
+def render_discovery_response(
+        stylesheet_url,
+        script_url=None,
+):
+    assets = [
+        stylesheet_url,
+    ]
+
+    if script_url is not None:
+        assets.append(
+            script_url
+        )
+
     return json.dumps(
         {
-            'assets': {
-                'script': script_url,
-                'stylesheet': stylesheet_url,
-            },
+            'assets': assets,
         },
         separators=(',', ':'),
     )
 
-def routeros_script_for_resolution(resolution):
-    scripts = {
-        'install-routeros-update': 'noc-install-routeros-update',
-    }
+def create_asset_path():
+    return '/' + secrets.token_hex(16)
 
-    return scripts.get(resolution)
+def routeros_script_for_resolution(resolution):
+    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
+
+    if action is None:
+        return None
+
+    return action['script']
+
+def confirmation_for_resolution(resolution):
+    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
+
+    if action is None:
+        return None
+
+    return action['confirmation']
 
 def log_trusted_action_hook(message):
     sys.stderr.write(
@@ -524,12 +596,6 @@ def create_configured_server(
         90,
     )
 
-    def load_noc_html():
-        return fetch_noc_html(
-            TRUSTED_ALLOWED_ORIGIN,
-            urllib.request.urlopen,
-        )
-
     def expires_at():
         return capability_expiry(
             time.time,
@@ -538,7 +604,6 @@ def create_configured_server(
 
     trusted_script_renderer = create_trusted_script_renderer(
         TRUSTED_BASE_URL,
-        load_noc_html,
         create_capability_token,
         capability_registry,
         expires_at,
@@ -570,13 +635,19 @@ def create_configured_server(
     )
 
     def action_validator(resolution):
-        if resolution != 'install-routeros-update':
-            return False
+        if resolution == 'install-routeros-update':
+            return routeros_update_available(
+                MIKROTIK_REST_BASE_URL,
+                routeros_getter,
+            )
 
-        return routeros_update_available(
-            MIKROTIK_REST_BASE_URL,
-            routeros_getter,
-        )
+        if resolution == 'install-routerboot-update':
+            return routerboot_update_available(
+                MIKROTIK_REST_BASE_URL,
+                routeros_getter,
+            )
+
+        return False
 
     action_executor = create_routeros_action_executor(
         MIKROTIK_REST_BASE_URL,
@@ -591,20 +662,26 @@ def create_configured_server(
             log_trusted_action_hook,
         )
 
+    def current_resolutions():
+        return current_supported_resolutions(
+            'https://noc.arcanel.se',
+            urllib.request.urlopen,
+        )
+
     server = create_server(
         host,
         port,
         TRUSTED_BASE_URL,
         TRUSTED_ALLOWED_ORIGIN,
-        TRUSTED_SCRIPT_PATH,
         script_body,
-        TRUSTED_STYLESHEET_PATH,
         stylesheet_body,
         action_executor,
         capability_registry,
         trusted_script_renderer,
         action_validator,
         action_guard,
+        create_asset_path,
+        current_resolutions,
         action_hook,
     )
 
@@ -626,31 +703,38 @@ def create_server(
     port,
     base_url,
     allowed_origin,
-    script_path,
     script_body,
-    stylesheet_path,
     stylesheet_body,
     action_executor,
     capability_registry,
     trusted_script_renderer,
     action_validator,
     action_guard,
+    asset_path_factory,
+    current_resolutions,
     action_hook=None,
+    asset_now=None,
 ):
-    script_url = base_url + script_path
-    stylesheet_url = base_url + stylesheet_path
+    generated_assets = {}
 
-    response_body = render_discovery_response(
-        script_url,
-        stylesheet_url,
-    ).encode('utf-8')
+    if asset_now is None:
+        asset_now = time.monotonic
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == script_path:
+            asset = generated_assets.pop(self.path, None)
+            if asset is not None:
+                asset_type, resolutions, expires_at = asset
+
+                if asset_now() >= expires_at:
+                    asset_type = None
+            else:
+                asset_type = None
+
+            if (asset_type == 'script'):
                 rendered_script = script_body
                 if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(script_body)
+                    rendered_script = trusted_script_renderer(script_body, resolutions)
                 body = rendered_script.encode('utf-8')
 
                 self.send_response(200)
@@ -667,8 +751,11 @@ def create_server(
                 self.wfile.write(body)
                 return
 
-            if self.path == stylesheet_path:
-                body = stylesheet_body.encode('utf-8')
+            if asset_type == 'stylesheet':
+                body = render_trusted_stylesheet(
+                    stylesheet_body,
+                    resolutions,
+                ).encode('utf-8')
 
                 self.send_response(200)
                 self.send_header(
@@ -701,6 +788,41 @@ def create_server(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
+
+            if self.path == '/probe':
+                stylesheet_asset_path = asset_path_factory()
+
+                resolutions = current_resolutions()
+                generated_assets[
+                    stylesheet_asset_path
+                ] = (
+                    'stylesheet',
+                    resolutions,
+                    asset_now() + 10,
+                )
+
+                script_asset_path = None
+
+                if resolutions:
+                    script_asset_path = asset_path_factory()
+
+                    generated_assets[
+                        script_asset_path
+                    ] = (
+                        'script',
+                        resolutions,
+                        asset_now() + 10,
+                    )
+
+                response_body = render_discovery_response(
+                    base_url + stylesheet_asset_path,
+                    (
+                        base_url + script_asset_path
+                        if script_asset_path is not None
+                        else None
+                    ),
+                    ).encode('utf-8')
+
             send_content_length(self, response_body)
             self.end_headers()
             self.wfile.write(response_body)
@@ -774,9 +896,10 @@ def create_server(
             except Exception as error:
                 sys.stderr.write(
                     'Trusted action validator failed: '
-                    'resolution={!r}, exception={}\n'.format(
+                    'resolution={!r}, exception={}: {}\n'.format(
                         resolution,
                         type(error).__name__,
+                        error,
                     )
                 )
 

@@ -12,16 +12,22 @@ server_bind="0.0.0.0:8000"
 server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
-server_pid=""
 mikrotik_preview_pid=""
+rpi_pid=""
 trusted_preview_pid=""
+server_pid=""
 jsonl_file=""
 
 cleanup()
 {
-    if [ -n "$mikrotik_preview_pid" ]; then
+    if [[ -n "$mikrotik_preview_pid" ]]; then
         kill "$mikrotik_preview_pid" 2>/dev/null || true
         wait "$mikrotik_preview_pid" 2>/dev/null || true
+    fi
+
+    if [[ -n "$rpi_pid" ]]; then
+        kill "$rpi_pid" 2>/dev/null || true
+        wait "$rpi_pid" 2>/dev/null || true
     fi
 
     if [[ -n "$trusted_preview_pid" ]]; then
@@ -492,6 +498,36 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
     done
 
     echo
+    echo "Starting rapid-poll instrumentation..."
+
+    rpi_log="$build_dir/rapid-poll-instrumentation.log"
+
+    python3 scripts/tools/rapid-poll-instrumentation.py \
+        >"$rpi_log" 2>&1 &
+
+    rpi_pid=$!
+
+    for attempt in 1 2 3 4 5; do
+        if [[ -S /tmp/rapid-poll-instrumentation.sock ]]; then
+            echo "✅ Rapid-poll instrumentation ready"
+            break
+        fi
+
+        if [ "$attempt" -eq 5 ]; then
+            echo "❌ Rapid-poll instrumentation failed to start"
+
+            if [[ -s "$rpi_log" ]]; then
+                echo "--- rapid-poll instrumentation log ---"
+                cat "$rpi_log"
+            fi
+
+            exit 1
+        fi
+
+        sleep 0.2
+    done
+
+    echo
     echo "Rendering local trusted-discovery service..."
 
     trusted_preview_env="$build_dir/trusted-preview.env"
@@ -501,8 +537,6 @@ if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
     cat > "$trusted_preview_env" <<'EOF'
 BREDLAND_TRUSTED_BASE_URL=http://127.0.0.1:8081
 BREDLAND_TRUSTED_ALLOWED_ORIGIN=http://127.0.0.1:8000
-BREDLAND_TRUSTED_SCRIPT_PATH=/trusted.js
-BREDLAND_TRUSTED_STYLESHEET_PATH=/trusted.css
 MIKROTIK_REST_BASE_URL=http://127.0.0.1:8082
 EOF
 
@@ -576,14 +610,16 @@ EOF
         'host=mikrotik' \
         'token=mikrotik.v1.test-token' \
         'ttl=5' \
-        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining' \
-        'version=7.23.1' \
+        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,current_firmware,upgrade_firmware,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining' \
+        'version=7.24.1' \
         'update_channel=stable' \
         'model=RB4011iGS+' \
         'cpu_load=0' \
         'free_memory=879124480' \
         'total_memory=1073741824' \
-        'latest_version=7.24' \
+        'latest_version=7.24.2' \
+        'current_firmware=7.23.1' \
+        'upgrade_firmware=7.24.2' \
         'wan_address=91.128.129.171/20' \
         'wan_gateway=91.128.128.1' \
         'wan_gateway_mac=58:D0:61:11:D2:F7' \

@@ -1,0 +1,23 @@
+[admin@RB4011iGS] > /log print
+ 2026-09-15 00:01:08 system,info router rebooted by api:noc-rest-bredland@::/script:noc-install-routerboot-update/reboot
+ 2026-09-15 00:01:11 interface,info lo link up
+ 2026-09-15 00:01:11 interface,info wg1 link up
+ 2026-09-15 00:01:18 bridge,info hardware offloading activated on bridge "bridge" ports: ether1,ether2
+ 2026-09-15 00:01:18 bridge,info hardware offloading activated on bridge "bridge" ports: ether3,ether4
+ 2026-09-15 00:01:19 bridge,info hardware offloading activated on bridge "bridge" ports: ether5,ether6
+ 2026-09-15 00:01:20 bridge,info hardware offloading activated on bridge "bridge" ports: ether8,ether7
+ 2026-09-15 00:01:20 bridge,info hardware offloading activated on bridge "bridge" ports: ether9
+ 2026-09-15 00:01:21 interface,info ether1 link up (speed 1G, full duplex)
+ 2026-09-15 00:01:25 interface,info ether3 link up (speed 1G, full duplex)
+ 2026-09-15 00:01:25 interface,info ether8 link up (speed 1G, full duplex)
+ 2026-09-15 00:01:25 interface,info ether9 link up (speed 1G, full duplex)
+ 2026-09-15 00:01:25 interface,info ether10 link up (speed 1G, full duplex)
+ 2026-09-15 00:01:28 dhcp,info client1 on ether10 got IP address 91.128.129.171
+ 2026-09-15 00:01:31 dhcp,info defconf deassigned 192.168.88.5 for DC:A6:32:73:87:7B bredland
+ 2026-09-15 00:01:31 dhcp,info defconf assigned 192.168.88.5 for DC:A6:32:73:87:7B bredland
+ 2026-09-15 00:02:16 system,critical,info cloud change time Sep/15/2026 00:01:37 => Sep/15/2026 00:02:16
+ 2026-09-15 02:02:19 dhcp,info defconf deassigned 192.168.88.13 for 00:11:32:71:DB:6D arcanel-storage
+ 2026-09-15 02:02:19 dhcp,info defconf assigned 192.168.88.13 for 00:11:32:71:DB:6D arcanel-storage
+ 2026-09-15 02:04:08 ssh,info publickey accepted for user: admin, fingerprint: SHA256:2lGzi1aRlCJy/1zVtmgBz/j7gRVKCfZ04VfPEXZaRNc=
+ 2026-09-15 02:04:08 system,info,account user admin logged in from 192.168.88.20 via ssh
+ 2026-09-15 02:06:47 fetch,info Download from noc.arcanel.se FINISHED

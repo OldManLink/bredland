@@ -3,21 +3,11 @@ import socket
 import sys
 import tempfile
 import threading
-
-sys.path.insert(
-    0,
-    os.path.join(
-        os.path.dirname(__file__),
-        'lib',
-    ),
-)
-
+from builtins import (object, open, Exception, staticmethod)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 import testlib
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import load_trusted_discovery
-from trusted_discovery_testlib import stub_routeros_action_dependencies
-from trusted_discovery_testlib import restore_routeros_action_dependencies
-
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, stub_routeros_action_dependencies, restore_routeros_action_dependencies)
 
 runner = TestSuiteRunner('trusted-discovery-tls')
 trusted_discovery = load_trusted_discovery()
@@ -123,23 +113,8 @@ def unexpected_server_errors_are_delegated():
 
 @runner.test('does not let a slow client block another probe')
 def slow_client_does_not_block_probe():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
+    server = create_test_server(
+        trusted_discovery,
     )
 
     thread = threading.Thread(
@@ -196,9 +171,9 @@ def slow_client_does_not_block_probe():
         server.server_close()
 
     testlib.assert_true(
-    response is not None and b'200 OK' in response,
-    'Expected a slow client not to block another probe',
-)
+        response is not None and b'200 OK' in response,
+        'Expected a slow client not to block another probe',
+    )
 
 @runner.test('keeps TLS handshake off the listening socket')
 def configured_server_uses_tls():

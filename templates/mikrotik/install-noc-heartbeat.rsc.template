@@ -17,7 +17,7 @@
     :local host "__MIKROTIK_NOC_HOST__"
     :local token "__MIKROTIK_NOC_TOKEN__"
     :local ttl 300
-    :local fields "version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining"
+    :local fields "version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,current_firmware,upgrade_firmware,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining"
 
     :local version [/system package update get installed-version]
     :local updateChannel [/system package update get channel]
@@ -27,6 +27,8 @@
     :local freeMemory [/system resource get free-memory]
     :local totalMemory [/system resource get total-memory]
     :local latestVersion [/system package update get latest-version]
+    :local currentFirmware [/system routerboard get current-firmware]
+    :local upgradeFirmware [/system routerboard get upgrade-firmware]
 
     :local dhcpClient [/ip dhcp-client find where name="client1"]
     :local wanAddress [/ip dhcp-client get $dhcpClient address]
@@ -52,12 +54,14 @@
     :set freeMemory [:convert $freeMemory to=url]
     :set totalMemory [:convert $totalMemory to=url]
     :set latestVersion [:convert $latestVersion to=url]
+    :set currentFirmware [:convert $currentFirmware to=url]
+    :set upgradeFirmware [:convert $upgradeFirmware to=url]
     :set wanAddress [:convert $wanAddress to=url]
     :set wanGateway [:convert $wanGateway to=url]
     :set wanGatewayMac [:convert $wanGatewayMac to=url]
     :set wanLeaseRemaining [:convert $wanLeaseRemaining to=url]
 
-    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&update_channel=$updateChannel&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&latest_version=$latestVersion&wan_address=$wanAddress&wan_gateway=$wanGateway&wan_gateway_mac=$wanGatewayMac&wan_lease_remaining=$wanLeaseRemaining")
+    :local payload ("token=$token&host=$host&ttl=$ttl&fields=$fields&version=$version&update_channel=$updateChannel&model=$model&uptime=$uptime&cpu_load=$cpuLoad&free_memory=$freeMemory&total_memory=$totalMemory&latest_version=$latestVersion&current_firmware=$currentFirmware&upgrade_firmware=$upgradeFirmware&wan_address=$wanAddress&wan_gateway=$wanGateway&wan_gateway_mac=$wanGatewayMac&wan_lease_remaining=$wanLeaseRemaining")
 
     /tool fetch url=$endpoint http-method=post http-data=$payload output=none
 }

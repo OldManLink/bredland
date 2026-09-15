@@ -33,20 +33,26 @@ fetch(
 ).then(function (discovery) {
     if (
         discovery === null ||
-        !discovery.assets ||
-        !discovery.assets.script ||
-        !discovery.assets.stylesheet
+        !Array.isArray(discovery.assets) ||
+        discovery.assets.length === 0
     ) {
         return;
     }
 
-    var script = document.createElement('script');
-    script.src = discovery.assets.script;
-
     var stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = discovery.assets.stylesheet;
+    stylesheet.href = discovery.assets[0];
 
-    document.head.appendChild(script);
-    document.head.appendChild(stylesheet);
+    document.head.appendChild(
+        stylesheet
+    );
+
+    if (discovery.assets.length > 1) {
+        var script = document.createElement('script');
+        script.src = discovery.assets[1];
+
+        document.head.appendChild(
+            script
+        );
+    }
 });

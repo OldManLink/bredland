@@ -193,6 +193,29 @@ def routeros_update_available(
             and status == 'New version is available'
     )
 
+def routerboot_update_available(
+        base_url,
+        get,
+):
+    routerboard = get(
+        base_url + '/rest/system/routerboard'
+    )
+
+    current_firmware = routerboard.get(
+        'current-firmware'
+    )
+    upgrade_firmware = routerboard.get(
+        'upgrade-firmware'
+    )
+
+    return (
+            isinstance(current_firmware, str)
+            and current_firmware != ''
+            and isinstance(upgrade_firmware, str)
+            and upgrade_firmware != ''
+            and current_firmware != upgrade_firmware
+    )
+
 def get_json(
         url,
         headers,

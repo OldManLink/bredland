@@ -35,6 +35,12 @@
   "latest_version": {
     "value_type": "string"
   },
+  "current_firmware": {
+    "value_type": "string"
+  },
+  "upgrade_firmware": {
+    "value_type": "string"
+  },
   "wan_address": {
     "value_type": "string"
   },

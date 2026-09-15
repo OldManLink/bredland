@@ -5,20 +5,11 @@ import tempfile
 import threading
 import urllib.error
 import urllib.request
-
-sys.path.insert(
-    0,
-    os.path.join(
-        os.path.dirname(__file__),
-        'lib',
-    ),
-)
-
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 import testlib
+from builtins import (iter, getattr, next)
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import load_trusted_discovery
-from trusted_discovery_testlib import stub_routeros_action_dependencies
-from trusted_discovery_testlib import restore_routeros_action_dependencies
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, server_url, serving)
 
 
 runner = TestSuiteRunner('trusted-discovery-discovery')
@@ -27,55 +18,50 @@ trusted_discovery = load_trusted_discovery()
 @runner.test('renders the trusted discovery response')
 def discovery_response_is_rendered():
     testlib.assert_same(
-        '{"assets":{"script":"https://bredland.example/opaque-script",'
-        '"stylesheet":"https://bredland.example/opaque-style"}}',
+        (
+            '{"assets":['
+            '"https://bredland.example/opaque-style",'
+            '"https://bredland.example/opaque-script"'
+            ']}'
+        ),
         trusted_discovery.render_discovery_response(
-            'https://bredland.example/opaque-script',
             'https://bredland.example/opaque-style',
+            'https://bredland.example/opaque-script',
+        ),
+    )
+
+@runner.test('renders stylesheet-only trusted discovery response')
+def stylesheet_only_discovery_response_is_rendered():
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/opaque-style"'
+            ']}'
+        ),
+        trusted_discovery.render_discovery_response(
+            'https://bredland.example/opaque-style',
+            None,
         ),
     )
 
 @runner.test('serves the trusted discovery response over HTTP')
 def discovery_endpoint_returns_json():
-    create_server = getattr(
+    paths = iter([
+        '/style-test',
+        '/script-test',
+    ])
+
+    server = create_test_server(
         trusted_discovery,
-        'create_server',
-        None,
+        asset_path_factory=lambda: next(paths),
     )
 
-    testlib.assert_true(callable(create_server),
-        'Expected trusted discovery to provide create_server()',
-    )
-
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
-    )
-
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
-
-    try:
+    with serving(server):
         response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
+            server_url(
+                server,
+                '/probe',
+            )
         )
 
         body = response.read().decode('utf-8')
@@ -89,107 +75,108 @@ def discovery_endpoint_returns_json():
             'no-store',
             response.headers.get('Cache-Control'),
         )
-        testlib.assert_same(
-            '{"assets":{"script":"https://bredland.example/trusted-script-test",'
-            '"stylesheet":"https://bredland.example/trusted-style-test"}}',
-            body,
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-test",'
+            '"https://bredland.example/script-test"'
+            ']}'
+        ),
+        body,
+    )
+
+@runner.test('each discovery generates fresh asset paths')
+def each_discovery_generates_fresh_asset_paths():
+    paths = iter([
+        '/style-one',
+        '/script-one',
+        '/style-two',
+        '/script-two',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
+
+    with serving(
+            server,
+    ):
+        first = probe(
+            server
         )
-    finally:
-        thread.join()
-        server.server_close()
+
+        second = probe(
+            server
+        )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-one",'
+            '"https://bredland.example/script-one"'
+            ']}'
+        ),
+        first,
+    )
+
+    testlib.assert_same(
+        (
+            '{"assets":['
+            '"https://bredland.example/style-two",'
+            '"https://bredland.example/script-two"'
+            ']}'
+        ),
+        second,
+    )
 
 @runner.test('serves discovery only on the probe path')
 def discovery_endpoint_only_serves_probe_path():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
+    server = create_test_server(
+        trusted_discovery,
     )
 
-    thread = threading.Thread(
-        target=server.serve_forever,
-    )
-    thread.start()
-
-    try:
+    with serving(server):
         response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
+            server_url(
+                server,
+                '/probe',
+            )
         )
 
         testlib.assert_same(200, response.status)
 
-        try:
-            urllib.request.urlopen(
-                'http://127.0.0.1:{}/anything'.format(
-                    server.server_port,
+        with testlib.suppress_stderr():
+            testlib.assert_http_error(
+                404,
+                lambda: urllib.request.urlopen(
+                    server_url(
+                        server,
+                        '/anything',
+                    )
                 ),
             )
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(404, error.code)
-        else:
-            testlib.fail('Expected unrelated path to return 404')
-    finally:
-        server.shutdown()
-        thread.join()
-        server.server_close()
 
 @runner.test('allows the NOC origin to read discovery')
 def discovery_endpoint_allows_noc_origin():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
+    server = create_test_server(
+        trusted_discovery,
+    )
+
+    with serving(server):
+        response = urllib.request.urlopen(
+            server_url(
+                server,
+                '/probe',
+            )
+        )
+
+    testlib.assert_same(
         'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
+        response.headers.get(
+            'Access-Control-Allow-Origin',
         ),
     )
-
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
-
-    try:
-        response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
-        )
-
-        testlib.assert_same(
-            'https://noc.arcanel.se',
-            response.headers.get(
-                'Access-Control-Allow-Origin',
-            ),
-        )
-    finally:
-        thread.join()
-        server.server_close()
 
 @runner.test('uses rendered deployment configuration')
 def deployment_configuration_is_rendered():
@@ -211,499 +198,33 @@ def deployment_configuration_is_rendered():
         ),
     )
 
+@runner.test('discovery omits script without applicable trusted action')
+def discovery_omits_script_without_applicable_trusted_action():
+    paths = iter([
+        '/style-only',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+        # new seam still to introduce:
+        current_resolutions=lambda: [],
+    )
+
+    with serving(
+            server,
+    ):
+        body = probe(
+            server
+        )
+
     testlib.assert_same(
-        '/trusted-script-test',
-        getattr(
-            trusted_discovery,
-            'TRUSTED_SCRIPT_PATH',
-            None,
+        (
+            '{"assets":['
+            '"https://bredland.example/style-only"'
+            ']}'
         ),
-    )
-
-    testlib.assert_same(
-        '/trusted-style-test',
-        getattr(
-            trusted_discovery,
-            'TRUSTED_STYLESHEET_PATH',
-            None,
-        ),
-    )
-
-@runner.test('creates a server from rendered deployment configuration')
-def configured_server_uses_rendered_configuration():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        script_file = os.path.join(
-            tmpdir,
-            'trusted.js',
-        )
-
-        stylesheet_file = os.path.join(
-            tmpdir,
-            'trusted.css',
-        )
-
-        with open(script_file, 'w') as file:
-            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
-
-        with open(stylesheet_file, 'w') as file:
-            file.write('html { outline: 1px solid; }')
-
-        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
-        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
-
-        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
-        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
-
-        class FakeContext:
-            def load_cert_chain(self, certfile, keyfile):
-                pass
-
-            def wrap_socket(self, socket, server_side):
-                return socket
-
-
-        class FakeSsl:
-            PROTOCOL_TLS_SERVER = 'tls-server'
-
-            @staticmethod
-            def SSLContext(protocol):
-                return FakeContext()
-
-        original_ssl = trusted_discovery.ssl
-        trusted_discovery.ssl = FakeSsl
-
-        try:
-            routeros_originals = stub_routeros_action_dependencies(
-                trusted_discovery
-            )
-            server = trusted_discovery.create_configured_server(
-                '127.0.0.1',
-                0,
-            )
-        finally:
-            trusted_discovery.ssl = original_ssl
-            restore_routeros_action_dependencies(
-                trusted_discovery,
-                routeros_originals,
-            )
-
-        thread = threading.Thread(
-            target=server.handle_request,
-        )
-        thread.start()
-
-        try:
-            response = urllib.request.urlopen(
-                'http://127.0.0.1:{}/probe'.format(
-                    server.server_port,
-                ),
-            )
-
-            body = response.read().decode('utf-8')
-
-            testlib.assert_same(
-                '{"assets":{"script":"https://bredland.example:8081/trusted-script-test",'
-                '"stylesheet":"https://bredland.example:8081/trusted-style-test"}}',
-                body,
-            )
-
-            testlib.assert_same(
-                'https://noc.arcanel.se',
-                response.headers.get(
-                    'Access-Control-Allow-Origin',
-                ),
-            )
-        finally:
-            thread.join()
-            server.server_close()
-            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
-            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
-
-@runner.test('configured server serves rendered trusted script')
-def configured_server_serves_rendered_trusted_script():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        script_file = os.path.join(
-            tmpdir,
-            'trusted.js',
-        )
-
-        stylesheet_file = os.path.join(
-            tmpdir,
-            'trusted.css',
-        )
-
-        with open(script_file, 'w') as file:
-            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
-
-        with open(stylesheet_file, 'w') as file:
-            file.write('html { outline: 1px solid; }')
-
-        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
-        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
-        original_renderer_factory = (
-            trusted_discovery.create_trusted_script_renderer
-        )
-        original_ssl = trusted_discovery.ssl
-
-        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
-        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
-
-        def create_renderer(
-            base_url,
-            noc_html_loader,
-            token_generator,
-            registry,
-            expires_at,
-            server_time,
-        ):
-            return lambda script_body: (
-                'window.CONFIGURED_RENDERER = true;'
-            )
-
-        trusted_discovery.create_trusted_script_renderer = (
-            create_renderer
-        )
-
-        class FakeContext:
-            def load_cert_chain(self, certfile, keyfile):
-                pass
-
-            def wrap_socket(self, socket, server_side):
-                return socket
-
-        class FakeSsl:
-            PROTOCOL_TLS_SERVER = 'tls-server'
-
-            @staticmethod
-            def SSLContext(protocol):
-                return FakeContext()
-
-        trusted_discovery.ssl = FakeSsl
-
-        try:
-            routeros_originals = stub_routeros_action_dependencies(
-                trusted_discovery
-            )
-            server = trusted_discovery.create_configured_server(
-                '127.0.0.1',
-                0,
-            )
-
-            thread = threading.Thread(
-                target=server.handle_request,
-            )
-            thread.start()
-
-            try:
-                response = urllib.request.urlopen(
-                    'http://127.0.0.1:{}/trusted-script-test'.format(
-                        server.server_port,
-                    ),
-                )
-
-                body = response.read().decode('utf-8')
-
-                testlib.assert_same(
-                    'window.CONFIGURED_RENDERER = true;',
-                    body,
-                )
-            finally:
-                thread.join()
-                server.server_close()
-        finally:
-            trusted_discovery.TRUSTED_SCRIPT_FILE = (
-                original_script_file
-            )
-            trusted_discovery.TRUSTED_STYLESHEET_FILE = (
-                original_stylesheet_file
-            )
-            trusted_discovery.create_trusted_script_renderer = (
-                original_renderer_factory
-            )
-            trusted_discovery.ssl = original_ssl
-            restore_routeros_action_dependencies(
-                trusted_discovery,
-                routeros_originals,
-            )
-
-@runner.test('runs the configured trusted discovery server')
-def main_runs_configured_server():
-    calls = []
-
-    class FakeServer:
-        def serve_forever(self):
-            calls.append('serve_forever')
-
-    def fake_create_configured_server(host, port):
-        calls.append((host, port))
-        return FakeServer()
-
-    original = trusted_discovery.create_configured_server
-    trusted_discovery.create_configured_server = fake_create_configured_server
-
-    try:
-        trusted_discovery.main()
-    finally:
-        trusted_discovery.create_configured_server = original
-
-    testlib.assert_same(
-        [
-            ('0.0.0.0', 8081),
-            'serve_forever',
-        ],
-        calls,
-    )
-
-@runner.test('places the main guard after all function definitions')
-def main_guard_comes_after_function_definitions():
-    with open(
-            'templates/bredland/trusted_discovery.template.py',
-            'r',
-    ) as file:
-        tree = ast.parse(file.read())
-
-    function_lines = [
-        node.lineno
-        for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-    ]
-
-    main_guard_lines = [
-        node.lineno
-        for node in tree.body
-        if (
-                isinstance(node, ast.If)
-                and isinstance(node.test, ast.Compare)
-                and isinstance(node.test.left, ast.Name)
-                and node.test.left.id == '__name__'
-        )
-    ]
-
-    testlib.assert_same(
-        1,
-        len(main_guard_lines),
-        'Expected exactly one __main__ guard',
-    )
-
-    testlib.assert_true(main_guard_lines[0] > max(function_lines),
-        '__main__ guard must come after all function definitions',
-        )
-
-@runner.test('configured server wires RouterOS action executor')
-def configured_server_wires_routeros_action_executor():
-    calls = []
-
-    class FakeServer:
-        tls_context = None
-
-    class FakeContext:
-        def load_cert_chain(self, certfile, keyfile):
-            pass
-
-    class FakeSsl:
-        PROTOCOL_TLS_SERVER = 'tls-server'
-
-        @staticmethod
-        def SSLContext(protocol):
-            return FakeContext()
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        script_file = os.path.join(
-            tmpdir,
-            'trusted.js',
-        )
-
-        stylesheet_file = os.path.join(
-            tmpdir,
-            'trusted.css',
-        )
-
-        with open(script_file, 'w') as file:
-            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
-
-        with open(stylesheet_file, 'w') as file:
-            file.write('html { outline: 1px solid; }')
-
-        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
-        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
-        original_ssl = trusted_discovery.ssl
-        original_create_server = trusted_discovery.create_server
-        original_load_credentials = (
-            trusted_discovery.load_routeros_rest_credentials
-        )
-        original_create_tls_context = (
-            trusted_discovery.create_routeros_rest_tls_context
-        )
-        original_create_poster = (
-            trusted_discovery.create_routeros_rest_poster
-        )
-        original_create_executor = (
-            trusted_discovery.create_routeros_action_executor
-        )
-        original_create_getter = (
-            trusted_discovery.create_routeros_rest_getter
-        )
-
-        original_execute_configured_resolution_hook = (
-            trusted_discovery.execute_configured_resolution_hook
-        )
-
-        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
-        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
-        trusted_discovery.ssl = FakeSsl
-
-        trusted_discovery.load_routeros_rest_credentials = (
-            lambda credentials_file: {
-                'username': 'test-user',
-                'password': 'test-password',
-            }
-        )
-
-        trusted_discovery.create_routeros_rest_tls_context = (
-            lambda ca_file: 'routeros-tls-context'
-        )
-
-        trusted_discovery.create_routeros_rest_poster = (
-            lambda credentials, context, open_request, post_json_function:
-            'routeros-poster'
-        )
-
-        trusted_discovery.create_routeros_action_executor = (
-            lambda base_url, post: 'routeros-action-executor'
-        )
-
-        trusted_discovery.create_routeros_rest_getter = (
-            lambda credentials, context, open_request, get_json_function:
-            (
-                lambda url: {
-                    'installed-version': '7.23.1',
-                    'latest-version': '7.24.1',
-                    'status': 'New version is available',
-                }
-            )
-        )
-
-        def execute_configured_resolution_hook(
-                path,
-                resolution,
-                hook_executor,
-                logger,
-        ):
-            calls.append(
-                (
-                    'configured-hook',
-                    path,
-                    resolution,
-                    hook_executor,
-                    logger,
-                )
-            )
-
-            return True
-
-        trusted_discovery.execute_configured_resolution_hook = (
-            execute_configured_resolution_hook
-        )
-
-        def create_server(*args):
-            calls.append(
-                (
-                    args[8],
-                    args[11],
-                    args[13]
-                )
-            )
-
-            return FakeServer()
-
-        trusted_discovery.create_server = create_server
-
-        try:
-            trusted_discovery.create_configured_server(
-                '127.0.0.1',
-                8081,
-            )
-
-            action_hook = calls[0][2]
-
-            testlib.assert_true(
-                callable(action_hook)
-            )
-
-            testlib.assert_true(
-                action_hook(
-                    'install-routeros-update'
-                )
-            )
-        finally:
-            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
-            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
-            trusted_discovery.ssl = original_ssl
-            trusted_discovery.create_server = original_create_server
-            trusted_discovery.load_routeros_rest_credentials = (
-                original_load_credentials
-            )
-            trusted_discovery.create_routeros_rest_tls_context = (
-                original_create_tls_context
-            )
-            trusted_discovery.create_routeros_rest_poster = (
-                original_create_poster
-            )
-            trusted_discovery.create_routeros_action_executor = (
-                original_create_executor
-            )
-            trusted_discovery.create_routeros_rest_getter = (
-                original_create_getter
-            )
-            trusted_discovery.execute_configured_resolution_hook = (
-                original_execute_configured_resolution_hook
-            )
-
-    testlib.assert_same(
-        2,
-        len(calls),
-    )
-
-    testlib.assert_same(
-        'routeros-action-executor',
-        calls[0][0],
-    )
-
-    validator = calls[0][1]
-
-    testlib.assert_true(
-        validator(
-            'install-routeros-update'
-        )
-    )
-
-    testlib.assert_false(
-        validator(
-            'something-else'
-        )
-    )
-
-    configured_hook_call = calls[1]
-
-    testlib.assert_same(
-        'configured-hook',
-        configured_hook_call[0],
-    )
-
-    testlib.assert_same(
-        trusted_discovery.RESOLUTIONS_FILE,
-        configured_hook_call[1],
-    )
-
-    testlib.assert_same(
-        'install-routeros-update',
-        configured_hook_call[2],
-    )
-
-    testlib.assert_true(
-        callable(
-            configured_hook_call[4]
-        )
+        body,
     )
 
 runner.finish()

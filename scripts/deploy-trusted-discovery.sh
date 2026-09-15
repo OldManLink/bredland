@@ -127,37 +127,48 @@ run_step \
     execute_remote_command \
     "$bredland_host" \
     "probe_headers=\$(mktemp) &&
-     script_headers=\$(mktemp) &&
      stylesheet_headers=\$(mktemp) &&
-     trap 'rm -f \"\$probe_headers\" \"\$script_headers\" \"\$stylesheet_headers\"' EXIT &&
+     script_headers=\$(mktemp) &&
+     trap 'rm -f \"\$probe_headers\" \"\$stylesheet_headers\" \"\$script_headers\"' EXIT &&
 
-     curl --fail --silent --show-error \
+     probe_body=\$(curl --fail --silent --show-error \
         --dump-header \"\$probe_headers\" \
-        --output /dev/null \
-        '${BREDLAND_TRUSTED_BASE_URL}/probe' &&
+        '${BREDLAND_TRUSTED_BASE_URL}/probe') &&
 
      grep -qi '^content-type: application/json' \"\$probe_headers\" &&
 
-     echo &&
+     stylesheet_url=\$(printf '%s' \"\$probe_body\" \
+        | python3 -c 'import json,sys; assets=json.load(sys.stdin)[\"assets\"]; print(assets[0])') &&
 
-     curl --fail --silent --show-error \
-        --dump-header \"\$script_headers\" \
-        '${BREDLAND_TRUSTED_BASE_URL}${BREDLAND_TRUSTED_SCRIPT_PATH}' \
-        | head -3 &&
+     script_url=\$(printf '%s' \"\$probe_body\" \
+        | python3 -c 'import json,sys; assets=json.load(sys.stdin)[\"assets\"]; print(assets[1] if len(assets) > 1 else \"\")') &&
 
-     grep -qi '^content-type: application/javascript' \"\$script_headers\" &&
-
-     echo &&
      echo &&
 
      curl --fail --silent --show-error \
         --dump-header \"\$stylesheet_headers\" \
-        '${BREDLAND_TRUSTED_BASE_URL}${BREDLAND_TRUSTED_STYLESHEET_PATH}' \
+        \"\$stylesheet_url\" \
         | head -3 &&
 
-     echo &&
-
      grep -qi '^content-type: text/css' \"\$stylesheet_headers\" &&
+
+     if [ -n \"\$script_url\" ]; then
+         echo &&
+         echo &&
+
+         curl --fail --silent --show-error \
+            --dump-header \"\$script_headers\" \
+            \"\$script_url\" \
+            | head -3 &&
+
+         grep -qi '^content-type: application/javascript' \"\$script_headers\"
+     else
+         echo &&
+         echo &&
+         echo \"No trusted JavaScript advertised; verifying installed file:\" &&
+
+         head -3 /usr/local/lib/bredland/static/trusted.js
+     fi &&
 
      echo"
 

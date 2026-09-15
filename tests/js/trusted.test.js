@@ -1,11 +1,48 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
-var trusted_script = path.join(
+var trusted_template = path.join(
     process.cwd(),
     'templates/bredland/static/trusted.js'
 );
+
+var trusted_script = path.join(
+    os.tmpdir(),
+    'bredland-trusted-test.js'
+);
+
+var trusted_source = fs
+    .readFileSync(
+        trusted_template,
+        'utf8'
+    )
+    .replace(
+        '__TRUSTED_ACTIONS__',
+        [
+            'render_trusted_action(',
+            "    'test-resolution',",
+            "    'Perform the test action?'",
+            ');'
+        ].join('\n')
+    );
+
+fs.writeFileSync(
+    trusted_script,
+    trusted_source
+);
+
+function create_notification() {
+    return {
+        querySelector: function () {
+            return null;
+        },
+
+        appendChild: function () {}
+    };
+}
 
 test('trusted script calibrates browser clock to Bredland', function () {
     var original_date_now = Date.now;
@@ -43,34 +80,20 @@ test('trusted script calibrates browser clock to Bredland', function () {
     }
 });
 
-test('trusted action button is added to notification panel', function () {
+test('trusted action button is added to notification', function () {
     var appended = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
-    };
-
-    var notification = {
-        closest: function (selector) {
-            assert.equal(
-                selector,
-                '.notification-panel'
-            );
-
-            return panel;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended.push(
+            element
+        );
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         }
     };
 
@@ -78,7 +101,7 @@ test('trusted action button is added to notification panel', function () {
         querySelectorAll: function (selector) {
             assert.equal(
                 selector,
-                '[data-resolution="install-routeros-update"]'
+                '[data-resolution="test-resolution"]'
             );
 
             return [
@@ -128,33 +151,29 @@ test('trusted action button is added to notification panel', function () {
 test('trusted action button is not duplicated', function () {
     var appended = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended.push(element);
-        },
+    var notification = create_notification();
 
-        querySelector: function (selector) {
-            assert.equal(
-                selector,
-                '.trusted-action-button'
-            );
+notification.appendChild = function (element) {
+    appended.push(
+        element
+    );
+};
 
-            return appended.find(function (element) {
-                return element.className === 'trusted-action-button';
-            }) || null;
-        }
-    };
+    notification.querySelector = function (selector) {
+        assert.equal(
+            selector,
+            '.trusted-action-button'
+        );
 
-    var notification = {
-        closest: function () {
-            return panel;
-        }
-    };
+        return appended.find(function (element) {
+            return element.className === 'trusted-action-button';
+        }) || null;
+};
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         }
     };
 
@@ -198,21 +217,11 @@ test('trusted action button is not duplicated', function () {
 test('trusted action button is not added without capability', function () {
     var appended = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended.push(element);
-        },
+    var notification = create_notification();
 
-        querySelector: function () {
-            return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
-    };
+    notification.appendChild = function (element) {
+        appended.push(element);
+    }
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
@@ -255,26 +264,19 @@ test('trusted action button posts resolution and token', async function () {
     var click_handler = null;
     var requests = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended.push(element);
-        },
+    var notification = create_notification();
 
-        querySelector: function () {
+    notification.appendChild = function (element) {
+        appended.push(element);
+    }
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
-    };
+    }
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
         confirm: function () {
             return true;
@@ -363,7 +365,7 @@ test('trusted action button posts resolution and token', async function () {
             requests[0].options.body
         ),
         {
-            resolution: 'install-routeros-update',
+            resolution: 'test-resolution',
             token: 'test-token'
         }
     );
@@ -378,25 +380,17 @@ test('trusted action button posts only after confirmation', async function () {
     var click_handler = null;
     var requests = [];
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -468,18 +462,10 @@ test('trusted action confirmation shows time until next heartbeat', async functi
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
     };
 
     global.window = {
@@ -487,13 +473,13 @@ test('trusted action confirmation shows time until next heartbeat', async functi
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -603,18 +589,10 @@ test('trusted action confirmation ignores overdue heartbeat', async function () 
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
     };
 
     global.window = {
@@ -622,13 +600,13 @@ test('trusted action confirmation ignores overdue heartbeat', async function () 
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -738,18 +716,10 @@ test('trusted action confirmation falls back when all heartbeats are overdue', a
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
     };
 
     global.window = {
@@ -757,13 +727,13 @@ test('trusted action confirmation falls back when all heartbeats are overdue', a
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?'
+                'Perform the test action?'
             );
 
             return false;
@@ -872,18 +842,10 @@ test('trusted action confirmation ignores malformed heartbeat', async function (
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
             return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
     };
 
     global.window = {
@@ -891,13 +853,13 @@ test('trusted action confirmation ignores malformed heartbeat', async function (
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -1007,18 +969,10 @@ test('trusted action confirmation falls back without usable heartbeat', async fu
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
-            return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
@@ -1026,13 +980,13 @@ test('trusted action confirmation falls back without usable heartbeat', async fu
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?'
+                'Perform the test action?'
             );
 
             return false;
@@ -1141,18 +1095,10 @@ test('trusted action confirmation ignores malformed heartbeat JSON', async funct
         return bredland_time - 123456;
     };
 
-    var panel = {
-        appendChild: function () {},
-
-        querySelector: function () {
-            return null;
-        }
-    };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    var notification = create_notification();
+    notification.appendChild = function () {};
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
@@ -1160,13 +1106,13 @@ test('trusted action confirmation ignores malformed heartbeat JSON', async funct
         TRUSTED_SERVER_TIME: bredland_time,
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function (message) {
             assert.equal(
                 message,
-                'Install the available RouterOS update?\n\n' +
+                'Perform the test action?\n\n' +
                 'Next heartbeat expected in ~2m 18s.'
             );
 
@@ -1272,27 +1218,19 @@ test('trusted action button disables while request is pending', function () {
     var click_handler = null;
     var button = null;
 
-    var panel = {
-        appendChild: function (element) {
-            button = element;
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        button = element;
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1347,29 +1285,21 @@ test('trusted action button disables while request is pending', function () {
 
 test('trusted action shows success toast', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1428,17 +1358,17 @@ test('trusted action shows success toast', async function () {
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'Update requested'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-success'
     );
 
@@ -1450,29 +1380,21 @@ test('trusted action shows success toast', async function () {
 
 test('trusted action shows failure message when update already in progress', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1523,17 +1445,17 @@ test('trusted action shows failure message when update already in progress', asy
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'Update request already in progress.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -1544,29 +1466,21 @@ test('trusted action shows failure message when update already in progress', asy
 
 test('trusted action shows failure message when update no longer available', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1617,17 +1531,17 @@ test('trusted action shows failure message when update no longer available', asy
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'The update is no longer available.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -1638,29 +1552,21 @@ test('trusted action shows failure message when update no longer available', asy
 
 test('trusted action shows failure message when request expires', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1711,17 +1617,17 @@ test('trusted action shows failure message when request expires', async function
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'Request expired. Reload the page and try again.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -1732,29 +1638,21 @@ test('trusted action shows failure message when request expires', async function
 
 test('trusted action shows failure message when RouterOS could not be reached', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1805,17 +1703,17 @@ test('trusted action shows failure message when RouterOS could not be reached', 
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'RouterOS could not be reached. Try again shortly.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -1826,29 +1724,21 @@ test('trusted action shows failure message when RouterOS could not be reached', 
 
 test('trusted action shows failure message when update request fails', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1899,17 +1789,17 @@ test('trusted action shows failure message when update request fails', async fun
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'The update request failed.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -1920,29 +1810,21 @@ test('trusted action shows failure message when update request fails', async fun
 
 test('trusted action shows failure message when fetch rejects', async function () {
     var click_handler = null;
-    var appended_to_panel = [];
+    var appended_to_notification = [];
 
-    var panel = {
-        appendChild: function (element) {
-            appended_to_panel.push(element);
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        appended_to_notification.push(element);
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {
@@ -1992,17 +1874,17 @@ test('trusted action shows failure message when fetch rejects', async function (
     });
 
     assert.equal(
-        appended_to_panel.length,
+        appended_to_notification.length,
         2
     );
 
     assert.equal(
-        appended_to_panel[1].textContent,
+        appended_to_notification[1].textContent,
         'Connection lost while requesting the update.'
     );
 
     assert.equal(
-        appended_to_panel[1].className,
+        appended_to_notification[1].className,
         'trusted-action-failure'
     );
 
@@ -2016,27 +1898,19 @@ test('trusted action success toast disappears', async function () {
     var animation_end_handler = null;
     var toast = null;
 
-    var panel = {
-        appendChild: function (element) {
-            toast = element;
-        },
-
-        querySelector: function () {
-            return null;
-        }
+    var notification = create_notification();
+    notification.appendChild = function (element) {
+        toast = element;
     };
-
-    var notification = {
-        closest: function () {
-            return panel;
-        }
+    notification.querySelector = function () {
+        return null;
     };
 
     global.window = {
         TRUSTED_BASE_URL: 'https://bredland.example:8081',
 
         TRUSTED_CAPABILITIES: {
-            'install-routeros-update': 'test-token'
+            'test-resolution': 'test-token'
         },
 
         confirm: function () {

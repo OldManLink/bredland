@@ -101,10 +101,10 @@ body {
     left: -0.35em;
     right: -0.35em;
 
-    padding-top: 0;
-    padding-right: 2.2em;
-    padding-bottom: 3.5em;
-    padding-left: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
 
     background: rgba(255, 252, 210, 0.93);
     border: 1px solid rgba(120, 110, 70, 0.20);
@@ -131,6 +131,7 @@ body {
     cursor: pointer;
 
     opacity: 0.65;
+    z-index: 1;
 }
 
 .notification-panel-close:hover {

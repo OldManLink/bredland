@@ -1,0 +1,20 @@
+# BRD-033: Provision trusted RouterBOOT update action
+
+:local scriptName "noc-install-routerboot-update"
+:local source "/system routerboard upgrade; /system reboot"
+:local scriptId [/system script find name=$scriptName]
+
+:if ([:len $scriptId] > 0) do={
+    /system script set $scriptId \
+        comment="Install available RouterBOOT update from trusted NOC action" \
+        policy=read,write,reboot,policy \
+        dont-require-permissions=yes \
+        source=$source
+} else={
+    /system script add \
+        name=$scriptName \
+        comment="Install available RouterBOOT update from trusted NOC action" \
+        policy=read,write,reboot,policy \
+        dont-require-permissions=yes \
+        source=$source
+}

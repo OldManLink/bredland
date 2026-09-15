@@ -41,6 +41,59 @@ child_process.execFileSync(
     }
 );
 
+async function run_bootstrap_with_discovery(discovery) {
+    var appended = [];
+
+    global.setTimeout = function () {
+        return 17;
+    };
+
+    global.clearTimeout = function () {};
+
+    global.AbortController = function () {
+        this.signal = {};
+        this.abort = function () {};
+    };
+
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: true,
+            json: function () {
+                return Promise.resolve(discovery);
+            }
+        });
+    };
+
+    global.document = {
+        createElement: function (tag_name) {
+            return {
+                tagName: tag_name
+            };
+        },
+
+        head: {
+            appendChild: function (element) {
+                appended.push(element);
+            }
+        }
+    };
+
+    delete require.cache[require.resolve(rendered_bootstrap)];
+    require(rendered_bootstrap);
+
+    await new Promise(function (resolve) {
+        setImmediate(resolve);
+    });
+
+    delete global.setTimeout;
+    delete global.clearTimeout;
+    delete global.AbortController;
+    delete global.fetch;
+    delete global.document;
+
+    return appended;
+}
+
 test('bootstrap starts exactly one discovery probe', async function () {
     var requests = [];
 
@@ -137,131 +190,54 @@ test('bootstrap clears the discovery timeout when the probe completes', async fu
 });
 
 test('bootstrap loads trusted assets after successful discovery', async function () {
-    var appended = [];
-
-    global.setTimeout = function () {
-        return 17;
-    };
-
-    global.clearTimeout = function () {};
-
-    global.AbortController = function () {
-        this.signal = {};
-        this.abort = function () {};
-    };
-
-    global.fetch = function () {
-        return Promise.resolve({
-            ok: true,
-            json: function () {
-                return Promise.resolve({
-                    assets: {
-                        script: 'https://bredland.example/opaque-script',
-                        stylesheet: 'https://bredland.example/opaque-style'
-                    }
-                });
-            }
-        });
-    };
-
-    global.document = {
-        createElement: function (tag_name) {
-            return {
-                tagName: tag_name
-            };
-        },
-
-        head: {
-            appendChild: function (element) {
-                appended.push(element);
-            }
-        }
-    };
-
-    delete require.cache[require.resolve(rendered_bootstrap)];
-    require(rendered_bootstrap);
-
-    await new Promise(function (resolve) {
-        setImmediate(resolve);
+    var appended = await run_bootstrap_with_discovery({
+        assets: [
+            'https://bredland.example/opaque-style',
+            'https://bredland.example/opaque-script'
+        ]
     });
 
     assert.equal(appended.length, 2);
 
-    assert.equal(appended[0].tagName, 'script');
+    assert.equal(appended[0].tagName, 'link');
+    assert.equal(appended[0].rel, 'stylesheet');
     assert.equal(
-        appended[0].src,
-        'https://bredland.example/opaque-script'
-    );
-
-    assert.equal(appended[1].tagName, 'link');
-    assert.equal(appended[1].rel, 'stylesheet');
-    assert.equal(
-        appended[1].href,
+        appended[0].href,
         'https://bredland.example/opaque-style'
     );
 
-    delete global.setTimeout;
-    delete global.clearTimeout;
-    delete global.AbortController;
-    delete global.fetch;
-    delete global.document;
+    assert.equal(appended[1].tagName, 'script');
+    assert.equal(
+        appended[1].src,
+        'https://bredland.example/opaque-script'
+    );
+});
+
+test('bootstrap loads stylesheet without script', async function () {
+    var appended = await run_bootstrap_with_discovery({
+        assets: [
+            'https://bredland.example/opaque-style'
+        ]
+    });
+
+    assert.equal(appended.length, 1);
+    assert.equal(appended[0].tagName, 'link');
+    assert.equal(appended[0].rel, 'stylesheet');
+    assert.equal(
+        appended[0].href,
+        'https://bredland.example/opaque-style'
+    );
 });
 
 test('bootstrap ignores incomplete discovery data', async function () {
-    var appended = [];
-
-    global.setTimeout = function () {
-        return 17;
-    };
-
-    global.clearTimeout = function () {};
-
-    global.AbortController = function () {
-        this.signal = {};
-        this.abort = function () {};
-    };
-
-    global.fetch = function () {
-        return Promise.resolve({
-            ok: true,
-            json: function () {
-                return Promise.resolve({
-                    assets: {
-                        script: 'https://bredland.example/opaque-script'
-                    }
-                });
-            }
-        });
-    };
-
-    global.document = {
-        createElement: function (tag_name) {
-            return {
-                tagName: tag_name
-            };
-        },
-
-        head: {
-            appendChild: function (element) {
-                appended.push(element);
-            }
-        }
-    };
-
-    delete require.cache[require.resolve(rendered_bootstrap)];
-    require(rendered_bootstrap);
-
-    await new Promise(function (resolve) {
-        setImmediate(resolve);
+    var appended = await run_bootstrap_with_discovery({
+        assets: []
     });
 
-    assert.equal(appended.length, 0);
-
-    delete global.setTimeout;
-    delete global.clearTimeout;
-    delete global.AbortController;
-    delete global.fetch;
-    delete global.document;
+    assert.equal(
+        appended.length,
+        0
+    );
 });
 
 test('bootstrap ignores malformed discovery response', async function () {

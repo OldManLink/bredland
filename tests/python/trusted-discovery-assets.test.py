@@ -1,8 +1,9 @@
+import json
 import os
 import sys
 import tempfile
 import threading
-import urllib.request
+from urllib import (error, parse, request)
 
 sys.path.insert(
     0,
@@ -13,259 +14,438 @@ sys.path.insert(
 )
 
 import testlib
+from builtins import (iter, len, next, sorted)
 from test_suite_runner import TestSuiteRunner
-from trusted_discovery_testlib import load_trusted_discovery
-from trusted_discovery_testlib import stub_routeros_action_dependencies
-from trusted_discovery_testlib import restore_routeros_action_dependencies
+from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, server_url, serving,
+                                       TEST_STYLESHEET_BODY, TEST_SCRIPT_BODY)
 
+TRUSTED_STYLESHEET_WITH_ACTIONS = '''
+html::after {
+    border: 1px solid #777;
+}
+
+/* Trusted action styles */
+
+.trusted-action-button {
+    cursor: pointer;
+}
+'''
 
 runner = TestSuiteRunner('trusted-discovery-assets')
 trusted_discovery = load_trusted_discovery()
 
-@runner.test('serves the configured trusted script')
-def trusted_script_is_served():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
+@runner.test('serves a generated trusted script')
+def generated_trusted_script_is_served():
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
     )
 
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
+    with serving(server):
+        probe(
+            server
+        )
 
-    try:
-        response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/trusted-script-test'.format(
-                server.server_port,
-            ),
+        response = request.urlopen(
+            server_url(
+                server,
+                '/generated-script',
+            )
         )
 
         body = response.read().decode('utf-8')
 
-        testlib.assert_same(200, response.status)
-        testlib.assert_same(
-            'application/javascript',
-            response.headers.get_content_type(),
-        )
-        testlib.assert_same(
-            'no-store',
-            response.headers.get('Cache-Control'),
-        )
-        testlib.assert_same(
-            'window.TEST_TRUSTED_ASSET_LOADED = true;',
-            body,
-        )
-    finally:
-        thread.join()
-        server.server_close()
+    testlib.assert_same(
+        200,
+        response.status,
+    )
 
-@runner.test('serves the configured trusted stylesheet')
-def trusted_stylesheet_is_served():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
+    testlib.assert_same(
+        'application/javascript',
+        response.headers.get_content_type(),
+    )
+
+    testlib.assert_same(
+        'no-store',
+        response.headers.get(
+            'Cache-Control',
         ),
     )
 
-    thread = threading.Thread(
-        target=server.handle_request,
+    testlib.assert_same(
+        TEST_SCRIPT_BODY,
+        body,
     )
-    thread.start()
 
-    try:
-        response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/trusted-style-test'.format(
-                server.server_port,
-            ),
+@runner.test('serves a generated trusted stylesheet')
+def generated_trusted_stylesheet_is_served():
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
+
+    with serving(server):
+        probe(
+            server
+        )
+
+        response = request.urlopen(
+            server_url(
+                server,
+                '/generated-style',
+            )
         )
 
         body = response.read().decode('utf-8')
 
-        testlib.assert_same(200, response.status)
-        testlib.assert_same(
-            'text/css',
-            response.headers.get_content_type(),
-        )
-        testlib.assert_same(
-            'no-store',
-            response.headers.get('Cache-Control'),
-        )
-        testlib.assert_same(
-            'html { outline: 1px solid; }',
-            body,
-        )
-    finally:
-        thread.join()
-        server.server_close()
+    testlib.assert_same(
+        200,
+        response.status,
+    )
+
+    testlib.assert_same(
+        'text/css',
+        response.headers.get_content_type(),
+    )
+
+    testlib.assert_same(
+        'no-store',
+        response.headers.get(
+            'Cache-Control',
+        ),
+    )
+
+    testlib.assert_same(
+        TEST_STYLESHEET_BODY,
+        body,
+    )
 
 @runner.test('discovery advertises the served asset paths')
 def discovery_urls_match_served_asset_paths():
-    server = trusted_discovery.create_server(
-        '127.0.0.1',
-        0,
-        'https://bredland.example',
-        'https://noc.arcanel.se',
-        '/trusted-script-test',
-        'window.TEST_TRUSTED_ASSET_LOADED = true;',
-        '/trusted-style-test',
-        'html { outline: 1px solid; }',
-        None,
-        None,
-        None,
-        lambda resolution: True,
-        trusted_discovery.ActionGuard(
-            lambda: 100,
-            30,
-        ),
+    paths = iter([
+        '/generated-style',
+        '/generated-script',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
     )
 
-    thread = threading.Thread(
-        target=server.handle_request,
-    )
-    thread.start()
-
-    try:
-        response = urllib.request.urlopen(
-            'http://127.0.0.1:{}/probe'.format(
-                server.server_port,
-            ),
+    with serving(server):
+        discovery = json.loads(
+            probe(
+                server
+            )
         )
-
-        body = response.read().decode('utf-8')
 
         testlib.assert_same(
-            '{"assets":{"script":"https://bredland.example/trusted-script-test",'
-            '"stylesheet":"https://bredland.example/trusted-style-test"}}',
-            body,
-        )
-    finally:
-        thread.join()
-        server.server_close()
-
-
-
-@runner.test('loads trusted assets from fixed local files')
-def configured_server_loads_trusted_assets_from_files():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        script_file = os.path.join(
-            tmpdir,
-            'trusted.js',
+            [
+                'https://bredland.example/generated-style',
+                'https://bredland.example/generated-script',
+            ],
+            discovery['assets'],
         )
 
-        stylesheet_file = os.path.join(
-            tmpdir,
-            'trusted.css',
+        stylesheet = request.urlopen(
+            server_url(
+                server,
+                '/generated-style',
+            )
         )
 
-        with open(script_file, 'w') as file:
-            file.write('window.TEST_TRUSTED_ASSET_LOADED = true;')
+        script = request.urlopen(
+            server_url(
+                server,
+                '/generated-script',
+            )
+        )
 
-        with open(stylesheet_file, 'w') as file:
-            file.write('html { outline: 1px solid; }')
+        testlib.assert_same(
+            TEST_STYLESHEET_BODY,
+            stylesheet.read().decode('utf-8'),
+        )
 
-        original_script_file = trusted_discovery.TRUSTED_SCRIPT_FILE
-        original_stylesheet_file = trusted_discovery.TRUSTED_STYLESHEET_FILE
-        trusted_discovery.TRUSTED_SCRIPT_FILE = script_file
-        trusted_discovery.TRUSTED_STYLESHEET_FILE = stylesheet_file
+        testlib.assert_same(
+            TEST_SCRIPT_BODY,
+            script.read().decode('utf-8'),
+        )
 
-        class FakeContext:
-            def load_cert_chain(self, certfile, keyfile):
-                pass
+@runner.test('generated asset is unavailable after first successful fetch')
+def generated_asset_is_unavailable_after_first_successful_fetch():
+    paths = iter([
+        '/style-one',
+        '/script-one',
+    ])
 
-            def wrap_socket(self, socket, server_side):
-                return socket
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
 
+    with serving(server):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
 
-        class FakeSsl:
-            PROTOCOL_TLS_SERVER = 'tls-server'
+        testlib.assert_same(
+            [
+                'https://bredland.example/style-one',
+                'https://bredland.example/script-one',
+            ],
+            discovery['assets'],
+        )
 
-            @staticmethod
-            def SSLContext(protocol):
-                return FakeContext()
+        first_stylesheet = request.urlopen(
+            server_url(
+                server,
+                '/style-one',
+            )
+        )
 
-
-        original_ssl = trusted_discovery.ssl
-        trusted_discovery.ssl = FakeSsl
+        testlib.assert_same(
+            TEST_STYLESHEET_BODY,
+            first_stylesheet.read().decode('utf-8'),
+        )
 
         try:
-            routeros_originals = stub_routeros_action_dependencies(
-                trusted_discovery
-            )
-            server = trusted_discovery.create_configured_server(
-                '127.0.0.1',
-                0,
-            )
-        finally:
-            trusted_discovery.ssl = original_ssl
-            restore_routeros_action_dependencies(
-                trusted_discovery,
-                routeros_originals,
+            request.urlopen(
+                server_url(
+                    server,
+                    '/style-one',
+                )
             )
 
-        thread = threading.Thread(
-            target=server.serve_forever,
+            second_status = 200
+        except error.HTTPError as exception:
+            second_status = exception.code
+
+        testlib.assert_same(
+            404,
+            second_status,
         )
-        thread.start()
 
-        try:
-            script_response = urllib.request.urlopen(
-                'http://127.0.0.1:{}/trusted-script-test'.format(
-                    server.server_port,
-                ),
-            )
+@runner.test('concurrent requests cannot both claim a generated asset')
+def concurrent_requests_cannot_both_claim_generated_asset():
+    paths = iter([
+        '/style-one',
+        '/script-one',
+    ])
 
-            stylesheet_response = urllib.request.urlopen(
-                'http://127.0.0.1:{}/trusted-style-test'.format(
-                    server.server_port,
-                ),
-            )
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
 
-            script_body = script_response.read().decode('utf-8')
+    with serving(server):
+        probe(
+            server
+        )
 
-            testlib.assert_string_contains(
-                'window.TRUSTED_CAPABILITIES = ',
-                script_body,
-            )
+        statuses = []
+        lock = threading.Lock()
 
-            testlib.assert_string_ends_with('window.TEST_TRUSTED_ASSET_LOADED = true;', script_body)
+        def fetch():
+            try:
+                response = request.urlopen(
+                    server_url(
+                        server,
+                        '/style-one',
+                    )
+                )
 
-            testlib.assert_same(
-                'html { outline: 1px solid; }',
-                stylesheet_response.read().decode('utf-8'),
-            )
-        finally:
-            server.shutdown()
+                status = response.status
+            except error.HTTPError as exception:
+                status = exception.code
+
+            with lock:
+                statuses.append(status)
+
+        threads = [
+            threading.Thread(target=fetch),
+            threading.Thread(target=fetch),
+        ]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
             thread.join()
-            server.server_close()
-            trusted_discovery.TRUSTED_SCRIPT_FILE = original_script_file
-            trusted_discovery.TRUSTED_STYLESHEET_FILE = original_stylesheet_file
+
+        testlib.assert_same(
+            [200, 404],
+            sorted(statuses),
+        )
+
+@runner.test('generated asset expires if not fetched')
+def generated_asset_expires_if_not_fetched():
+    now = [100.0]
+
+    paths = iter([
+        '/style-one',
+        '/script-one',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+        asset_now=lambda: now[0],
+    )
+
+    with serving(server):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        testlib.assert_same(
+            [
+                'https://bredland.example/style-one',
+                'https://bredland.example/script-one',
+            ],
+            discovery['assets'],
+        )
+
+        now[0] += 11
+
+        try:
+            request.urlopen(
+                server_url(
+                    server,
+                    '/style-one',
+                )
+            )
+
+            status = 200
+        except error.HTTPError as exception:
+            status = exception.code
+
+        testlib.assert_same(
+            404,
+            status,
+        )
+
+@runner.test('trusted stylesheet without actions contains only trusted-mode chrome')
+def trusted_stylesheet_without_actions_contains_only_chrome():
+    stylesheet = trusted_discovery.render_trusted_stylesheet(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        False,
+    )
+
+    testlib.assert_string_contains(
+        'html::after',
+        stylesheet,
+    )
+
+    testlib.assert_string_not_contains(
+        '.trusted-action-button',
+        stylesheet,
+    )
+
+@runner.test('trusted stylesheet with actions preserves action styles')
+def trusted_stylesheet_with_actions_preserves_action_styles():
+    stylesheet = trusted_discovery.render_trusted_stylesheet(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        True,
+    )
+
+    testlib.assert_same(
+        TRUSTED_STYLESHEET_WITH_ACTIONS,
+        stylesheet,
+    )
+
+@runner.test('serves border-only stylesheet without trusted actions')
+def serves_border_only_stylesheet_without_trusted_actions():
+    stylesheet_body = TRUSTED_STYLESHEET_WITH_ACTIONS
+
+    server = create_test_server(
+        trusted_discovery,
+        stylesheet_body=stylesheet_body,
+        current_resolutions=lambda: [],
+    )
+
+    with serving(
+            server
+    ):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        asset_path = parse.urlparse(
+            discovery['assets'][0]
+        ).path
+
+        stylesheet = request.urlopen(
+            server_url(server, asset_path)
+        ).read().decode('utf-8')
+
+    testlib.assert_string_contains(
+        'html::after',
+        stylesheet,
+    )
+
+    testlib.assert_string_not_contains(
+        '.trusted-action-button',
+        stylesheet,
+    )
+
+@runner.test('generated stylesheet reuses resolutions from discovery')
+def generated_stylesheet_reuses_resolutions_from_discovery():
+    calls = []
+
+    def current_resolutions():
+        calls.append(
+            True
+        )
+
+        return [
+            'install-routeros-update',
+        ]
+
+    server = create_test_server(
+        trusted_discovery,
+        stylesheet_body=TRUSTED_STYLESHEET_WITH_ACTIONS,
+        current_resolutions=current_resolutions,
+    )
+
+    with serving(
+            server
+    ):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        asset_path = parse.urlparse(
+            discovery['assets'][0]
+        ).path
+
+        request.urlopen(
+            server_url(
+                server,
+                asset_path,
+            )
+        ).read()
+
+    testlib.assert_same(
+        1,
+        len(calls),
+    )
 
 runner.finish()

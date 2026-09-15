@@ -77,12 +77,6 @@ def main():
         )
     )
 
-    def load_noc_html():
-        return trusted_discovery.fetch_noc_html(
-            trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
-            urllib.request.urlopen,
-        )
-
     def expires_at():
         return trusted_discovery.capability_expiry(
             time.time,
@@ -92,7 +86,6 @@ def main():
     trusted_script_renderer = (
         trusted_discovery.create_trusted_script_renderer(
             trusted_discovery.TRUSTED_BASE_URL,
-            load_noc_html,
             trusted_discovery.create_capability_token,
             capability_registry,
             expires_at,
@@ -125,17 +118,23 @@ def main():
     )
 
     def validate_action(resolution):
-        if resolution != 'install-routeros-update':
-            return False
+        if resolution == 'install-routeros-update':
+            return trusted_discovery.routeros_update_available(
+                trusted_discovery.MIKROTIK_REST_BASE_URL,
+                preview_get,
+            )
 
-        return trusted_discovery.routeros_update_available(
-            trusted_discovery.MIKROTIK_REST_BASE_URL,
-            preview_get,
-        )
+        if resolution == 'install-routerboot-update':
+            return trusted_discovery.routerboot_update_available(
+                trusted_discovery.MIKROTIK_REST_BASE_URL,
+                preview_get,
+            )
+
+        return False
 
     action_guard = trusted_discovery.ActionGuard(
         time.time,
-        30,
+        90,
     )
 
     def action_hook(resolution):
@@ -146,20 +145,26 @@ def main():
             trusted_discovery.log_trusted_action_hook,
         )
 
+    def current_resolutions():
+        return trusted_discovery.current_supported_resolutions(
+            trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
+            urllib.request.urlopen,
+        )
+
     server = trusted_discovery.create_server(
         '0.0.0.0',
         8081,
         trusted_discovery.TRUSTED_BASE_URL,
         trusted_discovery.TRUSTED_ALLOWED_ORIGIN,
-        trusted_discovery.TRUSTED_SCRIPT_PATH,
         script_body,
-        trusted_discovery.TRUSTED_STYLESHEET_PATH,
         stylesheet_body,
         execute_action,
         capability_registry,
         trusted_script_renderer,
         validate_action,
         action_guard,
+        trusted_discovery.create_asset_path,
+        current_resolutions,
         action_hook,
     )
 

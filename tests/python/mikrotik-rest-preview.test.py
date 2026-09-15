@@ -50,25 +50,29 @@ def stop_server(process):
     if process.stdout is not None:
         process.stdout.close()
 
+def script_request(
+        script='noc-trusted-action-test',
+        path='/rest/system/script/run',
+):
+    return urllib.request.Request(
+        'http://127.0.0.1:8082' + path,
+        data=json.dumps({
+            '.id': script,
+        }).encode('utf-8'),
+        headers={
+            'Content-Type': 'application/json',
+        },
+        method='POST',
+        )
+
 
 @runner.test('accepts trusted action test script')
 def accepts_trusted_action_test_script():
     process = start_server()
 
     try:
-        request = urllib.request.Request(
-            'http://127.0.0.1:8082/rest/system/script/run',
-            data=json.dumps({
-                '.id': 'noc-trusted-action-test',
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            method='POST',
-        )
-
         response = urllib.request.urlopen(
-            request,
+            script_request(),
             timeout=1,
         )
 
@@ -85,31 +89,16 @@ def rejects_unknown_script():
     process = start_server()
 
     try:
-        request = urllib.request.Request(
-            'http://127.0.0.1:8082/rest/system/script/run',
-            data=json.dumps({
-                '.id': 'something-else',
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            method='POST',
-        )
-
-        try:
-            urllib.request.urlopen(
-                request,
+        testlib.assert_http_error(
+            400,
+            lambda: urllib.request.urlopen(
+                script_request(
+                    script='something-else',
+                ),
                 timeout=1,
-            )
-
-            testlib.fail(
-                'Expected mock MikroTik server to reject unknown script'
-            )
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                400,
-                error.code,
-            )
+            ),
+            'Expected mock MikroTik server to reject unknown script',
+        )
     finally:
         stop_server(process)
 
@@ -118,31 +107,17 @@ def rejects_wrong_path():
     process = start_server()
 
     try:
-        request = urllib.request.Request(
-            'http://127.0.0.1:8082/not-routeros',
-            data=json.dumps({
-                '.id': 'noc-trusted-action-test',
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            method='POST',
-        )
-
-        try:
-            urllib.request.urlopen(
-                request,
+        testlib.assert_http_error(
+            404,
+            lambda: urllib.request.urlopen(
+                script_request(
+                    script='noc-trusted-action-test',
+                    path='/not-routeros',
+                ),
                 timeout=1,
-            )
-
-            testlib.fail(
-                'Expected mock MikroTik server to reject wrong path'
-            )
-        except urllib.error.HTTPError as error:
-            testlib.assert_same(
-                404,
-                error.code,
-            )
+            ),
+            'Expected mock MikroTik server to reject wrong path',
+        )
     finally:
         stop_server(process)
 
@@ -151,19 +126,10 @@ def defaults_to_never_shutting_down():
     process = start_server()
 
     try:
-        request = urllib.request.Request(
-            'http://127.0.0.1:8082/rest/system/script/run',
-            data=json.dumps({
-                '.id': 'noc-trusted-action-test',
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            method='POST',
-        )
-
         urllib.request.urlopen(
-            request,
+            script_request(
+                script='noc-trusted-action-test',
+            ),
             timeout=1,
         )
 
@@ -183,19 +149,10 @@ def shuts_down_after_configured_delay():
     )
 
     try:
-        request = urllib.request.Request(
-            'http://127.0.0.1:8082/rest/system/script/run',
-            data=json.dumps({
-                '.id': 'noc-trusted-action-test',
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            method='POST',
-        )
-
         response = urllib.request.urlopen(
-            request,
+            script_request(
+                script='noc-trusted-action-test',
+            ),
             timeout=1,
         )
 
@@ -211,7 +168,7 @@ def shuts_down_after_configured_delay():
         testlib.assert_true(
             process.poll() is not None,
             'Mock MikroTik should have shut down',
-            )
+        )
     finally:
         if process.poll() is None:
             stop_server(
