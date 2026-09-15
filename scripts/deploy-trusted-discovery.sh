@@ -162,6 +162,12 @@ run_step \
             | head -3 &&
 
          grep -qi '^content-type: application/javascript' \"\$script_headers\"
+     else
+         echo &&
+         echo &&
+         echo \"No trusted JavaScript advertised; verifying installed file:\" &&
+
+         head -3 /usr/local/lib/bredland/static/trusted.js
      fi &&
 
      echo"
