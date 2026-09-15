@@ -29,49 +29,56 @@ def configured_server_loads_trusted_asset_bodies_from_local_files():
 
     with testlib.patched_attribute(
             trusted_discovery,
-            'create_asset_path',
-            lambda: next(paths),
+            'current_supported_resolutions',
+            lambda noc_url, open_url: [
+                'install-routeros-update',
+            ],
     ):
-        with temporary_trusted_assets(
+        with testlib.patched_attribute(
                 trusted_discovery,
+                'create_asset_path',
+                lambda: next(paths),
         ):
-            with passthrough_tls(
+            with temporary_trusted_assets(
                     trusted_discovery,
             ):
-                with stubbed_routeros_action_dependencies(
+                with passthrough_tls(
                         trusted_discovery,
                 ):
-                    server = trusted_discovery.create_configured_server(
-                        '127.0.0.1',
-                        0,
-                    )
-
-                    with serving(server):
-                        probe(
-                            server
+                    with stubbed_routeros_action_dependencies(
+                            trusted_discovery,
+                    ):
+                        server = trusted_discovery.create_configured_server(
+                            '127.0.0.1',
+                            0,
                         )
 
-                        stylesheet = urllib.request.urlopen(
-                            server_url(
-                                server,
-                                '/generated-style',
+                        with serving(server):
+                            probe(
+                                server
                             )
-                        )
 
-                        script = urllib.request.urlopen(
-                            server_url(
-                                server,
-                                '/generated-script',
+                            stylesheet = urllib.request.urlopen(
+                                server_url(
+                                    server,
+                                    '/generated-style',
+                                )
                             )
-                        )
 
-                        stylesheet_body = (
-                            stylesheet.read().decode('utf-8')
-                        )
+                            script = urllib.request.urlopen(
+                                server_url(
+                                    server,
+                                    '/generated-script',
+                                )
+                            )
 
-                        script_body = (
-                            script.read().decode('utf-8')
-                        )
+                            stylesheet_body = (
+                                stylesheet.read().decode('utf-8')
+                            )
+
+                            script_body = (
+                                script.read().decode('utf-8')
+                            )
 
     testlib.assert_same(
         TEST_STYLESHEET_BODY,
@@ -92,32 +99,39 @@ def configured_server_uses_rendered_configuration():
 
     with testlib.patched_attribute(
             trusted_discovery,
-            'create_asset_path',
-            lambda: next(paths),
+            'current_supported_resolutions',
+            lambda noc_url, open_url: [
+                'install-routeros-update',
+            ],
     ):
-        with temporary_trusted_assets(
+        with testlib.patched_attribute(
                 trusted_discovery,
+                'create_asset_path',
+                lambda: next(paths),
         ):
-            with passthrough_tls(
+            with temporary_trusted_assets(
                     trusted_discovery,
             ):
-                with stubbed_routeros_action_dependencies(
+                with passthrough_tls(
                         trusted_discovery,
                 ):
-                    server = trusted_discovery.create_configured_server(
-                        '127.0.0.1',
-                        0,
-                    )
-
-                    with serving(server):
-                        response = urllib.request.urlopen(
-                            server_url(
-                                server,
-                                '/probe',
-                            )
+                    with stubbed_routeros_action_dependencies(
+                            trusted_discovery,
+                    ):
+                        server = trusted_discovery.create_configured_server(
+                            '127.0.0.1',
+                            0,
                         )
 
-                        body = response.read().decode('utf-8')
+                        with serving(server):
+                            response = urllib.request.urlopen(
+                                server_url(
+                                    server,
+                                    '/probe',
+                                )
+                            )
+
+                            body = response.read().decode('utf-8')
 
     testlib.assert_same(
         (
@@ -142,39 +156,45 @@ def configured_server_serves_rendered_trusted_script():
         '/generated-style',
         '/generated-script',
     ])
-
     with testlib.patched_attribute(
             trusted_discovery,
-            'create_asset_path',
-            lambda: next(paths),
+            'current_supported_resolutions',
+            lambda noc_url, open_url: [
+                'install-routeros-update',
+            ],
     ):
-        with temporary_trusted_assets(
+        with testlib.patched_attribute(
                 trusted_discovery,
+                'create_asset_path',
+                lambda: next(paths),
         ):
-            with passthrough_tls(
+            with temporary_trusted_assets(
                     trusted_discovery,
             ):
-                with stubbed_routeros_action_dependencies(
+                with passthrough_tls(
                         trusted_discovery,
                 ):
-                    server = trusted_discovery.create_configured_server(
-                        '127.0.0.1',
-                        0,
-                    )
-
-                    with serving(server):
-                        probe(
-                            server
+                    with stubbed_routeros_action_dependencies(
+                            trusted_discovery,
+                    ):
+                        server = trusted_discovery.create_configured_server(
+                            '127.0.0.1',
+                            0,
                         )
 
-                        response = urllib.request.urlopen(
-                            server_url(
-                                server,
-                                '/generated-script',
+                        with serving(server):
+                            probe(
+                                server
                             )
-                        )
 
-                        body = response.read().decode('utf-8')
+                            response = urllib.request.urlopen(
+                                server_url(
+                                    server,
+                                    '/generated-script',
+                                )
+                            )
+
+                            body = response.read().decode('utf-8')
 
     testlib.assert_string_ends_with(
         'window.TEST_TRUSTED_ASSET_LOADED = true;',
