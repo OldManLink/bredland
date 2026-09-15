@@ -197,6 +197,7 @@ def create_test_server(
         stylesheet_body=TEST_STYLESHEET_BODY,
         asset_path_factory=None,
         current_resolutions=None,
+        asset_now=None,
 ):
     if action_validator is _DEFAULT:
         action_validator = lambda resolution: True
@@ -235,6 +236,7 @@ def create_test_server(
         asset_path_factory,
         current_resolutions,
         action_hook,
+        asset_now,
     )
 
 def probe(server):

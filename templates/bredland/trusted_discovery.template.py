@@ -713,14 +713,21 @@ def create_server(
     asset_path_factory,
     current_resolutions,
     action_hook=None,
+    asset_now=None,
 ):
     generated_assets = {}
 
+    if asset_now is None:
+        asset_now = time.monotonic
+
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            asset = generated_assets.get(self.path)
+            asset = generated_assets.pop(self.path, None)
             if asset is not None:
-                asset_type, resolutions = asset
+                asset_type, resolutions, expires_at = asset
+
+                if asset_now() >= expires_at:
+                    asset_type = None
             else:
                 asset_type = None
 
@@ -791,6 +798,7 @@ def create_server(
                 ] = (
                     'stylesheet',
                     resolutions,
+                    asset_now() + 10,
                 )
 
                 script_asset_path = None
@@ -803,6 +811,7 @@ def create_server(
                     ] = (
                         'script',
                         resolutions,
+                        asset_now() + 10,
                     )
 
                 response_body = render_discovery_response(

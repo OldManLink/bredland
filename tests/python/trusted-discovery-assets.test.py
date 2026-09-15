@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 import threading
-from urllib import (parse, request)
+from urllib import (error, parse, request)
 
 sys.path.insert(
     0,
@@ -14,7 +14,7 @@ sys.path.insert(
 )
 
 import testlib
-from builtins import (iter, len, next)
+from builtins import (iter, len, next, sorted)
 from test_suite_runner import TestSuiteRunner
 from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, server_url, serving,
                                        TEST_STYLESHEET_BODY, TEST_SCRIPT_BODY)
@@ -181,13 +181,11 @@ def discovery_urls_match_served_asset_paths():
             script.read().decode('utf-8'),
         )
 
-@runner.test('later discovery does not invalidate earlier asset paths')
-def later_discovery_does_not_invalidate_earlier_asset_paths():
+@runner.test('generated asset is unavailable after first successful fetch')
+def generated_asset_is_unavailable_after_first_successful_fetch():
     paths = iter([
         '/style-one',
         '/script-one',
-        '/style-two',
-        '/script-two',
     ])
 
     server = create_test_server(
@@ -196,13 +194,7 @@ def later_discovery_does_not_invalidate_earlier_asset_paths():
     )
 
     with serving(server):
-        first = json.loads(
-            probe(
-                server
-            )
-        )
-
-        second = json.loads(
+        discovery = json.loads(
             probe(
                 server
             )
@@ -213,15 +205,7 @@ def later_discovery_does_not_invalidate_earlier_asset_paths():
                 'https://bredland.example/style-one',
                 'https://bredland.example/script-one',
             ],
-            first['assets'],
-        )
-
-        testlib.assert_same(
-            [
-                'https://bredland.example/style-two',
-                'https://bredland.example/script-two',
-            ],
-            second['assets'],
+            discovery['assets'],
         )
 
         first_stylesheet = request.urlopen(
@@ -231,21 +215,127 @@ def later_discovery_does_not_invalidate_earlier_asset_paths():
             )
         )
 
-        first_script = request.urlopen(
-            server_url(
-                server,
-                '/script-one',
-            )
-        )
-
         testlib.assert_same(
             TEST_STYLESHEET_BODY,
             first_stylesheet.read().decode('utf-8'),
         )
 
+        try:
+            request.urlopen(
+                server_url(
+                    server,
+                    '/style-one',
+                )
+            )
+
+            second_status = 200
+        except error.HTTPError as exception:
+            second_status = exception.code
+
         testlib.assert_same(
-            TEST_SCRIPT_BODY,
-            first_script.read().decode('utf-8'),
+            404,
+            second_status,
+        )
+
+@runner.test('concurrent requests cannot both claim a generated asset')
+def concurrent_requests_cannot_both_claim_generated_asset():
+    paths = iter([
+        '/style-one',
+        '/script-one',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+    )
+
+    with serving(server):
+        probe(
+            server
+        )
+
+        statuses = []
+        lock = threading.Lock()
+
+        def fetch():
+            try:
+                response = request.urlopen(
+                    server_url(
+                        server,
+                        '/style-one',
+                    )
+                )
+
+                status = response.status
+            except error.HTTPError as exception:
+                status = exception.code
+
+            with lock:
+                statuses.append(status)
+
+        threads = [
+            threading.Thread(target=fetch),
+            threading.Thread(target=fetch),
+        ]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        testlib.assert_same(
+            [200, 404],
+            sorted(statuses),
+        )
+
+@runner.test('generated asset expires if not fetched')
+def generated_asset_expires_if_not_fetched():
+    now = [100.0]
+
+    paths = iter([
+        '/style-one',
+        '/script-one',
+    ])
+
+    server = create_test_server(
+        trusted_discovery,
+        asset_path_factory=lambda: next(paths),
+        asset_now=lambda: now[0],
+    )
+
+    with serving(server):
+        discovery = json.loads(
+            probe(
+                server
+            )
+        )
+
+        testlib.assert_same(
+            [
+                'https://bredland.example/style-one',
+                'https://bredland.example/script-one',
+            ],
+            discovery['assets'],
+        )
+
+        now[0] += 11
+
+        try:
+            request.urlopen(
+                server_url(
+                    server,
+                    '/style-one',
+                )
+            )
+
+            status = 200
+        except error.HTTPError as exception:
+            status = exception.code
+
+        testlib.assert_same(
+            404,
+            status,
         )
 
 @runner.test('trusted stylesheet without actions contains only trusted-mode chrome')
