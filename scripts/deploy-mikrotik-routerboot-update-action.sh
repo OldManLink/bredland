@@ -61,7 +61,7 @@ verify_routeros \
     "RouterBOOT update-action script has expected source" \
     ":local id [/system script find name=\"${script_name}\"]; \
      :local source [/system script get \$id source]; \
-     :local expected \":log warning \\\"BRD-033 RouterBOOT update test: /system routerboard upgrade would run\\\"; :log warning \\\"BRD-033 RouterBOOT update test: /system reboot would run\\\"\"; \
+     :local expected \"/system routerboard upgrade; /system reboot\"; \
      :if (\$source = \$expected) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \

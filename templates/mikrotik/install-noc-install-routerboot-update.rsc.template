@@ -1,7 +1,7 @@
-# BRD-033: Provision trusted RouterBOOT update action with safety catch
+# BRD-033: Provision trusted RouterBOOT update action
 
 :local scriptName "noc-install-routerboot-update"
-:local source ":log warning \"BRD-033 RouterBOOT update test: /system routerboard upgrade would run\"; :log warning \"BRD-033 RouterBOOT update test: /system reboot would run\""
+:local source "/system routerboard upgrade; /system reboot"
 :local scriptId [/system script find name=$scriptName]
 
 :if ([:len $scriptId] > 0) do={
