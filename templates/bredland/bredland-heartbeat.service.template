@@ -3,4 +3,6 @@ Description=Bredland telemetry heartbeat
 
 [Service]
 Type=oneshot
+User=bredland-trusted
+Group=bredland-trusted
 ExecStart=__BREDLAND_HEARTBEAT_SCRIPT_FILE__

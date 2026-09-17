@@ -68,13 +68,14 @@ build_request_args()
         'token=bredland.v1.test-token'
         'uptime=12347'
         'ttl=300'
-        'fields=temperature,throttled,free_memory,total_memory,root_free,root_total'
+        'fields=temperature,throttled,free_memory,total_memory,root_free,root_total,tls_cert_remaining'
         'temperature=49.1'
         'throttled=0x0'
         'free_memory=123440000'
         'total_memory=4294967296'
         'root_free=987640000'
         'root_total=1234567890'
+        'tls_cert_remaining=5885532'
     )
 
     local override
@@ -377,7 +378,7 @@ check_request \
     "ok" \
     1 \
     'uptime=12346' \
-    'fields=temperature,throttled,ignore_this,free_memory,total_memory,root_free,root_total' \
+    'fields=temperature,throttled,ignore_this,free_memory,total_memory,root_free,root_total,tls_cert_remaining' \
     'temperature=48.3' \
     'ignore_this=new field' \
     'free_memory=123450000' \
@@ -624,6 +625,20 @@ EOF
         'wan_gateway=91.128.128.1' \
         'wan_gateway_mac=58:D0:61:11:D2:F7' \
         'wan_lease_remaining=10073'
+
+    echo
+
+    echo "Posting Bredland heartbeat for TLS certificate warning preview..."
+
+    check_request \
+        200 \
+        "ok" \
+        1 \
+        'uptime=12345' \
+        'temperature=47.2' \
+        'free_memory=123450000' \
+        'root_free=987654321' \
+        'tls_cert_remaining=1209600'
 
     echo "✅ Local NOC ready for health transition preview"
 

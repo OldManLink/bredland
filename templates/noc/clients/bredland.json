@@ -25,6 +25,18 @@
         "method": "setHealth",
         "argument": "warning"
       }
+    },
+    {
+      "when": {
+        "field": "tls_cert_remaining",
+        "operator": "lessThan",
+        "value": 1814400
+      },
+      "then": {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": "Bredland TLS certificate expires in less than 21 days"
+      }
     }
   ],
   "order": 20

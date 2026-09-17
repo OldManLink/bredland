@@ -140,6 +140,12 @@ body {
 
 .notification-text {
     white-space: pre-line;
+
+    position: relative;
+    padding: 1rem 1rem 3.5rem;
+
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.6rem;
 }
 
 /* Drawer */

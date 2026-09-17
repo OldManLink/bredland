@@ -13,3 +13,20 @@ load_bredland_secrets() {
     source "$BREDLAND_SECRETS_FILE"
     set +a
 }
+
+ensure_bredland_trusted_user() {
+    local bredland_host="$1"
+
+    execute_remote_command \
+        "$bredland_host" \
+        "getent group bredland-trusted >/dev/null ||
+             sudo groupadd --system bredland-trusted
+
+         id -u bredland-trusted >/dev/null 2>&1 ||
+             sudo useradd \
+                 --system \
+                 --gid bredland-trusted \
+                 --no-create-home \
+                 --shell /usr/sbin/nologin \
+                 bredland-trusted"
+}

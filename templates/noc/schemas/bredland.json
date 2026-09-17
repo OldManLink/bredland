@@ -32,6 +32,9 @@
   "root_total": {
     "value_type": "integer"
   },
+  "tls_cert_remaining": {
+    "value_type": "integer"
+  },
   "remote_addr": {
     "value_type": "string"
   }

@@ -58,19 +58,9 @@ run_step \
     "${bredland_host}:/tmp/trusted-discovery.service"
 
 run_step \
-    "Ensuring trusted discovery service account" \
-    execute_remote_command \
-    "$bredland_host" \
-    "getent group bredland-trusted >/dev/null ||
-         sudo groupadd --system bredland-trusted
-
-     id -u bredland-trusted >/dev/null 2>&1 ||
-         sudo useradd \
-             --system \
-             --gid bredland-trusted \
-             --no-create-home \
-             --shell /usr/sbin/nologin \
-             bredland-trusted"
+    "Ensuring Bredland trusted service account" \
+    ensure_bredland_trusted_user \
+    "$bredland_host"
 
 run_step \
     "Granting trusted discovery TLS access" \
