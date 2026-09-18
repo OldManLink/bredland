@@ -12,16 +12,16 @@ require_once $compilerRoot .'/format-val.php';
 $runner = new TestSuiteRunner('FormatVal');
 
 $runner->test('instance creation', function () {
-    $format = new FormatVal('display_uptime', array('integer' => true));
+    $format = new FormatVal('display_duration', array('integer' => true));
 
-    assertSame('display_uptime', $format->name());
+    assertSame('display_duration', $format->name());
     assertSame(array('integer' => true), $format->value_types());
 });
 
-$runner->test('renders display_uptime formatter', function () {
-    $format = new FormatVal('display_uptime', array('integer' => true));
+$runner->test('renders display_duration formatter', function () {
+    $format = new FormatVal('display_duration', array('integer' => true));
     $formatter = $format->render();
-    assertSame(display_uptime(420),$formatter(420));
+    assertSame(display_duration(420),$formatter(420));
 });
 
 $runner->test('renders display_memory formatter', function () {
@@ -31,9 +31,9 @@ $runner->test('renders display_memory formatter', function () {
 });
 
 $runner->test('compiler tests: FormatVal', function () {
-    $result = FormatVal::compile('display_uptime', test_schema(), 'Happy Path');
+    $result = FormatVal::compile('display_duration', test_schema(), 'Happy Path');
     assert_compile_success($result);
-    assertSame('display_uptime', $result->value()->name());
+    assertSame('display_duration', $result->value()->name());
     assertSame(array('integer' => true), $result->value()->value_types());
 
     assert_compile_error(FormatVal::compile('no_such_format', test_schema(), 'format'), 'format: no_such_format must exist in exports');

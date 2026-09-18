@@ -13,7 +13,7 @@ $fieldJson = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "uptime",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
 );
@@ -22,7 +22,7 @@ $fieldJson2 = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "ts",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
 );
@@ -30,7 +30,7 @@ $fieldJson3 = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "temperature",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
 );
@@ -40,7 +40,7 @@ $runner = new TestSuiteRunner('Field');
 $runner->test('instance creation', function () {
     $label = new StrVal('Uptime');
     $fieldVal = new FieldVal('uptime', 'integer');
-    $format = new FormatVal('display_uptime', array('integer'));
+    $format = new FormatVal('display_duration', array('integer'));
 
     $field = new Field(
         $label,
@@ -57,16 +57,16 @@ $runner->test('renders formatted field value', function () {
     $field = new Field(
         new StrVal('Uptime'),
         new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatVal('display_duration', array('integer' => true))
     );
-    assertSame(display_uptime(1165727), $field->render(array('uptime' => 1165727)));
+    assertSame(display_duration(1165727), $field->render(array('uptime' => 1165727)));
 });
 
 $runner->test('returns unformatted value when runtime type does not match', function () {
     $field = new Field(
         new StrVal('Uptime'),
         new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatVal('display_duration', array('integer' => true))
     );
 
     assertSame('unavailable', $field->render(array('uptime' => 'not-an-integer')));
@@ -84,7 +84,7 @@ $runner->test('compiles field', function () use ($fieldJson) {
     assertSame('Uptime', $result->value()->label()->value());
     assertSame('uptime', $result->value()->field()->value());
     assertSame('integer', $result->value()->value_type());
-    assertSame('display_uptime', $result->value()->format()->name());
+    assertSame('display_duration', $result->value()->format()->name());
 });
 
 $runner->test('rejects non-object field', function () {
@@ -97,7 +97,7 @@ $runner->test('invalid identifier: fiéld', function () {
     {
         "label": "Uptime",
         "fiéld": "uptime",
-        "format": "display_uptime"
+        "format": "display_duration"
     }
 JSON
     );
@@ -108,7 +108,7 @@ $runner->test('missing label', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "field": "uptime",
-        "format": "display_uptime"
+        "format": "display_duration"
     }
 JSON
     );
@@ -119,7 +119,7 @@ $runner->test('missing field', function () {
     $invalidFieldJson = from_json(<<<'JSON'
     {
         "label": "Uptime",
-        "format": "display_uptime"
+        "format": "display_duration"
     }
 JSON
     );
@@ -154,7 +154,7 @@ $runner->test('unsupported attribute: size', function () {
     {
         "label": "Uptime",
         "field": "uptime",
-        "format": "display_uptime",
+        "format": "display_duration",
         "size": "42"
     }
 JSON

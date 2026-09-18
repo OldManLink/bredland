@@ -5,7 +5,7 @@
     {
       "label": "Uptime",
       "field": "uptime",
-      "format": "display_uptime"
+      "format": "display_duration"
     },
     {
       "label": "Free memory",

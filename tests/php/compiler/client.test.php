@@ -27,7 +27,7 @@ $clientJson = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "format": "display_uptime"
+      "format": "display_duration"
     }
   ],
   "rules": [
@@ -65,7 +65,7 @@ $clientJson2 = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "format": "display_uptime"
+      "format": "display_duration"
     }
   ],
   "rules": [
@@ -95,7 +95,7 @@ $clientJson3 = from_json(<<<'JSON'
     {
       "label": "Uptime",
       "field": "uptime",
-      "format": "display_uptime"
+      "format": "display_duration"
     }
   ],
   "rules": [
@@ -187,7 +187,7 @@ $runner->test('render tests: Client action triggered', function () use ($clientJ
         assertSame('critical',$client->health());
         assertSame('unavailable',$client->get('uptime'));
         $client->render($heartbeatJson);
-        assertSame(display_uptime(2673306), $client->get('uptime'));
+        assertSame(display_duration(2673306), $client->get('uptime'));
         assertSame(1, count($client->notifications()));
         assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
         assertSame('healthy', $client->health());

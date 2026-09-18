@@ -12,7 +12,7 @@ $fieldJson = from_json(<<<'JSON'
 {
     "label": "Uptime",
     "field": "uptime",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
 );
@@ -21,7 +21,7 @@ $fieldJson2 = from_json(<<<'JSON'
 {
     "label": "Timestamp",
     "field": "ts",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
 );
@@ -41,7 +41,7 @@ $runner->test('instance creation', function () {
     $field = new Field(
         new StrVal('Uptime'),
         new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatVal('display_duration', array('integer' => true))
     );
 
     $fieldList = new FieldList(array(
@@ -60,7 +60,7 @@ $runner->test('gets field by name', function () {
     $field = new Field(
         new StrVal('Uptime'),
         new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatVal('display_duration', array('integer' => true))
     );
 
     $fieldList = new FieldList(array(
@@ -142,7 +142,7 @@ $runner->test('preserves invalid field index in compiler error', function () use
 {
     "label": "Temperature",
     "field": "temperature",
-    "format": "display_uptime"
+    "format": "display_duration"
 }
 JSON
     );
@@ -153,7 +153,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[0].display_uptime: incompatible with float'
+        'Fields[0].display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -162,7 +162,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[1].display_uptime: incompatible with float'
+        'Fields[1].display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -171,7 +171,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[2].display_uptime: incompatible with float'
+        'Fields[2].display_duration: incompatible with float'
     );
 });
 
