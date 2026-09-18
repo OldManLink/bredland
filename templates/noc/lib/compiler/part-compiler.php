@@ -1,35 +1,73 @@
 <?php
+require_once dirname(__DIR__) . '/compatibility.php';
+require_once dirname(__DIR__) . '/option.php';
 trait PartCompiler {
     private static function compile_parts($definition, $schema, $path) {
         $partClasses = self::partClasses();
+        $optionalParts = self::optionalParts();
         $compiledParts = array();
         $errors = array();
 
-        foreach ($definition as $partName => $partDefinition) {
-            $partClass = $partClasses[$partName];
+        if (runtime_type($definition) !== 'object') {
+            return CompilationResult::failure(
+                array("$path: must be an object")
+            );
+        }
+
+        foreach ($partClasses as $partName => $partClass) {
+            if (!array_key_exists($partName, $definition)) {
+                if (isset($optionalParts[$partName])) {
+                    $compiledParts[$partName] =
+                        CompilationResult::success(Option::none());
+                } else {
+                    $errors[] = "$path.$partName: missing required part";
+                }
+
+                continue;
+            }
 
             if (!class_exists($partClass)) {
-                return CompilationResult::failure(array("$path.$partname: Compiler class does not exist: $partClass."));
+                return CompilationResult::failure(
+                    array(
+                        "$path.$partName: Compiler class does not exist: $partClass."
+                    )
+                );
             }
 
             if (!is_subclass_of($partClass, 'Compilable')) {
-                return CompilationResult::failure(array("$path.$partName: Class $partClass does not implement Compilable."));
+                return CompilationResult::failure(
+                    array(
+                        "$path.$partName: Class $partClass does not implement Compilable."
+                    )
+                );
             }
 
             $result = call_user_func(
                 array($partClass, 'compile'),
-                $partDefinition,
+                $definition[$partName],
                 $schema,
                 "$path.$partName"
             );
 
-            $compiledParts[$partName] = $result;
-            if(!$result->isSuccess()) {
+            if (!$result->isSuccess()) {
                 $errors = array_merge($errors, $result->errors());
+                continue;
             }
+
+            $compiledParts[$partName] =
+                isset($optionalParts[$partName])
+                    ? CompilationResult::success(
+                        Option::some($result->value())
+                    )
+                    : $result;
         }
-        return empty($errors) ?
-            CompilationResult::success($compiledParts) :
-            CompilationResult::failure($errors);
+
+        return empty($errors)
+            ? CompilationResult::success($compiledParts)
+            : CompilationResult::failure($errors);
+    }
+
+    private static function optionalParts() {
+        return array();
     }
 }

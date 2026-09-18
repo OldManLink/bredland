@@ -10,9 +10,65 @@ require_once $compilerRoot . '/notification-val.php';
 
 $runner = new TestSuiteRunner('NotificationVal');
 
-$runner->test('compiles plain notification', function () {
+$plainNotificationJson = from_json(<<<'JSON'
+{
+    "text": [
+        "Software update available"
+    ]
+}
+JSON
+);
+
+$notificationJson = from_json(<<<'JSON'
+{
+    "text": [
+        "RouterOS ",
+        {
+            "field": "latest_version"
+        },
+        " is available"
+    ],
+    "resolution": "install-routeros-update"
+}
+JSON
+);
+
+$badNotificationJson = from_json(<<<'JSON'
+{
+    "text": [
+        "RouterOS ",
+        {
+            "field": "banana"
+        },
+        " is available"
+    ]
+}
+JSON
+);
+
+$badNotificationJson2 = from_json(<<<'JSON'
+{
+    "text": [
+        "Software update available"
+    ],
+    "resolution": 42
+}
+JSON
+);
+
+$badNotificationJson3 = from_json(<<<'JSON'
+{
+    "text": [
+        "Software update available"
+    ],
+    "resolution": ""
+}
+JSON
+);
+
+$runner->test('compiles plain notification', function () use ($plainNotificationJson) {
     $result = NotificationVal::compile(
-        'Software update available',
+        $plainNotificationJson,
         test_schema(),
         'Happy Path'
     );
@@ -25,12 +81,9 @@ $runner->test('compiles plain notification', function () {
     assertFalse($notification->has_resolution());
 });
 
-$runner->test('compiles notification with resolution', function () {
+$runner->test('compiles notification with resolution', function () use ($notificationJson) {
     $result = NotificationVal::compile(
-        array(
-            'RouterOS {{latest_version}} is available',
-            'install-routeros-update'
-        ),
+        $notificationJson,
         test_schema(),
         'Happy Path'
     );
@@ -46,96 +99,47 @@ $runner->test('compiles notification with resolution', function () {
     assertSame('install-routeros-update', $notification->resolution());
 });
 
-$runner->test('rejects unknown field in notification text', function () {
+$runner->test('rejects unknown field in notification text', function () use ($badNotificationJson) {
     assert_compile_error(
         NotificationVal::compile(
-            array(
-                'RouterOS {{banana}} is available',
-                'install-routeros-update'
-            ),
+            $badNotificationJson,
             test_schema(),
             'notification'
         ),
-        "notification[0][1]: 'banana' must exist in schema"
+        "notification.text[1].FieldVal: 'banana' must exist in schema"
     );
 });
 
-$runner->test('rejects empty array', function () {
-    assert_compile_error(
-        NotificationVal::compile(
-            array(),
-            test_schema(),
-            'notification'
-        ),
-        'notification: must be a string or a two-element array'
-    );
-});
-
-$runner->test('rejects one-element array', function () {
+$runner->test('rejects array', function () {
     assert_compile_error(
         NotificationVal::compile(
             array('Software update available'),
             test_schema(),
             'notification'
         ),
-        'notification: must be a string or a two-element array'
+        'notification: must be an object'
     );
 });
 
-$runner->test('rejects three-element array', function () {
+$runner->test('rejects non-string resolution', function () use ($badNotificationJson2) {
     assert_compile_error(
         NotificationVal::compile(
-            array(
-                'Software update available',
-                'install-routeros-update',
-                'fubar'
-            ),
+            $badNotificationJson2,
             test_schema(),
             'notification'
         ),
-        'notification: must be a string or a two-element array'
+        'notification.resolution: must be a non-empty string'
     );
 });
 
-$runner->test('rejects object', function () {
+$runner->test('rejects empty resolution', function () use ($badNotificationJson3) {
     assert_compile_error(
         NotificationVal::compile(
-            array(
-                'text' => 'Software update available',
-                'resolution' => 'install-routeros-update'
-            ),
+            $badNotificationJson3,
             test_schema(),
             'notification'
         ),
-        'notification: must be a non-empty string'
-    );
-});
-
-$runner->test('rejects non-string resolution', function () {
-    assert_compile_error(
-        NotificationVal::compile(
-            array(
-                'Software update available',
-                42
-            ),
-            test_schema(),
-            'notification'
-        ),
-        'notification[1]: must be a non-empty string'
-    );
-});
-
-$runner->test('rejects empty resolution', function () {
-    assert_compile_error(
-        NotificationVal::compile(
-            array(
-                'Software update available',
-                ''
-            ),
-            test_schema(),
-            'notification'
-        ),
-        'notification[1]: must be a non-empty string'
+        'notification.resolution: must be a non-empty string'
     );
 });
 
@@ -146,7 +150,7 @@ $runner->test('rejects null', function () {
             test_schema(),
             'notification'
         ),
-        'notification: must be a non-empty string'
+        'notification: must be an object'
     );
 });
 

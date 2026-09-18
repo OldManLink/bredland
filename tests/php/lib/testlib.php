@@ -170,6 +170,9 @@ function test_schema() {
        'update_available' => array(
             'value_type' => 'boolean'
        ),
+       'update_channel' => array(
+            'value_type' => 'string'
+       ),
        'version' => array(
            'value_type' => 'string'
        )

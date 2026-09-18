@@ -13,7 +13,7 @@ $runner = new TestSuiteRunner('action');
 $runner->test('instance creation', function () {
     $receiver = new ReceiverVal('client', Client::class);
     $method = new MethodVal('addNotification', NotificationVal::class);
-    $argument = new NotificationVal(new SlotVal(array(new StrVal('Software update available'))));
+    $argument = new NotificationVal(new SlotVal(array(new StrVal('Software update available'))), Option::none());
 
     $action = new Action($receiver, $method, $argument);
 
@@ -28,7 +28,7 @@ $runner->test('renders client action', function () {
     $action = new Action(
         new ReceiverVal('client', Client::class),
         new MethodVal('addNotification', NotificationVal::class),
-        new NotificationVal(new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.'))))
+        new NotificationVal(new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.'))), Option::none())
     );
 
     $action->render(array('latest_version' => '7.23.2'), array($client));
@@ -43,7 +43,7 @@ $runner->test('renders noc action', function () {
     $action = new Action(
         new ReceiverVal('noc', Noc::class),
         new MethodVal('addNotification', StrVal::class),
-        new NotificationVal(new SlotVal(new StrVal('celebrationMode')))
+        new NotificationVal(new SlotVal(new StrVal('celebrationMode')), Option::none())
     );
 
     $action->render(array('latest_version' => '7.23.2'), array($client));
@@ -80,7 +80,11 @@ $runner->test('compiles addNotification action', function () {
     {
         "receiver": "client",
         "method": "addNotification",
-        "argument": "Disk space is low"
+        "argument": {
+            "text": [
+                "Disk space is low"
+            ]
+        }
     }
 JSON
     );

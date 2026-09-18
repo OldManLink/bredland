@@ -40,7 +40,15 @@ $clientJson = from_json(<<<'JSON'
         "then": {
           "receiver": "client",
           "method": "addNotification",
-          "argument": "Warning: low memory, {{free_memory}} bytes free."
+          "argument": {
+              "text": [
+                  "Warning: low memory, ",
+                  {
+                      "field": "free_memory"
+                  },
+                  " bytes free."
+              ]
+          }
         }
       }
     ],
@@ -112,7 +120,20 @@ $clientJson3 = from_json(<<<'JSON'
         "then": {
           "receiver": "client",
           "method": "addNotification",
-          "argument": "Software update available:\nVersion: {{latest_version}} (stable)."
+          "argument": {
+              "text": [
+                  "Software update available:\nVersion: ",
+                  {
+                      "field": "latest_version"
+                  },
+                  " (",
+                  {
+                      "field": "update_channel"
+                  },
+                  ")."
+              ],
+              "resolution": "install-routeros-update"
+          }
         }
       }
     ],
@@ -128,12 +149,13 @@ $heartbeatJson = from_json(<<<'JSON'
   "host": "test",
   "ttl": 300,
   "uptime": 2673306,
-  "version": "7.23.1 (stable)",
+  "version": "7.23.1",
   "model": "RB4011iGS+",
   "cpu_load": 0,
   "free_memory": 879349760,
   "total_memory": 1073741824,
   "update_available": true,
+  "update_channel": "stable",
   "latest_version": "7.23.2",
   "remote_addr": "91.128.129.6"
 }
@@ -218,7 +240,7 @@ $runner->test('render tests: multiple Client rules triggered', function () use (
 
     assertSame("warning", $client->render($heartbeatJson)->health());
 
-    assertSame(1, $client->notification_count());
+    assertSame(1, $client->notification_count(),"missing notification");
     assertSame("Software update available:\nVersion: 7.23.2 (stable).",
         $client->notifications()[0]->text()
     );
