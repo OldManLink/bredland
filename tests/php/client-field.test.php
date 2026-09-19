@@ -16,8 +16,7 @@ $runner->test('render() renders an escaped client field', function () {
                 array(
                     'label' => 'State & mode',
                     'value' => array(
-                        'field' => 'status',
-                        'formatter' => 'display_value'
+                        'field' => 'status'
                     )
                 )
             )

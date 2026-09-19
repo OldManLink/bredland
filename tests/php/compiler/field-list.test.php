@@ -37,8 +37,7 @@ $fieldJson3 = from_json(<<<'JSON'
   "label": "Temperature",
   "value":
   {
-    "field": "temperature",
-    "formatter": "display_value"
+    "field": "temperature"
   }
 }
 JSON
@@ -51,12 +50,7 @@ $runner->test('instance creation', function () {
         new StrVal('Uptime'),
         new FormatterVal(
             new FieldVal('uptime', 'integer'),
-            Option::some(
-                new FormatVal(
-                    'display_duration',
-                    array('integer' => true)
-                )
-            )
+            Option::none()
         )
     );
 
@@ -77,12 +71,7 @@ $runner->test('gets field by name', function () {
         new StrVal('Uptime'),
         new FormatterVal(
             new FieldVal('uptime', 'integer'),
-            Option::some(
-                new FormatVal(
-                    'display_duration',
-                    array('integer' => true)
-                )
-            )
+            Option::none()
         )
     );
 

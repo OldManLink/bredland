@@ -17,8 +17,7 @@ $runner->test('render() renders the card container and telemetry drawer in order
                  array(
                      'label' => 'Status',
                      'value' => array(
-                         'field' => 'status',
-                         'formatter' => 'display_value'
+                         'field' => 'status'
                      )
                  )
              )

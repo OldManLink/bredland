@@ -49,25 +49,9 @@ function display_duration($seconds) {
     return sprintf('%ds', $seconds);
 }
 
-function display_value($value) {
-    if (is_bool($value)) {
-        return $value ? 'true' : 'false';
-    }
-
-    return (string) $value;
-}
-
 function get_exports() {
     return array(
         'formatters' => array(
-            'display_value' => array(
-                'value_types' => array(
-                    'integer' => true,
-                    'float' => true,
-                    'boolean' => true,
-                    'string' => true,
-                ),
-            ),
             'display_memory' => array(
                 'value_types' => array('integer' => true),
             ),
