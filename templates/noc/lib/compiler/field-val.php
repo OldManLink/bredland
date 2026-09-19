@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/compilable.php';
-require_once __DIR__ . '/slot-part.php';
+require_once __DIR__ . '/runtime-val.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 
-class FieldVal implements Compilable, SlotPart {
+class FieldVal implements Compilable, RuntimeVal {
     private $value;
     private $value_type;
 

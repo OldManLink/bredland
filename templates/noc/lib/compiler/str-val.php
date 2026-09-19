@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__ . '/compilable.php';
-require_once __DIR__ . '/slot-part.php';
+require_once __DIR__ . '/runtime-val.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 
-class StrVal implements Compilable, SlotPart {
+class StrVal implements Compilable, RuntimeVal {
     private $value;
 
     public static function compile($definition, $schema, $path) {

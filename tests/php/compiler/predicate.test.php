@@ -111,8 +111,8 @@ JSON
     assertSame('versionGreaterThan', $predicate->operator()->name());
 
     $argument = $predicate->argument();
-    assertTrue($argument instanceof FieldVal);
-    assertSame('version', $argument->value());
+    assertTrue($argument instanceof FormatterVal);
+    assertSame('version', $argument->field()->value());
     assertSame('string', $argument->value_type());
 });
 
@@ -206,7 +206,7 @@ JSON
 
     assert_compile_error(
             Predicate::compile($json, $schema, 'rule.when'),
-            "rule.when.value.FieldVal: 'banana' must exist in schema"
+            "rule.when.value.FormatterVal.field: 'banana' must exist in schema"
     );
 });
 
@@ -227,7 +227,7 @@ JSON
 
     assert_compile_error(
             Predicate::compile($json, $schema, 'rule.when'),
-            'rule.when.value.FieldVal: invalid definition: {"field":"version","fubar":true}'
+            'rule.when.value.FormatterVal: unsupported attribute: fubar'
     );
 });
 

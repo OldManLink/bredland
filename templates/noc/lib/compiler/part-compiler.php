@@ -14,6 +14,20 @@ trait PartCompiler {
             );
         }
 
+        foreach ($definition as $partName => $partDefinition) {
+            if (preg_match('/^[a-z][a-z0-9_]*$/', $partName) !== 1) {
+                return CompilationResult::failure(
+                    array("$path: invalid identifier: $partName")
+                );
+            }
+
+            if (!isset($partClasses[$partName])) {
+                return CompilationResult::failure(
+                    array("$path: unsupported attribute: $partName")
+                );
+            }
+        }
+
         foreach ($partClasses as $partName => $partClass) {
             if (!array_key_exists($partName, $definition)) {
                 if (isset($optionalParts[$partName])) {

@@ -9,16 +9,6 @@ require_once $compilerRoot .'/client.php';
 
 $runner = new TestSuiteRunner('Client');
 
-$runner->test('instance creation', function () {
-    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
-
-    assertSame("test", $client->host()->value());
-    assertSame("Test", $client->title()->value());
-    assertSame(array(), $client->field_list());
-    assertSame(array(), $client->rules());
-    assertSame(42, $client->order()->value());
-});
-
 $clientJson = from_json(<<<'JSON'
 {
   "host": "test",
@@ -26,8 +16,10 @@ $clientJson = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_duration"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -64,8 +56,10 @@ $clientJson2 = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_duration"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -94,8 +88,10 @@ $clientJson3 = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_duration"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -180,6 +176,16 @@ $heartbeatJson2 = from_json(<<<'JSON'
 }
 JSON
 );
+
+$runner->test('instance creation', function () {
+    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
+
+    assertSame("test", $client->host()->value());
+    assertSame("Test", $client->title()->value());
+    assertSame(array(), $client->field_list());
+    assertSame(array(), $client->rules());
+    assertSame(42, $client->order()->value());
+});
 
 $runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
     with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson) {

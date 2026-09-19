@@ -7,7 +7,7 @@ require_once __DIR__ . '/bool-val.php';
 require_once __DIR__ . '/int-val.php';
 require_once __DIR__ . '/float-val.php';
 require_once __DIR__ . '/str-val.php';
-require_once __DIR__ . '/field-val.php';
+require_once __DIR__ . '/formatter-val.php';
 
 class Val implements Compilable {
     private static function valueClasses() {
@@ -16,7 +16,7 @@ class Val implements Compilable {
             'integer' => IntVal::class,
             'float' => FloatVal::class,
             'string' => StrVal::class,
-            'object' => FieldVal::class,
+            'object' => FormatterVal::class,
         );
     }
 

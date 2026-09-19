@@ -17,8 +17,10 @@ $runner->test('render() renders the complete card in order', function () {
                 'fields' => array(
                     array(
                         'label' => 'Status',
-                        'field' => 'status',
-                        'format' => 'display_value'
+                        'value' => array(
+                             'field' => 'status',
+                             'formatter' => 'display_value'
+                             )
                     )
                 )
             ),

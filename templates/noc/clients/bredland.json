@@ -4,13 +4,17 @@
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_duration"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     },
     {
       "label": "Free memory",
-      "field": "free_memory",
-      "format": "display_memory"
+      "value": {
+        "field": "free_memory",
+        "formatter": "display_memory"
+      }
     }
   ],
   "rules": [
@@ -37,7 +41,11 @@
         "method": "addNotification",
         "argument": {
           "text": [
-            "Bredland TLS certificate expires in less than 21 days"
+            "Bredland TLS certificate expires in ",
+            {
+              "field": "tls_cert_remaining",
+              "formatter": "display_duration"
+            }
           ]
         }
       }

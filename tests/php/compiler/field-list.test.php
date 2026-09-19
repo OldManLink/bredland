@@ -10,27 +10,36 @@ require_once $compilerRoot . '/field-list.php';
 
 $fieldJson = from_json(<<<'JSON'
 {
-    "label": "Uptime",
+  "label": "Uptime",
+  "value":
+  {
     "field": "uptime",
-    "format": "display_duration"
+    "formatter": "display_duration"
+  }
 }
 JSON
 );
 
 $fieldJson2 = from_json(<<<'JSON'
 {
-    "label": "Timestamp",
+  "label": "Timestamp",
+  "value":
+  {
     "field": "ts",
-    "format": "display_duration"
+    "formatter": "display_duration"
+  }
 }
 JSON
 );
 
 $fieldJson3 = from_json(<<<'JSON'
 {
-    "label": "Temperature",
+  "label": "Temperature",
+  "value":
+  {
     "field": "temperature",
-    "format": "display_value"
+    "formatter": "display_value"
+  }
 }
 JSON
 );
@@ -140,9 +149,12 @@ $runner->test('rejects invalid field in field list', function () {
 $runner->test('preserves invalid field index in compiler error', function () use ($fieldJson, $fieldJson2) {
     $invalidFieldJson = from_json(<<<'JSON'
 {
-    "label": "Temperature",
+  "label": "Temperature",
+  "value":
+  {
     "field": "temperature",
-    "format": "display_duration"
+    "formatter": "display_duration"
+  }
 }
 JSON
     );
@@ -153,7 +165,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[0].display_duration: incompatible with float'
+        'Fields[0].value.display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -162,7 +174,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[1].display_duration: incompatible with float'
+        'Fields[1].value.display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -171,7 +183,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[2].display_duration: incompatible with float'
+        'Fields[2].value.display_duration: incompatible with float'
     );
 });
 

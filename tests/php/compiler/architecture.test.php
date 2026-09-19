@@ -39,9 +39,6 @@ $runner = new TestSuiteRunner('architecture');
  * Renderable is deliberately narrower: it represents compiler objects such
  * as MethodVal and OpVal whose runtime representation requires no heartbeat
  * or other context.
- *
- * SlotPart extends RuntimeVal because every part of an interpolated slot must
- * be renderable in heartbeat context.
  */
 $runner->test('runtime values implement RuntimeVal', function () {
     $classes = array(
@@ -65,10 +62,6 @@ $runner->test('context-free values implement Renderable', function () {
     assertTrue(is_subclass_of(FormatVal::class, Renderable::class));
     assertTrue(is_subclass_of(MethodVal::class, Renderable::class));
     assertTrue(is_subclass_of(OpVal::class, Renderable::class));
-});
-
-$runner->test('slot parts are runtime values', function () {
-    assertTrue(is_subclass_of(SlotPart::class, RuntimeVal::class));
 });
 
 /**

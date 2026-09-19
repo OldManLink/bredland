@@ -91,10 +91,10 @@ $runner->test('compiles field-only slot', function () {
     $slotVal = $result->value();
 
     assertSame(1, count($slotVal->parts()));
-    assertTrue($slotVal->parts()[0] instanceof FieldVal);
+    assertTrue($slotVal->parts()[0] instanceof FormatterVal, 'FormatterVal expected');
     assertSame(
         'latest_version',
-        $slotVal->parts()[0]->value()
+        $slotVal->parts()[0]->field()->value()
     );
 });
 
@@ -117,7 +117,7 @@ $runner->test('compiles mixed slot', function () {
 
     assertSame(3, count($slotVal->parts()));
     assertTrue($slotVal->parts()[0] instanceof StrVal);
-    assertTrue($slotVal->parts()[1] instanceof FieldVal);
+    assertTrue($slotVal->parts()[1] instanceof FormatterVal, 'FormatterVal expected');
     assertTrue($slotVal->parts()[2] instanceof StrVal);
 });
 
@@ -134,7 +134,7 @@ $runner->test('rejects unknown field', function () {
 
     assert_compile_error(
         $result,
-        "SlotVal[0].FieldVal: 'no_such_field' must exist in schema"
+        "SlotVal[0].FormatterVal.field: 'no_such_field' must exist in schema"
     );
 });
 

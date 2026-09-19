@@ -75,7 +75,19 @@ function assertThrows($exceptionClass, $expectedMessage, $operation) {
 }
 
 function assertTrue($actual, $message = '') {
-    assertSame(true, $actual, $message);
+    if ($actual !== true) {
+        if ($message === '') {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
+            $caller = $trace[0];
+
+            $message =
+                basename($caller['file']) .
+                ':' .
+                $caller['line'];
+        }
+
+        assertSame(true, $actual, $message);
+    }
 }
 
 function assertFalse($actual, $message = '') {

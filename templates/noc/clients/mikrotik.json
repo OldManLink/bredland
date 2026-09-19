@@ -4,13 +4,19 @@
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_duration"
+      "value":
+      {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     },
     {
       "label": "Free memory",
-      "field": "free_memory",
-      "format": "display_memory"
+      "value":
+      {
+        "field": "free_memory",
+        "formatter": "display_memory"
+      }
     }
   ],
   "rules": [

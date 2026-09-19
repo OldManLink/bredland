@@ -105,4 +105,25 @@ $runner->test('non-object definition fails', function () {
     );
 });
 
+$runner->test('invalid part identifier fails', function () {
+    $result = TestParts::compile_test_parts(
+        array(
+            'required' => 'hello',
+            'optiónal' => 'fubar'
+        )
+    );
+
+    assertFalse(
+        $result->isSuccess(),
+        'invalid part identifier must fail compilation'
+    );
+
+    assertSame(
+        array(
+            'test: invalid identifier: optiónal'
+        ),
+        $result->errors()
+    );
+});
+
 $runner->finish();

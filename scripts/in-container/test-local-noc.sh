@@ -638,7 +638,7 @@ EOF
         'temperature=47.2' \
         'free_memory=123450000' \
         'root_free=987654321' \
-        'tls_cert_remaining=1209600'
+        'tls_cert_remaining=1234567'
 
     echo "✅ Local NOC ready for health transition preview"
 

@@ -106,7 +106,7 @@ $runner->test('rejects unknown field in notification text', function () use ($ba
             test_schema(),
             'notification'
         ),
-        "notification.text[1].FieldVal: 'banana' must exist in schema"
+        "notification.text[1].FormatterVal.field: 'banana' must exist in schema"
     );
 });
 
