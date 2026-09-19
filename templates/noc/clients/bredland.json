@@ -34,7 +34,7 @@
       "when": {
         "field": "tls_cert_remaining",
         "operator": "lessThan",
-        "value": 1814400
+        "value": 2592000
       },
       "then": {
         "receiver": "client",
