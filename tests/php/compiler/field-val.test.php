@@ -37,25 +37,6 @@ $runner->test('compiler tests: FieldVal', function () {
     assertTrue($result->value()->value() === 'ts', "'ts' expected");
 });
 
-$runner->test('compiles wrapped field definition', function () {
-    $result = FieldVal::compile(
-        array(
-            'field' => 'version'
-        ),
-        test_schema(),
-        'Happy Wrapped FieldVal Path'
-    );
-
-    assert_compile_success($result);
-
-    $field = $result->value();
-    assertTrue(
-        $field instanceof FieldVal,
-        'FieldVal expected'
-    );
-    assertSame('version', $field->value());
-});
-
 $runner->test('reports value type from schema', function () {
     $stringResult = FieldVal::compile(
             'version',
@@ -95,7 +76,7 @@ $runner->test('rejects float value type', function () {
 });
 
 $runner->test('rejects array value type', function () {
-    assert_compile_error(FieldVal::compile(array(), test_schema(), 'array()'), 'array(): invalid definition: []');
+    assert_compile_error(FieldVal::compile(array(), test_schema(), 'array()'), 'array(): must be a non-empty string');
 });
 
 $runner->finish();

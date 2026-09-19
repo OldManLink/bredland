@@ -20,7 +20,11 @@ $ruleJson = from_json(<<<'JSON'
     "then": {
         "receiver": "client",
         "method": "addNotification",
-        "argument": "Software update available"
+        "argument": {
+            "text": [
+                "Software update available"
+            ]
+        }
     }
 }
 JSON
@@ -94,10 +98,12 @@ $runner->test('compiles notification resolution', function () {
         "then": {
             "receiver": "client",
             "method": "addNotification",
-            "argument": [
-                "Software update available",
-                "install-routeros-update"
-            ]
+            "argument": {
+                "text": [
+                    "Software update available"
+                ],
+                "resolution": "install-routeros-update"
+            }
         }
     }
 JSON

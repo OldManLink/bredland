@@ -9,16 +9,6 @@ require_once $compilerRoot .'/client.php';
 
 $runner = new TestSuiteRunner('Client');
 
-$runner->test('instance creation', function () {
-    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
-
-    assertSame("test", $client->host()->value());
-    assertSame("Test", $client->title()->value());
-    assertSame(array(), $client->field_list());
-    assertSame(array(), $client->rules());
-    assertSame(42, $client->order()->value());
-});
-
 $clientJson = from_json(<<<'JSON'
 {
   "host": "test",
@@ -26,8 +16,10 @@ $clientJson = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_uptime"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -40,7 +32,15 @@ $clientJson = from_json(<<<'JSON'
         "then": {
           "receiver": "client",
           "method": "addNotification",
-          "argument": "Warning: low memory, {{free_memory}} bytes free."
+          "argument": {
+              "text": [
+                  "Warning: low memory, ",
+                  {
+                      "field": "free_memory"
+                  },
+                  " bytes free."
+              ]
+          }
         }
       }
     ],
@@ -56,8 +56,10 @@ $clientJson2 = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_uptime"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -86,8 +88,10 @@ $clientJson3 = from_json(<<<'JSON'
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_uptime"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     }
   ],
   "rules": [
@@ -112,7 +116,20 @@ $clientJson3 = from_json(<<<'JSON'
         "then": {
           "receiver": "client",
           "method": "addNotification",
-          "argument": "Software update available:\nVersion: {{latest_version}} (stable)."
+          "argument": {
+              "text": [
+                  "Software update available:\nVersion: ",
+                  {
+                      "field": "latest_version"
+                  },
+                  " (",
+                  {
+                      "field": "update_channel"
+                  },
+                  ")."
+              ],
+              "resolution": "install-routeros-update"
+          }
         }
       }
     ],
@@ -128,12 +145,13 @@ $heartbeatJson = from_json(<<<'JSON'
   "host": "test",
   "ttl": 300,
   "uptime": 2673306,
-  "version": "7.23.1 (stable)",
+  "version": "7.23.1",
   "model": "RB4011iGS+",
   "cpu_load": 0,
   "free_memory": 879349760,
   "total_memory": 1073741824,
   "update_available": true,
+  "update_channel": "stable",
   "latest_version": "7.23.2",
   "remote_addr": "91.128.129.6"
 }
@@ -159,13 +177,23 @@ $heartbeatJson2 = from_json(<<<'JSON'
 JSON
 );
 
+$runner->test('instance creation', function () {
+    $client = new Client(new StrVal("test"), new StrVal("Test"), array(), array(), new IntVal(42));
+
+    assertSame("test", $client->host()->value());
+    assertSame("Test", $client->title()->value());
+    assertSame(array(), $client->field_list());
+    assertSame(array(), $client->rules());
+    assertSame(42, $client->order()->value());
+});
+
 $runner->test('render tests: Client action triggered', function () use ($clientJson, $heartbeatJson) {
     with_noc_now('2026-07-26T21:28:01Z', function () use ($clientJson, $heartbeatJson) {
         $client = Client::compile($clientJson, test_schema(), 'Happy Path')->value();
         assertSame('critical',$client->health());
         assertSame('unavailable',$client->get('uptime'));
         $client->render($heartbeatJson);
-        assertSame(display_uptime(2673306), $client->get('uptime'));
+        assertSame(display_duration(2673306), $client->get('uptime'));
         assertSame(1, count($client->notifications()));
         assertSame('Warning: low memory, 879349760 bytes free.', $client->notifications()[0]->text());
         assertSame('healthy', $client->health());
@@ -218,7 +246,7 @@ $runner->test('render tests: multiple Client rules triggered', function () use (
 
     assertSame("warning", $client->render($heartbeatJson)->health());
 
-    assertSame(1, $client->notification_count());
+    assertSame(1, $client->notification_count(),"missing notification");
     assertSame("Software update available:\nVersion: 7.23.2 (stable).",
         $client->notifications()[0]->text()
     );

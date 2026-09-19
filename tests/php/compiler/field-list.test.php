@@ -10,27 +10,36 @@ require_once $compilerRoot . '/field-list.php';
 
 $fieldJson = from_json(<<<'JSON'
 {
-    "label": "Uptime",
+  "label": "Uptime",
+  "value":
+  {
     "field": "uptime",
-    "format": "display_uptime"
+    "formatter": "display_duration"
+  }
 }
 JSON
 );
 
 $fieldJson2 = from_json(<<<'JSON'
 {
-    "label": "Timestamp",
+  "label": "Timestamp",
+  "value":
+  {
     "field": "ts",
-    "format": "display_uptime"
+    "formatter": "display_duration"
+  }
 }
 JSON
 );
 
 $fieldJson3 = from_json(<<<'JSON'
 {
-    "label": "Temperature",
+  "label": "Temperature",
+  "value":
+  {
     "field": "temperature",
-    "format": "display_value"
+    "formatter": "display_value"
+  }
 }
 JSON
 );
@@ -40,8 +49,15 @@ $runner = new TestSuiteRunner('FieldList');
 $runner->test('instance creation', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatterVal(
+            new FieldVal('uptime', 'integer'),
+            Option::some(
+                new FormatVal(
+                    'display_duration',
+                    array('integer' => true)
+                )
+            )
+        )
     );
 
     $fieldList = new FieldList(array(
@@ -59,8 +75,15 @@ $runner->test('instance creation', function () {
 $runner->test('gets field by name', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime', 'integer'),
-        new FormatVal('display_uptime', array('integer' => true))
+        new FormatterVal(
+            new FieldVal('uptime', 'integer'),
+            Option::some(
+                new FormatVal(
+                    'display_duration',
+                    array('integer' => true)
+                )
+            )
+        )
     );
 
     $fieldList = new FieldList(array(
@@ -140,9 +163,12 @@ $runner->test('rejects invalid field in field list', function () {
 $runner->test('preserves invalid field index in compiler error', function () use ($fieldJson, $fieldJson2) {
     $invalidFieldJson = from_json(<<<'JSON'
 {
-    "label": "Temperature",
+  "label": "Temperature",
+  "value":
+  {
     "field": "temperature",
-    "format": "display_uptime"
+    "formatter": "display_duration"
+  }
 }
 JSON
     );
@@ -153,7 +179,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[0].display_uptime: incompatible with float'
+        'Fields[0].value.display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -162,7 +188,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[1].display_uptime: incompatible with float'
+        'Fields[1].value.display_duration: incompatible with float'
     );
 
     assert_compile_error(
@@ -171,7 +197,7 @@ JSON
             test_schema(),
             'Fields'
         ),
-        'Fields[2].display_uptime: incompatible with float'
+        'Fields[2].value.display_duration: incompatible with float'
     );
 });
 

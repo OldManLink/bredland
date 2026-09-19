@@ -23,20 +23,6 @@ class Predicate implements Compilable, RuntimeVal {
     }
 
     public static function compile($definition, $schema, $path) {
-        if (!is_array($definition)) {
-            return CompilationResult::failure(array("$path must be an object"));
-        }
-
-        $validationResult = check_allowed_keys(
-            $definition,
-            self::partClasses(),
-            $path
-        );
-
-        if (!$validationResult->isSuccess()) {
-            return $validationResult;
-        }
-
         $compiledPartsResult = Predicate::compile_parts($definition, $schema, $path);
 
         if (!$compiledPartsResult->isSuccess()) {

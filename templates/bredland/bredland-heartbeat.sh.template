@@ -21,7 +21,20 @@ total_memory="$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo)"
 root_free="$(df -P / | awk 'NR == 2 { print $4 * 1024 }')"
 root_total="$(df -P / | awk 'NR == 2 { print $2 * 1024 }')"
 
-fields="temperature,throttled,free_memory,total_memory,root_free,root_total"
+tls_cert_remaining=0
+
+if tls_cert_not_after="$(openssl x509 \
+        -in /etc/bredland/tls/fullchain.pem \
+        -noout \
+        -enddate 2>/dev/null | cut -d= -f2-)" &&
+    tls_cert_expires_at="$(date -d "$tls_cert_not_after" +%s 2>/dev/null)" &&
+    now="$(date +%s)" &&
+    [[ "$tls_cert_expires_at" =~ ^[0-9]+$ ]] &&
+    [[ "$now" =~ ^[0-9]+$ ]]; then
+    tls_cert_remaining=$((tls_cert_expires_at - now))
+fi
+
+fields="temperature,throttled,free_memory,total_memory,root_free,root_total,tls_cert_remaining"
 
 curl --silent --show-error --fail \
   --data-urlencode "host=$host" \
@@ -35,5 +48,6 @@ curl --silent --show-error --fail \
   --data-urlencode "total_memory=$total_memory" \
   --data-urlencode "root_free=$root_free" \
   --data-urlencode "root_total=$root_total" \
+  --data-urlencode "tls_cert_remaining=$tls_cert_remaining" \
   "$endpoint"
   

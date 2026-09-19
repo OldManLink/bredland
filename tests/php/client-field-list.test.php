@@ -29,8 +29,10 @@ $runner->test('render() renders one client field', function () {
             'fields' => array(
                 array(
                     'label' => 'First field',
-                    'field' => 'status',
-                    'format' => 'display_value'
+                    'value' => array(
+                        'field' => 'status',
+                        'formatter' => 'display_value'
+                    )
                 )
             )
         ),
@@ -53,13 +55,17 @@ $runner->test('render() preserves client field order', function () {
             'fields' => array(
                 array(
                     'label' => 'First field',
-                    'field' => 'status',
-                    'format' => 'display_value'
+                    'value' => array(
+                        'field' => 'status',
+                        'formatter' => 'display_value'
+                    )
                 ),
                 array(
                     'label' => 'Second field',
-                    'field' => 'latest_version',
-                    'format' => 'display_value'
+                    'value' => array(
+                        'field' => 'latest_version',
+                        'formatter' => 'display_value'
+                    )
                 )
             )
         ),

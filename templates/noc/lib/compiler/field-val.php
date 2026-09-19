@@ -1,25 +1,15 @@
 <?php
 require_once __DIR__ . '/compilable.php';
-require_once __DIR__ . '/slot-part.php';
+require_once __DIR__ . '/runtime-val.php';
 require_once __DIR__ . '/compilation-result.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 
-class FieldVal implements Compilable, SlotPart {
+class FieldVal implements Compilable, RuntimeVal {
     private $value;
     private $value_type;
 
     public static function compile($definition, $schema, $path) {
-        if (is_array($definition)) {
-            if(count($definition) === 1 && isset($definition['field'])) {
-                $definition = $definition['field'];
-            }
-            else {
-                $json = json_encode($definition);
-                return CompilationResult::failure(array("$path: invalid definition: $json"));
-            }
-        }
-
         $strValResult = StrVal::compile($definition, $schema, $path);
         if (!$strValResult->isSuccess()) {
             return $strValResult;

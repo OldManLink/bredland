@@ -52,6 +52,17 @@ run_step \
     "${bredland_host}:/tmp/bredland-heartbeat.timer"
 
 run_step \
+    "Ensuring Bredland trusted service account" \
+    ensure_bredland_trusted_user \
+    "$bredland_host"
+
+run_step \
+    "Granting Bredland heartbeat video access" \
+    execute_remote_command \
+    "$bredland_host" \
+    "sudo usermod -aG video bredland-trusted"
+
+run_step \
     "Installing Bredland heartbeat" \
     execute_remote_command \
     "$bredland_host" \

@@ -4,13 +4,17 @@
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_uptime"
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     },
     {
       "label": "Free memory",
-      "field": "free_memory",
-      "format": "display_memory"
+      "value": {
+        "field": "free_memory",
+        "formatter": "display_memory"
+      }
     }
   ],
   "rules": [
@@ -24,6 +28,26 @@
         "receiver": "client",
         "method": "setHealth",
         "argument": "warning"
+      }
+    },
+    {
+      "when": {
+        "field": "tls_cert_remaining",
+        "operator": "lessThan",
+        "value": 2592000
+      },
+      "then": {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": {
+          "text": [
+            "Bredland TLS certificate expires in ",
+            {
+              "field": "tls_cert_remaining",
+              "formatter": "display_duration"
+            }
+          ]
+        }
       }
     }
   ],

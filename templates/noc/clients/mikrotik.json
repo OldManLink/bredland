@@ -4,13 +4,19 @@
   "fields": [
     {
       "label": "Uptime",
-      "field": "uptime",
-      "format": "display_uptime"
+      "value":
+      {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
     },
     {
       "label": "Free memory",
-      "field": "free_memory",
-      "format": "display_memory"
+      "value":
+      {
+        "field": "free_memory",
+        "formatter": "display_memory"
+      }
     }
   ],
   "rules": [
@@ -25,8 +31,20 @@
       "then": {
         "receiver": "client",
         "method": "addNotification",
-        "argument": ["Software update available:\nVersion {{latest_version}} ({{update_channel}})",
-          "install-routeros-update"]
+        "argument": {
+          "text": [
+            "Software update available:\nVersion ",
+            {
+              "field": "latest_version"
+            },
+            " (",
+            {
+              "field": "update_channel"
+            },
+            ")"
+          ],
+          "resolution": "install-routeros-update"
+        }
       }
     },
     {
@@ -40,10 +58,15 @@
       "then": {
         "receiver": "client",
         "method": "addNotification",
-        "argument": [
-          "RouterBOOT firmware update available:\nVersion {{upgrade_firmware}}",
-          "install-routerboot-update"
-        ]
+        "argument": {
+          "text": [
+            "RouterBOOT firmware update available:\nVersion ",
+            {
+              "field": "upgrade_firmware"
+            }
+          ],
+          "resolution": "install-routerboot-update"
+        }
       }
     }
   ],

@@ -15,7 +15,7 @@ function display_memory($bytes) {
     return $bytes . ' B';
 }
 
-function display_uptime($seconds) {
+function display_duration($seconds) {
     $seconds = (int)$seconds;
 
     $weeks = floor($seconds / 604800);
@@ -71,7 +71,7 @@ function get_exports() {
             'display_memory' => array(
                 'value_types' => array('integer' => true),
             ),
-            'display_uptime' => array(
+            'display_duration' => array(
                 'value_types' => array('integer' => true),
             ),
         )

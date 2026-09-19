@@ -18,11 +18,11 @@ $runner->test('formats memory values', function () {
 });
 
 $runner->test('formats uptime values', function () {
-    assertSame('0s', display_uptime(0));
-    assertSame('59s', display_uptime(59));
-    assertSame('01:00', display_uptime(60));
-    assertSame('1d00:00:00', display_uptime(86400));
-    assertSame('1w6d11:48:47', display_uptime(1165727));
+    assertSame('0s', display_duration(0));
+    assertSame('59s', display_duration(59));
+    assertSame('01:00', display_duration(60));
+    assertSame('1d00:00:00', display_duration(86400));
+    assertSame('1w6d11:48:47', display_duration(1165727));
 });
 
 $runner->test('exports valid formatter definitions', function () {
