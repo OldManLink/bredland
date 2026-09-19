@@ -31,7 +31,7 @@ $runner->test('renders client action', function () {
         new NotificationVal(new SlotVal(array(new StrVal('RouterOS '), new FieldVal('latest_version', 'string'), new StrVal(' is available.'))), Option::none())
     );
 
-    $action->render(array('latest_version' => '7.23.2'), array($client));
+    $action->render(array('latest_version' => '7.23.2'), Option::some($client));
 
     assertSame(1, $client->notification_count());
     assertSame('RouterOS 7.23.2 is available.',$client->notifications()[0]->text());
@@ -46,7 +46,7 @@ $runner->test('renders noc action', function () {
         new NotificationVal(new SlotVal(new StrVal('celebrationMode')), Option::none())
     );
 
-    $action->render(array('latest_version' => '7.23.2'), array($client));
+    $action->render(array('latest_version' => '7.23.2'), Option::some($client));
 
     assertSame(0, $client->notification_count());
 });

@@ -2,7 +2,6 @@
 require_once __DIR__ . '/compilable.php';
 require_once __DIR__ . '/part-compiler.php';
 require_once __DIR__ . '/compilation-result.php';
-require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/str-val.php';
 require_once __DIR__ . '/formatter-val.php';
 require_once __DIR__ . '/runtime-val.php';
@@ -21,22 +20,6 @@ class Field implements Compilable, RuntimeVal {
     }
 
     public static function compile($definition, $schema, $path) {
-        if (runtime_type($definition) !== 'object') {
-            return CompilationResult::failure(
-                array("$path: must be an object")
-            );
-        }
-
-        $validationResult = check_allowed_keys(
-            $definition,
-            self::partClasses(),
-            $path
-        );
-
-        if (!$validationResult->isSuccess()) {
-            return $validationResult;
-        }
-
         $compiledPartsResult = Field::compile_parts(
             $definition,
             $schema,

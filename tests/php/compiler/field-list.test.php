@@ -49,8 +49,15 @@ $runner = new TestSuiteRunner('FieldList');
 $runner->test('instance creation', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime', 'integer'),
-        new FormatVal('display_duration', array('integer' => true))
+        new FormatterVal(
+            new FieldVal('uptime', 'integer'),
+            Option::some(
+                new FormatVal(
+                    'display_duration',
+                    array('integer' => true)
+                )
+            )
+        )
     );
 
     $fieldList = new FieldList(array(
@@ -68,8 +75,15 @@ $runner->test('instance creation', function () {
 $runner->test('gets field by name', function () {
     $field = new Field(
         new StrVal('Uptime'),
-        new FieldVal('uptime', 'integer'),
-        new FormatVal('display_duration', array('integer' => true))
+        new FormatterVal(
+            new FieldVal('uptime', 'integer'),
+            Option::some(
+                new FormatVal(
+                    'display_duration',
+                    array('integer' => true)
+                )
+            )
+        )
     );
 
     $fieldList = new FieldList(array(

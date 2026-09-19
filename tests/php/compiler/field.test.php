@@ -108,7 +108,7 @@ $runner->test('missing label', function () {
     }
 JSON
     );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected label');
+    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.label: missing required part');
 });
 
 $runner->test('missing value', function () {
@@ -118,7 +118,7 @@ $runner->test('missing value', function () {
     }
 JSON
     );
-    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field: expected value');
+    assert_compile_error(Field::compile($invalidFieldJson, test_schema(), 'Field'), 'Field.value: missing required part');
 });
 
 $runner->test('non-existent format', function () {

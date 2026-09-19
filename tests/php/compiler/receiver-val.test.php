@@ -27,13 +27,30 @@ $runner->test('instance creation', function () {
 $runner->test('renders matching receiver', function () {
     $receiver = new ReceiverVal('client', Client::class);
     $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
-    assertSame(array($client), $receiver->render(array($client)));
+    assertSame(
+        $client,
+        $receiver
+            ->render(Option::some($client))
+            ->get_or_else(function () {
+                return null;
+            })
+    );
 });
 
-$runner->test('renders non-matching receiver as array()', function () {
+$runner->test('renders non-matching receiver as None', function () {
     $receiver = new ReceiverVal('noc', Noc::class);
     $client = new Client(new StrVal('mikrotik'), new StrVal('MikroTik'), array(), array(), new IntVal(1));
-    assertSame(array(), $receiver->render(array($client)));
+    assertSame(
+        'none',
+        $receiver
+            ->render(Option::some($client))
+            ->map(function () {
+                return 'some';
+            })
+            ->get_or_else(function () {
+                return 'none';
+            })
+    );
 });
 
 $runner->test('compiles client', function () {

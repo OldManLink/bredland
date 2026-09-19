@@ -244,7 +244,7 @@ JSON
 
     assert_compile_error(
         Predicate::compile($json, $schema, 'rule.when'),
-        'rule.when: expected field'
+        'rule.when.field: missing required part'
     );
 });
 

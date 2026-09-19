@@ -31,6 +31,16 @@ class Option {
             : $this->values[0];
     }
 
+    public function filter($predicate) {
+        if ($this->is_empty()) {
+            return $this;
+        }
+
+        return call_user_func($predicate, $this->values[0])
+            ? $this
+            : self::none();
+    }
+
     public function values() {
         return $this->values;
     }

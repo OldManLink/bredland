@@ -46,7 +46,7 @@ class Client implements Compilable {
     }
 
     public static function compile($definition, $schema, $path) {
-        if (!is_array($definition)) {
+        if (runtime_type($definition) !== 'object') {
             return CompilationResult::failure(array("$path: must be an object"));
         }
 
@@ -139,7 +139,7 @@ class Client implements Compilable {
         $this->heartbeat = $heartbeat;
 
         foreach ($this->rules() as $rule) {
-            $rule->render($heartbeat, array($this));
+            $rule->render($heartbeat, Option::some($this));
         }
         return $this;
     }

@@ -19,7 +19,7 @@ class Rule implements Compilable {
     }
 
     public static function compile($definition, $schema, $path) {
-        if (!is_array($definition)) {
+        if (runtime_type($definition) !== 'object') {
             return CompilationResult::failure(array("$path: must be an object"));
         }
 
@@ -62,9 +62,9 @@ class Rule implements Compilable {
         return $this->action;
     }
 
-    public function render($heartbeat, $receivers) {
+    public function render($heartbeat, $maybeReceiver) {
         if ($this->predicate->render($heartbeat)) {
-            $this->action->render($heartbeat, $receivers);
+            $this->action->render($heartbeat, $maybeReceiver);
         }
     }
 }

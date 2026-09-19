@@ -44,4 +44,37 @@ $runner->test('get_or_else() preserves presence and evaluates fallback for absen
     );
 });
 
+$runner->test('filter keeps Some when predicate matches', function () {
+    $option = Option::some(42);
+
+    $filtered = $option->filter(function ($value) {
+        return $value === 42;
+    });
+
+    assertSame(array(42), $filtered->values());
+});
+
+$runner->test('filter removes Some when predicate does not match', function () {
+    $option = Option::some(42);
+
+    $filtered = $option->filter(function ($value) {
+        return $value === 99;
+    });
+
+    assertSame(array(), $filtered->values());
+});
+
+$runner->test('filter keeps None without evaluating predicate', function () {
+    $option = Option::none();
+    $called = false;
+
+    $filtered = $option->filter(function ($value) use (&$called) {
+        $called = true;
+        return true;
+    });
+
+    assertSame(array(), $filtered->values());
+    assertFalse($called);
+});
+
 $runner->finish();

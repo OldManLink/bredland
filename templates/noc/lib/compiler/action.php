@@ -36,8 +36,8 @@ class Action implements Compilable {
     }
 
     public static function compile($definition, $schema, $path) {
-        if (!is_array($definition)) {
-            return CompilationResult::failure(array("$path must be an object"));
+        if (runtime_type($definition) !== 'object') {
+            return CompilationResult::failure(array("$path: must be an object"));
         }
 
         $validationResult = check_allowed_keys($definition, self::partKeys(), $path);
@@ -85,12 +85,15 @@ class Action implements Compilable {
         return $this->argument;
     }
 
-    public function render($heartbeat, $receivers) {
-        foreach ($this->receiver->render($receivers) as $receiver) {
-            $method = $this->method->render();
-            $argument = $this->argument->render($heartbeat);
+    public function render($heartbeat, $maybeReceiver) {
+        $this->receiver
+            ->render($maybeReceiver)
+            ->map(function ($receiver) use ($heartbeat) {
+                $method = $this->method->render();
+                $argument = $this->argument->render($heartbeat);
 
-            $receiver->$method($argument);
-        }
+                $receiver->$method($argument);
+                return $receiver;
+            });
     }
 }
