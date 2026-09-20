@@ -7,14 +7,12 @@ require_once __DIR__ . '/timestamp.php';
 
 class HeartbeatHistoryEndpoint {
     private $heartbeatHistory;
-    private $maxLatest;
-    private $maxRange;
+    private $maxPageSize;
 
-    public function __construct($authenticator, $heartbeatHistory, $maxLatest, $maxRange) {
+    public function __construct($authenticator, $heartbeatHistory, $maxPageSize) {
         $this->authenticator = $authenticator;
         $this->heartbeatHistory = $heartbeatHistory;
-        $this->maxLatest = $maxLatest;
-        $this->maxRange = $maxRange;
+        $this->maxPageSize = $maxPageSize;
     }
 
     public function handle($server, $post) {
@@ -54,12 +52,21 @@ class HeartbeatHistoryEndpoint {
         $latest = $this->required_param($post, 'latest');
         $from = $this->required_param($post, 'from');
         $to = $this->required_param($post, 'to');
+        $startingAt = $this->required_param($post, 'starting_at');
 
         if ($latest !== null &&
             ($from !== null || $to !== null)) {
             return new TelemetryResponse(
                 400,
                 'multiple queries'
+            );
+        }
+
+        if ($startingAt !== null &&
+            $latest === null) {
+            return new TelemetryResponse(
+                400,
+                'starting_at requires latest'
             );
         }
 
@@ -87,22 +94,43 @@ class HeartbeatHistoryEndpoint {
 
             $latest = (int) $latest;
 
-            if ($latest > $this->maxLatest) {
+            if ($startingAt !== null &&
+                !Timestamp::is_valid($startingAt)) {
                 return new TelemetryResponse(
                     400,
-                    'latest exceeds maximum: ' . $this->maxLatest
+                    'invalid parameter: starting_at'
                 );
+            }
+
+            $pageSize = min(
+                $latest,
+                $this->maxPageSize
+            );
+
+            $fetchCount = $pageSize;
+
+            if ($latest > $this->maxPageSize) {
+                $fetchCount++;
             }
 
             $records = $this->heartbeatHistory->latest(
                 $host,
-                $latest
+                $fetchCount,
+                $startingAt
             );
 
-            return new HeartbeatHistoryResponse(
-                200,
-                $records
-            );
+            if (count($records) > $pageSize) {
+                $next = array_shift($records);
+
+                return $this->paged_response(
+                    $records,
+                    array(
+                        'starting_at' => $next['ts']
+                    )
+                );
+            }
+
+            return $this->paged_response($records);
         }
 
         if ($from !== null && $to !== null) {
@@ -127,23 +155,34 @@ class HeartbeatHistoryEndpoint {
                 );
             }
 
-            try {
-                $records = $this->heartbeatHistory->range(
-                    $host,
-                    $from,
-                    $to,
-                    $this->maxRange
-                );
-            } catch (InvalidArgumentException $e) {
-                return new TelemetryResponse(
-                    400,
-                    $e->getMessage()
+            $records = $this->heartbeatHistory->range(
+                $host,
+                $from,
+                $to,
+                $this->maxPageSize
+            );
+
+            if (count($records) > $this->maxPageSize) {
+                $next = array_shift($records);
+
+                return new HeartbeatHistoryResponse(
+                    200,
+                    array(
+                        'records' => $records,
+                        'count' => count($records),
+                        'next' => array(
+                            'to' => $next['ts']
+                        )
+                    )
                 );
             }
 
             return new HeartbeatHistoryResponse(
                 200,
-                $records
+                array(
+                    'records' => $records,
+                    'count' => count($records)
+                )
             );
         }
 
@@ -159,5 +198,21 @@ class HeartbeatHistoryEndpoint {
         }
 
         return (string) $post[$name];
+    }
+
+    private function paged_response($records, $next = null) {
+        $body = array(
+            'records' => $records,
+            'count' => count($records)
+        );
+
+        if ($next !== null) {
+            $body['next'] = $next;
+        }
+
+        return new HeartbeatHistoryResponse(
+            200,
+            $body
+        );
     }
 }

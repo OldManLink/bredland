@@ -525,11 +525,12 @@ history_response="$(
 
 if ! printf '%s\n' "$history_response" |
     jq -e '
-        length == 2 and
-        .[0].host == "bredland" and
-        .[0].uptime == 12345 and
-        .[1].host == "bredland" and
-        .[1].uptime == 12346
+        .count == 2 and
+        (.records | length) == 2 and
+        .records[0].host == "bredland" and
+        .records[0].uptime == 12345 and
+        .records[1].host == "bredland" and
+        .records[1].uptime == 12346
     ' >/dev/null; then
 
     echo "❌ Unexpected heartbeat history response"

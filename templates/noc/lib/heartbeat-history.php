@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/heartbeat-stream.php';
 
 class HeartbeatHistory {
     private $dataDir;
@@ -7,24 +8,23 @@ class HeartbeatHistory {
         $this->dataDir = $dataDir;
     }
 
-    public function latest($host, $count) {
-        $files = array_reverse(
+    public function latest($host, $count, $startingAt = null) {
+        $records = array();
+
+        $stream = new HeartbeatStream(
             $this->history_files($host)
         );
 
-        $records = array();
+        foreach ($stream as $record) {
+            if ($startingAt !== null &&
+                $record['ts'] > $startingAt) {
+                continue;
+            }
 
-        foreach ($files as $file) {
-            $lines = array_reverse(
-                $this->read_lines($file)
-            );
+            $records[] = $record;
 
-            foreach ($lines as $line) {
-                $records[] = json_decode($line, true);
-
-                if (count($records) === $count) {
-                    break 2;
-                }
+            if (count($records) === $count) {
+                break;
             }
         }
 
@@ -34,38 +34,67 @@ class HeartbeatHistory {
     public function range($host, $from, $to, $max) {
         $records = array();
 
-        foreach ($this->history_files($host) as $file) {
-            if (substr($file, -3) === '.gz') {
-                $lines = array();
+        $stream = new HeartbeatStream(
+            $this->range_files($host, $from, $to)
+        );
 
-                exec(
-                    'gzip -dc ' . escapeshellarg($file),
-                    $lines
-                );
-            } else {
-                $lines = file(
-                    $file,
-                    FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-                );
+        foreach ($stream as $record) {
+            if ($record['ts'] > $to) {
+                continue;
             }
 
-            foreach ($lines as $line) {
-                $record = json_decode($line, true);
+            if ($record['ts'] < $from) {
+                break;
+            }
 
-                if ($record['ts'] >= $from &&
-                    $record['ts'] <= $to) {
-                    $records[] = $record;
+            $records[] = $record;
 
-                    if (count($records) > $max) {
-                        throw new InvalidArgumentException(
-                            "range exceeds maximum: $max"
-                        );
-                    }
+            if (count($records) > $max) {
+                break;
+            }
+        }
+
+        return array_reverse($records);
+    }
+
+    private function range_files($host, $from, $to) {
+        $files = array();
+
+        foreach ($this->history_files($host) as $file) {
+            $name = basename($file);
+
+            if (preg_match(
+                '/^' . preg_quote($host, '/') .
+                '-([0-9]{4})-([0-9]{2})-([0-9]{2})\.jsonl(?:\.gz)?$/',
+                $name,
+                $parts
+            )) {
+                $date = $parts[1] . '-' . $parts[2] . '-' . $parts[3];
+
+                if ($date >= substr($from, 0, 10) &&
+                    $date <= substr($to, 0, 10)) {
+                    $files[] = $file;
+                }
+
+                continue;
+            }
+
+            if (preg_match(
+                '/^' . preg_quote($host, '/') .
+                '-([0-9]{4})-([0-9]{2})\.jsonl\.gz$/',
+                $name,
+                $parts
+            )) {
+                $month = $parts[1] . '-' . $parts[2];
+
+                if ($month >= substr($from, 0, 7) &&
+                    $month <= substr($to, 0, 7)) {
+                    $files[] = $file;
                 }
             }
         }
 
-        return $records;
+        return $files;
     }
 
     private function history_files($host) {
@@ -83,23 +112,5 @@ class HeartbeatHistory {
         sort($files, SORT_STRING);
 
         return $files;
-    }
-
-    private function read_lines($file) {
-        if (substr($file, -3) === '.gz') {
-            $lines = array();
-
-            exec(
-                'gzip -dc ' . escapeshellarg($file),
-                $lines
-            );
-
-            return $lines;
-        }
-
-        return file(
-            $file,
-            FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-        );
     }
 }

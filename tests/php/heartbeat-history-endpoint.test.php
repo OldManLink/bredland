@@ -8,7 +8,7 @@ $nocRoot = dirname(dirname(__DIR__)) . '/templates/noc';
 require_once $nocRoot . '/lib/heartbeat-history-endpoint.php';
 require_once $nocRoot . '/lib/heartbeat-history.php';
 
-function heartbeat_history_endpoint($dataDir = null, $maxLatest = 100, $maxRange = 100) {
+function heartbeat_history_endpoint($dataDir = null, $maxPageSize=288) {
     return new HeartbeatHistoryEndpoint(
         new Authenticator(
             array(
@@ -16,8 +16,7 @@ function heartbeat_history_endpoint($dataDir = null, $maxLatest = 100, $maxRange
             )
         ),
         new HeartbeatHistory($dataDir),
-        $maxLatest,
-        $maxRange
+        $maxPageSize
     );
 }
 
@@ -167,7 +166,7 @@ $runner->test('returns latest heartbeat as JSON', function () {
         $response->content_type()
     );
     assertSame(
-        "[{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":2}]\n",
+        "{\"records\":[{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":2}],\"count\":1}\n",
         $response->body()
     );
 
@@ -274,8 +273,67 @@ $runner->test('rejects negative latest', function () {
     );
 });
 
-$runner->test('rejects latest above server maximum', function () {
-    $endpoint = heartbeat_history_endpoint(null, 2);
+$runner->test('rejects invalid starting_at timestamp', function () {
+    $endpoint = heartbeat_history_endpoint();
+
+    $response = $endpoint->handle(
+        array(
+            'REQUEST_METHOD' => 'POST'
+        ),
+        array(
+            'host' => 'bredland',
+            'token' => 'bredland.v1.test-token',
+            'latest' => '2',
+            'starting_at' => 'not-a-timestamp'
+        )
+    );
+
+    assertSame(400, $response->status());
+    assertSame(
+        "invalid parameter: starting_at\n",
+        $response->body()
+    );
+});
+
+$runner->test('rejects starting_at with range query', function () {
+    $endpoint = heartbeat_history_endpoint();
+
+    $response = $endpoint->handle(
+        array(
+            'REQUEST_METHOD' => 'POST'
+        ),
+        array(
+            'host' => 'bredland',
+            'token' => 'bredland.v1.test-token',
+            'from' => '2026-09-19T12:00:00Z',
+            'to' => '2026-09-19T12:10:00Z',
+            'starting_at' => '2026-09-19T12:05:00Z'
+        )
+    );
+
+    assertSame(400, $response->status());
+    assertSame(
+        "starting_at requires latest\n",
+        $response->body()
+    );
+});
+
+$runner->test('pages latest above server maximum', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-history-endpoint-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/bredland-2026-09-19.jsonl';
+
+    file_put_contents(
+        $file,
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:00:00Z\",\"value\":1}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":2}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:10:00Z\",\"value\":3}\n"
+    );
+
+    $endpoint = heartbeat_history_endpoint($dataDir, 2);
 
     $response = $endpoint->handle(
         array(
@@ -288,15 +346,148 @@ $runner->test('rejects latest above server maximum', function () {
         )
     );
 
-    assertSame(400, $response->status());
+    assertSame(200, $response->status());
     assertSame(
-        'text/plain; charset=utf-8',
+        'application/json; charset=utf-8',
         $response->content_type()
     );
     assertSame(
-        "latest exceeds maximum: 2\n",
-        $response->body()
+        array(
+            'records' => array(
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:05:00Z',
+                    'value' => 2
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:10:00Z',
+                    'value' => 3
+                )
+            ),
+            'count' => 2,
+            'next' => array(
+                'starting_at' => '2026-09-19T12:00:00Z'
+            )
+        ),
+        json_decode($response->body(), true)
     );
+
+    unlink($file);
+    rmdir($dataDir);
+});
+
+$runner->test('continues latest from starting_at timestamp', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-history-endpoint-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/bredland-2026-09-19.jsonl';
+
+    file_put_contents(
+        $file,
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:00:00Z\",\"value\":1}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":2}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:10:00Z\",\"value\":3}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:15:00Z\",\"value\":4}\n"
+    );
+
+    $endpoint = heartbeat_history_endpoint($dataDir);
+
+    $response = $endpoint->handle(
+        array(
+            'REQUEST_METHOD' => 'POST'
+        ),
+        array(
+            'host' => 'bredland',
+            'token' => 'bredland.v1.test-token',
+            'latest' => '2',
+            'starting_at' => '2026-09-19T12:05:00Z'
+        )
+    );
+
+    assertSame(200, $response->status());
+    assertSame(
+        array(
+            'records' => array(
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:00:00Z',
+                    'value' => 1
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:05:00Z',
+                    'value' => 2
+                )
+            ),
+            'count' => 2
+        ),
+        json_decode($response->body(), true)
+    );
+
+    unlink($file);
+    rmdir($dataDir);
+});
+
+$runner->test('continues paged latest from starting_at timestamp', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-history-endpoint-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/bredland-2026-09-19.jsonl';
+
+    file_put_contents(
+        $file,
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:00:00Z\",\"value\":1}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":2}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:10:00Z\",\"value\":3}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:15:00Z\",\"value\":4}\n" .
+        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:20:00Z\",\"value\":5}\n"
+    );
+
+    $endpoint = heartbeat_history_endpoint($dataDir, 2);
+
+
+    $response = $endpoint->handle(
+        array(
+            'REQUEST_METHOD' => 'POST'
+        ),
+        array(
+            'host' => 'bredland',
+            'token' => 'bredland.v1.test-token',
+            'latest' => '3',
+            'starting_at' => '2026-09-19T12:15:00Z'
+        )
+    );
+
+    assertSame(200, $response->status());
+    assertSame(
+        array(
+            'records' => array(
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:10:00Z',
+                    'value' => 3
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:15:00Z',
+                    'value' => 4
+                )
+            ),
+            'count' => 2,
+            'next' => array(
+                'starting_at' => '2026-09-19T12:05:00Z'
+            )
+        ),
+        json_decode($response->body(), true)
+    );
+
+    unlink($file);
+    rmdir($dataDir);
 });
 
 $runner->test('returns empty JSON array when history is empty', function () {
@@ -323,7 +514,10 @@ $runner->test('returns empty JSON array when history is empty', function () {
         'application/json; charset=utf-8',
         $response->content_type()
     );
-    assertSame("[]\n", $response->body());
+    assertSame(
+        "{\"records\":[],\"count\":0}\n",
+        $response->body()
+    );
 
     rmdir($dataDir);
 });
@@ -365,12 +559,27 @@ $runner->test('returns heartbeats in inclusive time range as JSON', function () 
         $response->content_type()
     );
     assertSame(
-        "[" .
-        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:00:00Z\",\"value\":2}," .
-        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:05:00Z\",\"value\":3}," .
-        "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:10:00Z\",\"value\":4}" .
-        "]\n",
-        $response->body()
+        array(
+            'records' => array(
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:00:00Z',
+                    'value' => 2
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:05:00Z',
+                    'value' => 3
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:10:00Z',
+                    'value' => 4
+                )
+            ),
+            'count' => 3
+        ),
+        json_decode($response->body(), true)
     );
 
     unlink($file);
@@ -505,7 +714,7 @@ $runner->test('rejects range with from after to', function () {
     );
 });
 
-$runner->test('rejects range exceeding server maximum', function () {
+$runner->test('pages range above server maximum', function () {
     $dataDir = sys_get_temp_dir() .
         '/bredland-history-endpoint-' . uniqid();
 
@@ -520,11 +729,7 @@ $runner->test('rejects range exceeding server maximum', function () {
         "{\"host\":\"bredland\",\"ts\":\"2026-09-19T12:10:00Z\",\"value\":3}\n"
     );
 
-    $endpoint = heartbeat_history_endpoint(
-        $dataDir,
-        100,
-        2
-    );
+    $endpoint = heartbeat_history_endpoint($dataDir, 2);
 
     $response = $endpoint->handle(
         array(
@@ -538,10 +743,31 @@ $runner->test('rejects range exceeding server maximum', function () {
         )
     );
 
-    assertSame(400, $response->status());
+    assertSame(200, $response->status());
     assertSame(
-        "range exceeds maximum: 2\n",
-        $response->body()
+        'application/json; charset=utf-8',
+        $response->content_type()
+    );
+    assertSame(
+        array(
+            'records' => array(
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:05:00Z',
+                    'value' => 2
+                ),
+                array(
+                    'host' => 'bredland',
+                    'ts' => '2026-09-19T12:10:00Z',
+                    'value' => 3
+                )
+            ),
+            'count' => 2,
+            'next' => array(
+                'to' => '2026-09-19T12:00:00Z'
+            )
+        ),
+        json_decode($response->body(), true)
     );
 
     unlink($file);
@@ -602,7 +828,7 @@ $runner->test('preserves canonical heartbeat value types', function () {
         )
     );
 
-    $records = json_decode($response->body(), true);
+    $records = json_decode($response->body(), true)["records"];
 
     assertSame(42, $records[0]['integer_value']);
     assertSame(47.2, $records[0]['float_value']);

@@ -133,6 +133,22 @@ function client_for_host($clients, $host) {
     throw new RuntimeException('Client not found: ' . $host);
 }
 
+function production_health_colour($html, $title) {
+    $pattern =
+        '/<h1>\s*' .
+        '<span class="led ([^"]*)"><\/span>\s*' .
+        preg_quote($title, '/') .
+        '/';
+
+    if (!preg_match($pattern, $html, $matches)) {
+        throw new RuntimeException(
+            'health colour not found for production client: ' . $title
+        );
+    }
+
+    return $matches[1];
+}
+
 $fixtureNow = trim(
     file_get_contents($repoRoot . '/tests/fixtures/last-fetched.timestamp')
 );
@@ -141,6 +157,7 @@ putenv('NOC_NOW=' . $fixtureNow);
 
 $runner->test('load() returns fully formed clients from production-shaped fixtures', function () use ($repoRoot, $fixtureNow) {
     $fixture = create_client_loader_fixture($repoRoot);
+    $production_html = file_get_contents($repoRoot . '/tests/fixtures/production/index.html');
 
     try {
         $clients = ClientLoader::load(
@@ -183,8 +200,15 @@ $runner->test('load() returns fully formed clients from production-shaped fixtur
             $bredland->heartbeat_age()
         );
 
-        assertSame('green', $mikrotik->health_colour());
-        assertSame('green', $bredland->health_colour());
+        assertSame(
+            production_health_colour($production_html, 'MikroTik'),
+            $mikrotik->health_colour()
+        );
+
+        assertSame(
+            production_health_colour($production_html, 'Bredland'),
+            $bredland->health_colour()
+        );
 
         assertSame($mikrotik_description['title'], $mikrotik->get_title());
         assertSame($bredland_description['title'], $bredland->get_title());

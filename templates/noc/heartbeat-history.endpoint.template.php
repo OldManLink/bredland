@@ -20,8 +20,7 @@ if (!isset($HOST_TOKENS) || !isset($DATA_DIR)) {
     $endpoint = new HeartbeatHistoryEndpoint(
         new Authenticator($HOST_TOKENS),
         new HeartbeatHistory($DATA_DIR),
-        HEARTBEAT_HISTORY_MAX_LATEST,
-        HEARTBEAT_HISTORY_MAX_RANGE
+        HEARTBEAT_HISTORY_PAGE_SIZE
     );
 
     $response = $endpoint->handle(
