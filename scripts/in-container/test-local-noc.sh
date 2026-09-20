@@ -12,7 +12,12 @@ server_bind="0.0.0.0:8000"
 server_url="http://127.0.0.1:8000"
 server_log="$build_dir/php-server.log"
 
+history_server_bind="0.0.0.0:8083"
+history_server_url="http://127.0.0.1:8083"
+history_server_log="$build_dir/heartbeat-history-server.log"
+
 mikrotik_preview_pid=""
+history_server_pid=""
 rpi_pid=""
 trusted_preview_pid=""
 server_pid=""
@@ -23,6 +28,11 @@ cleanup()
     if [[ -n "$mikrotik_preview_pid" ]]; then
         kill "$mikrotik_preview_pid" 2>/dev/null || true
         wait "$mikrotik_preview_pid" 2>/dev/null || true
+    fi
+
+    if [[ -n "$history_server_pid" ]]; then
+        kill "$history_server_pid" 2>/dev/null || true
+        wait "$history_server_pid" 2>/dev/null || true
     fi
 
     if [[ -n "$rpi_pid" ]]; then
@@ -462,6 +472,72 @@ check_request \
     'ts=2000-01-01T00:00:00Z'
 
 echo "✅ Rejected heartbeat that spoofs reserved field ts"
+
+echo
+echo "Starting local heartbeat history server..."
+
+php -S "$history_server_bind" \
+    -t "$build_dir" \
+    >"$history_server_log" 2>&1 &
+
+history_server_pid=$!
+
+history_server_ready=false
+
+for _ in 1 2 3 4 5; do
+    if curl \
+        --silent \
+        --output /dev/null \
+        "$history_server_url/heartbeat-history.php"; then
+
+        history_server_ready=true
+        break
+    fi
+
+    sleep 1
+done
+
+if ! $history_server_ready; then
+    echo "❌ Local heartbeat history server failed to start"
+
+    if [[ -s "$history_server_log" ]]; then
+        echo "--- heartbeat history server log ---"
+        cat "$history_server_log"
+    fi
+
+    exit 1
+fi
+
+echo "✅ Local heartbeat history server ready"
+
+echo
+echo "Querying latest Bredland heartbeat history..."
+
+history_response="$(
+    curl \
+        --silent \
+        --show-error \
+        --data-urlencode 'host=bredland' \
+        --data-urlencode 'token=bredland.v1.test-token' \
+        --data-urlencode 'latest=2' \
+        "$history_server_url/heartbeat-history.php"
+)"
+
+if ! printf '%s\n' "$history_response" |
+    jq -e '
+        length == 2 and
+        .[0].host == "bredland" and
+        .[0].uptime == 12345 and
+        .[1].host == "bredland" and
+        .[1].uptime == 12346
+    ' >/dev/null; then
+
+    echo "❌ Unexpected heartbeat history response"
+    printf '%s\n' "$history_response" | jq .
+    exit 1
+fi
+
+echo "✅ Local heartbeat history returned latest Bredland records"
 
 if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
     echo

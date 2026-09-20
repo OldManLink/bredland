@@ -59,6 +59,18 @@ run_render templates/noc/telemetry.config.template.php \
 "$tmpdir/telemetry.config.env"
 echo "OK"
 
+# Test Oderland heartbeat-history.endpoint.template.php
+echo -n "Testing noc/heartbeat-history.endpoint.template.php ... "
+cat > "$tmpdir/heartbeat-history.endpoint.env" <<'EOF'
+# Oderland stuff
+TELEMETRY_CONFIG_FILE=/private/telemetry.config.php
+EOF
+
+run_render templates/noc/heartbeat-history.endpoint.template.php \
+    "$tmpdir/heartbeat-history.endpoint.php" \
+    "$tmpdir/heartbeat-history.endpoint.env"
+echo "OK"
+
 # Test Oderland rotate-daily-logs.template
 echo -n "Testing noc/rotate-daily-logs.sh.template ... "
 cat > "$tmpdir/rotate-daily-logs.env" <<'EOF'

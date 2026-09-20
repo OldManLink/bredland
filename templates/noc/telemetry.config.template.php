@@ -5,10 +5,10 @@
 // Do not commit rendered files.
 
 const TELEMETRY_SCHEMA_VERSION = 1;
-
-$HOST_TOKENS = [
+const HEARTBEAT_HISTORY_MAX_LATEST = 100;
+const HEARTBEAT_HISTORY_MAX_RANGE = 100;
+$DATA_DIR = '__NOC_DATA_DIR__';
+$HOST_TOKENS = [ // Arrays are not allowed as constants in PHP 5.5
     '__MIKROTIK_NOC_HOST__' => '__MIKROTIK_NOC_TOKEN__',
     '__BREDLAND_NOC_HOST__' => '__BREDLAND_NOC_TOKEN__'
 ];
-
-$DATA_DIR = '__NOC_DATA_DIR__';

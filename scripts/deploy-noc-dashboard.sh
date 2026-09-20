@@ -245,6 +245,7 @@ oderland_host="${ODERLAND_SSH_HOST:?Missing ODERLAND_SSH_HOST}"
 noc_root_dir="${NOC_ROOT_DIR:?Missing NOC_ROOT_DIR}"
 
 endpoint_remote="${TELEMETRY_ENDPOINT_FILE:?Missing TELEMETRY_ENDPOINT_FILE}"
+history_endpoint_remote="${HEARTBEAT_HISTORY_ENDPOINT_FILE:?Missing HEARTBEAT_HISTORY_ENDPOINT_FILE}"
 config_remote="${TELEMETRY_CONFIG_FILE:?Missing TELEMETRY_CONFIG_FILE}"
 dashboard_remote="$noc_root_dir/index.php"
 manifest_remote="$noc_root_dir/manifest.json"
@@ -256,6 +257,7 @@ schemas_remote="$noc_root_dir/schemas"
 clients_remote="$noc_root_dir/clients"
 
 endpoint_local="$staging_dir/telemetry.php"
+history_endpoint_local="$staging_dir/heartbeat-history.php"
 config_local="$staging_dir/telemetry.config.php"
 dashboard_local="$staging_dir/index.php"
 manifest_local="$staging_dir/manifest.json"
@@ -289,6 +291,12 @@ run_step \
     scripts/render-template.sh \
     templates/noc/telemetry.endpoint.template.php \
     "$endpoint_local"
+
+run_step \
+    "Rendering heartbeat history endpoint" \
+    scripts/render-template.sh \
+    templates/noc/heartbeat-history.endpoint.template.php \
+    "$history_endpoint_local"
 
 run_step \
     "Rendering telemetry private config" \
@@ -378,6 +386,7 @@ run_step \
     '$schemas_remote' \
     '$clients_remote' \
     '$(dirname "$endpoint_remote")' \
+    '$(dirname "$history_endpoint_remote")' \
     '$(dirname "$config_remote")' \
     '$noc_root_dir'"
 
@@ -422,6 +431,12 @@ run_step \
     execute_rsync \
     "$endpoint_local" \
     "${oderland_user}@${oderland_host}:${endpoint_remote}"
+
+run_step \
+    "Uploading heartbeat history endpoint" \
+    execute_rsync \
+    "$history_endpoint_local" \
+    "${oderland_user}@${oderland_host}:${history_endpoint_remote}"
 
 run_step \
     "Uploading manifest.json" \
