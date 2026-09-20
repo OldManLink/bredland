@@ -15,8 +15,8 @@ $clients = ClientLoader::load(
     $DATA_DIR
 );
 
-$cards_row = new CardsRow(2, $clients);
-$noc = new Noc(new Dashboard(1, $cards_row));
+$cards_row = new CardsRow(3, $clients);
+$noc = new Noc(new Dashboard(2, $cards_row));
 
 header('X-NOC-Now: ' . Noc::now());
 
