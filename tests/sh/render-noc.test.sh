@@ -14,23 +14,22 @@ mkdir -p "$data_dir" "$static_dir"
 
 echo "Testing rendered NOC index ... "
 
-cat > "$build_dir/telemetry.config.php" <<EOF
-<?php
-
-\$HOST_TOKENS = array(
-    'mikrotik' => 'mikrotik.v1.test-token',
-    'bredland' => 'bredland.v1.test-token'
-);
-
-\$DATA_DIR = '$data_dir';
-EOF
-
 render_env="$build_dir/noc.env"
 
 cat > "$render_env" <<EOF
-TELEMETRY_CONFIG_FILE="$build_dir/telemetry.config.php"
-BREDLAND_TRUSTED_BASE_URL="http://127.0.0.1:8081"
+MIKROTIK_NOC_HOST=mikrotik
+MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
+BREDLAND_NOC_HOST=bredland
+BREDLAND_NOC_TOKEN=bredland.v1.test-token
+NOC_DATA_DIR=$data_dir
+TELEMETRY_CONFIG_FILE=$build_dir/telemetry.config.php
+BREDLAND_TRUSTED_BASE_URL=http://127.0.0.1:8081
 EOF
+
+BREDLAND_SECRETS_FILE="$render_env" \
+    scripts/render-template.sh \
+    templates/noc/telemetry.config.template.php \
+    "$build_dir/telemetry.config.php"
 
 BREDLAND_SECRETS_FILE="$render_env" \
     scripts/render-template.sh \
@@ -43,7 +42,24 @@ if grep -q '__[A-Z0-9_]\+__' "$build_dir/index.php"; then
     echo "❌ Unresolved placeholders remain in rendered index.php" >&2
     exit 2
 fi
+
 echo "✅ NOC index rendered correctly"
+
+echo "Testing rendered heartbeat history endpoint ... "
+
+BREDLAND_SECRETS_FILE="$render_env" \
+    scripts/render-template.sh \
+    templates/noc/heartbeat-history.endpoint.template.php \
+    "$build_dir/heartbeat-history.php"
+
+[[ -s "$build_dir/heartbeat-history.php" ]]
+
+if grep -q '__[A-Z0-9_]\+__' "$build_dir/heartbeat-history.php"; then
+    echo "❌ Unresolved placeholders remain in rendered heartbeat-history.php" >&2
+    exit 2
+fi
+
+echo "✅ heartbeat history endpoint rendered correctly"
 
 echo "Testing rendered telemetry endpoint ... "
 

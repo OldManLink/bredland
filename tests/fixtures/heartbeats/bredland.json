@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "ts": "2026-09-19T10:25:00Z",
+  "ts": "2026-09-21T09:05:00Z",
   "host": "bredland",
   "ttl": 300,
-  "uptime": 7170426,
-  "temperature": 34,
+  "uptime": 119132,
+  "temperature": 33.1,
   "throttled": "0x0",
-  "free_memory": 3703271424,
+  "free_memory": 3773001728,
   "total_memory": 3980185600,
-  "root_free": 56392855552,
+  "root_free": 56392716288,
   "root_total": 62515544064,
-  "tls_cert_remaining": 5642878,
-  "remote_addr": "91.128.129.171"
+  "tls_cert_remaining": 5474878,
+  "remote_addr": "91.128.133.179"
 }
