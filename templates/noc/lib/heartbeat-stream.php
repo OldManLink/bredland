@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/compatibility.php';
 
 class HeartbeatStream implements IteratorAggregate {
     private $files;
@@ -16,7 +17,15 @@ class HeartbeatStream implements IteratorAggregate {
             );
 
             foreach ($lines as $line) {
-                yield json_decode($line, true);
+                $record = json_decode($line, true);
+
+                if (runtime_type($record) !== 'object') {
+                    throw new RuntimeException(
+                        'invalid heartbeat record in ' . $file
+                    );
+                }
+
+                yield $record;
             }
         }
     }
@@ -24,18 +33,34 @@ class HeartbeatStream implements IteratorAggregate {
     private function read_lines($file) {
         if (substr($file, -3) === '.gz') {
             $lines = array();
+            $status = 0;
 
             exec(
-                'gzip -dc ' . escapeshellarg($file),
-                $lines
+                'gzip -dc ' . escapeshellarg($file) . ' 2>/dev/null',
+                $lines,
+                $status
             );
+
+            if ($status !== 0) {
+                throw new RuntimeException(
+                    'failed to read heartbeat archive: ' . $file
+                );
+            }
 
             return $lines;
         }
 
-        return file(
+        $lines = @file(
             $file,
             FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
         );
+
+        if ($lines === false) {
+            throw new RuntimeException(
+                'failed to read heartbeat archive: ' . $file
+            );
+        }
+
+        return $lines;
     }
 }

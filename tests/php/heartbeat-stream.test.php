@@ -171,4 +171,98 @@ $runner->test('does not open older file until iteration reaches it', function ()
     }
 });
 
+$runner->test('rejects malformed JSON record', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-heartbeat-stream-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/mikrotik-2026-09-19.jsonl';
+
+    file_put_contents(
+        $file,
+        "{\"ts\":\"2026-09-19T00:00:00Z\"}\n" .
+        "{not valid json}\n"
+    );
+
+    try {
+        assertThrows(
+            'RuntimeException',
+            'invalid heartbeat record in ' . $file,
+            function () use ($file) {
+                $stream = new HeartbeatStream(
+                    array($file)
+                );
+
+                foreach ($stream as $record) {
+                    // force iteration
+                }
+            }
+        );
+    } finally {
+        unlink($file);
+        rmdir($dataDir);
+    }
+});
+
+$runner->test('rejects unreadable compressed archive', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-heartbeat-stream-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/mikrotik-2026-09-19.jsonl.gz';
+
+    file_put_contents(
+        $file,
+        "not actually gzip data\n"
+    );
+
+    try {
+        assertThrows(
+            'RuntimeException',
+            'failed to read heartbeat archive: ' . $file,
+            function () use ($file) {
+                $stream = new HeartbeatStream(
+                    array($file)
+                );
+
+                foreach ($stream as $record) {
+                    // force iteration
+                }
+            }
+        );
+    } finally {
+        unlink($file);
+        rmdir($dataDir);
+    }
+});
+
+$runner->test('rejects unreadable archive', function () {
+    $dataDir = sys_get_temp_dir() .
+        '/bredland-heartbeat-stream-' . uniqid();
+
+    mkdir($dataDir);
+
+    $file = $dataDir . '/mikrotik-2026-09-19.jsonl';
+
+    try {
+        assertThrows(
+            'RuntimeException',
+            'failed to read heartbeat archive: ' . $file,
+            function () use ($file) {
+                $stream = new HeartbeatStream(
+                    array($file)
+                );
+
+                foreach ($stream as $record) {
+                    // force iteration
+                }
+            }
+        );
+    } finally {
+        rmdir($dataDir);
+    }
+});
+
 $runner->finish();
