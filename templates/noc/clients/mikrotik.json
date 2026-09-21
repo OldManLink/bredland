@@ -68,6 +68,27 @@
           "resolution": "install-routerboot-update"
         }
       }
+    },
+    {
+      "when": {
+        "field": "wan_lease_remaining",
+        "operator": "lessThan",
+        "value": 5553
+      },
+      "then": {
+        "receiver": "client",
+        "method": "addNotification",
+        "argument": {
+          "text": [
+            "Remaining lease time: ",
+            {
+              "field": "wan_lease_remaining",
+              "formatter": "display_duration"
+            }
+          ],
+          "resolution": "reacquire-wan-dhcp-lease"
+        }
+      }
     }
   ],
   "order": 10
