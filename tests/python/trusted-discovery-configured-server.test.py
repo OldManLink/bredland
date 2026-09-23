@@ -515,4 +515,30 @@ def configured_discovery_omits_script_without_trusted_actions():
         body,
     )
 
+@runner.test('configured server wires action result registry')
+def configured_server_wires_action_result_registry():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_true(
+        isinstance(
+            wired['action_result_registry'],
+            trusted_discovery.ActionResultRegistry,
+        ),
+        'Expected configured server to wire ActionResultRegistry',
+    )
+
 runner.finish()

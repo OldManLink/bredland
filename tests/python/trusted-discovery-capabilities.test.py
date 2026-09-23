@@ -341,4 +341,37 @@ def registers_issued_capability():
         ),
     )
 
+@runner.test('registering capability prunes expired capabilities')
+def registering_capability_prunes_expired_capabilities():
+    now = [100]
+
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: now[0],
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'expired-token',
+        'noc-trusted-action-test',
+        150,
+    )
+
+    now[0] = 200
+
+    registry.register(
+        'install-routeros-update',
+        'current-token',
+        'noc-trusted-action-test',
+        300,
+    )
+
+    testlib.assert_same(
+        [
+            'current-token',
+        ],
+        sorted(
+            registry.capabilities.keys()
+        ),
+    )
+
 runner.finish()

@@ -185,6 +185,7 @@ def create_test_server(
         trusted_discovery,
         action_executor=None,
         registry=None,
+        action_result_registry=None,
         script_renderer=None,
         action_validator=_DEFAULT,
         action_guard=_DEFAULT,
@@ -230,6 +231,7 @@ def create_test_server(
         stylesheet_body,
         action_executor,
         registry,
+        action_result_registry,
         script_renderer,
         action_validator,
         action_guard,
@@ -308,6 +310,21 @@ def action_request(
         data=data,
         headers=headers,
         method='POST',
+    )
+
+def action_status_request(
+        server,
+        request_id,
+):
+    return urllib.request.Request(
+        server_url(
+            server,
+            '/action/' + request_id,
+            ),
+        headers={
+            'Origin': TEST_ALLOWED_ORIGIN,
+        },
+        method='GET',
     )
 
 
@@ -528,6 +545,7 @@ def configured_server_wiring(
             stylesheet_body,
             action_executor,
             capability_registry,
+            action_result_registry,
             trusted_script_renderer,
             action_validator,
             action_guard,
@@ -539,6 +557,7 @@ def configured_server_wiring(
         wired['validator'] = action_validator
         wired['action_hook'] = action_hook
         wired['current_resolutions'] = current_resolutions
+        wired['action_result_registry'] = action_result_registry
 
         return FakeServer()
 

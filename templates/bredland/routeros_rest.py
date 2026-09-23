@@ -3,6 +3,9 @@ import json
 import ssl
 import urllib.request
 
+ROUTEROS_REST_GET_TIMEOUT = 5
+ROUTEROS_REST_POST_TIMEOUT = 30
+
 def execute_routeros_script(
         base_url,
         script_name,
@@ -39,6 +42,7 @@ def post_json(
         response = open_request(
             request,
             context=context,
+            timeout=ROUTEROS_REST_POST_TIMEOUT,
         )
     except urllib.error.HTTPError as error:
         response_body = error.read().decode(
@@ -231,6 +235,7 @@ def get_json(
     response = open_request(
         request,
         context=context,
+        timeout=ROUTEROS_REST_GET_TIMEOUT,
     )
 
     return json.loads(

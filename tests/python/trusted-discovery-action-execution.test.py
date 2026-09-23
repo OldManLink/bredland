@@ -1,5 +1,8 @@
+import json
 import os
 import sys
+import threading
+import time
 import urllib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 import testlib
@@ -27,15 +30,20 @@ def action_endpoint_consumes_capability_before_execution():
     )
 
     with serving(server):
-        with testlib.suppress_stderr():
+        with testlib.capture_stderr() as stderr:
             response = urllib.request.urlopen(
                 action_request(
                     server,
                 )
             )
 
+            testlib.wait_for_stderr(
+                stderr,
+                'Trusted action executor succeeded'
+            )
+
         testlib.assert_same(
-            200,
+            202,
             response.status,
         )
 
@@ -77,7 +85,7 @@ def action_endpoint_rejects_replayed_capability():
             )
 
             testlib.assert_same(
-                200,
+                202,
                 response.status,
             )
 
@@ -109,14 +117,14 @@ def action_endpoint_rejects_second_action_during_cooldown():
         'install-routeros-update',
         'first-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
     guard = trusted_discovery.ActionGuard(
@@ -141,7 +149,7 @@ def action_endpoint_rejects_second_action_during_cooldown():
             )
 
             testlib.assert_same(
-                200,
+                202,
                 response.status,
             )
 
@@ -217,7 +225,7 @@ def action_endpoint_executes_valid_current_state():
             )
 
         testlib.assert_same(
-            200,
+            202,
             response.status,
         )
 
@@ -243,14 +251,22 @@ def action_endpoint_executes_valid_current_state():
 
     with serving(server):
         with testlib.capture_stderr() as stderr:
-            urllib.request.urlopen(
+            response = urllib.request.urlopen(
                 action_request(
                     server,
                 )
             )
 
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+            expected = "Trusted action executor succeeded: resolution='install-routeros-update', script='noc-trusted-action-test'\n"
+            testlib.wait_for_stderr(stderr, expected)
+
         testlib.assert_same(
-            "Trusted action executor succeeded: resolution='install-routeros-update', script='noc-trusted-action-test'\n",
+            expected,
             stderr.getvalue(),
         )
 
@@ -260,10 +276,9 @@ def action_endpoint_logs_failed_execution():
         trusted_discovery,
     )
 
+    exception_message = 'RouterOS REST returned HTTP 500: {"detail":"not enough permissions (9)","error":500,"message":"Internal Server Error"}'
     def execute(_):
-        raise RuntimeError(
-            'RouterOS REST returned HTTP 500: {"detail":"not enough permissions (9)","error":500,"message":"Internal Server Error"}'
-        )
+        raise RuntimeError(exception_message)
 
     server = create_test_server(
         trusted_discovery,
@@ -274,17 +289,21 @@ def action_endpoint_logs_failed_execution():
 
     with serving(server):
         with testlib.capture_stderr() as stderr:
-            testlib.assert_http_error(
-                500,
-                lambda: urllib.request.urlopen(
-                    action_request(
-                        server,
-                    )
-                ),
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
             )
 
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+            testlib.wait_for_stderr(stderr, exception_message)
+
     testlib.assert_same(
-        "Trusted action executor failed: resolution='install-routeros-update', script='noc-trusted-action-test', exception=RuntimeError: RouterOS REST returned HTTP 500: {\"detail\":\"not enough permissions (9)\",\"error\":500,\"message\":\"Internal Server Error\"}\n",
+        "Trusted action executor failed: resolution='install-routeros-update', script='noc-trusted-action-test', exception=RuntimeError: " + exception_message + "\n",
         stderr.getvalue(),
     )
 
@@ -332,8 +351,8 @@ def action_endpoint_handles_validator_exception():
         ),
     )
 
-@runner.test('action endpoint reports executor failure')
-def action_endpoint_reports_executor_failure():
+@runner.test('action endpoint accepts action despite executor failure')
+def action_endpoint_accepts_action_despite_executor_failure():
     registry = registered_capability_registry(
         trusted_discovery,
     )
@@ -349,17 +368,19 @@ def action_endpoint_reports_executor_failure():
 
     with serving(server):
         with testlib.suppress_stderr():
-            testlib.assert_http_error(
-                500,
-                lambda: urllib.request.urlopen(
-                    action_request(
-                        server,
-                    )
-                ),
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
             )
 
-@runner.test('action endpoint handles executor exception')
-def action_endpoint_handles_executor_exception():
+        testlib.assert_same(
+            202,
+            response.status,
+        )
+
+@runner.test('action endpoint accepts action despite executor exception')
+def action_endpoint_accepts_action_despite_executor_exception():
     registry = registered_capability_registry(
         trusted_discovery,
     )
@@ -377,17 +398,21 @@ def action_endpoint_handles_executor_exception():
 
     with serving(server):
         with testlib.suppress_stderr():
-            testlib.assert_http_error(
-                500,
-                lambda: urllib.request.urlopen(
-                    action_request(
-                        server,
-                    )
-                ),
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
             )
+
+        testlib.assert_same(
+            202,
+            response.status,
+        )
 
 @runner.test('action endpoint releases claim after executor failure')
 def action_endpoint_releases_claim_after_executor_failure():
+    import threading
+
     registry = trusted_discovery.CapabilityRegistry(
         lambda: 100,
     )
@@ -396,14 +421,14 @@ def action_endpoint_releases_claim_after_executor_failure():
         'install-routeros-update',
         'first-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
     outcomes = [
@@ -414,38 +439,64 @@ def action_endpoint_releases_claim_after_executor_failure():
     def execute(_):
         return outcomes.pop(0)
 
+    action_guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    original_release = action_guard.release
+    released = threading.Event()
+
+    def release(resolution):
+        original_release(
+            resolution
+        )
+        released.set()
+
+    action_guard.release = release
+
     server = create_test_server(
         trusted_discovery,
         action_executor=execute,
         registry=registry,
+        action_guard=action_guard,
     )
 
     with serving(server):
         with testlib.suppress_stderr():
-            testlib.assert_http_error(
-                500,
-                lambda: urllib.request.urlopen(
-                    action_request(
-                        server,
-                        token='first-token'
-                    )
-                ),
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                    token='first-token',
+                )
+            )
+
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+            testlib.assert_true(
+                released.wait(1),
+                'Executor failure must release action claim',
             )
 
             response = urllib.request.urlopen(
                 action_request(
                     server,
-                    token='second-token'
+                    token='second-token',
                 )
             )
 
             testlib.assert_same(
-                200,
+                202,
                 response.status,
             )
 
 @runner.test('action endpoint releases claim after executor exception')
 def action_endpoint_releases_claim_after_executor_exception():
+    import threading
+
     registry = trusted_discovery.CapabilityRegistry(
         lambda: 100,
     )
@@ -454,59 +505,248 @@ def action_endpoint_releases_claim_after_executor_exception():
         'install-routeros-update',
         'first-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
         'noc-trusted-action-test',
-        200,
+        202,
     )
 
-    attempt = [0]
+    outcomes = [
+        RuntimeError('boom'),
+        True,
+    ]
 
     def execute(_):
-        attempt[0] += 1
+        outcome = outcomes.pop(0)
 
-        if attempt[0] == 1:
-            raise RuntimeError(
-                'RouterOS REST returned HTTP 500: '
-                '{"detail":"not enough permissions (9)",'
-                '"error":500,'
-                '"message":"Internal Server Error"}'
-            )
-        return True
+        if isinstance(
+                outcome,
+                Exception,
+        ):
+            raise outcome
+
+        return outcome
+
+    action_guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    original_release = action_guard.release
+    released = threading.Event()
+
+    def release(resolution):
+        original_release(
+            resolution
+        )
+        released.set()
+
+    action_guard.release = release
 
     server = create_test_server(
         trusted_discovery,
         action_executor=execute,
         registry=registry,
+        action_guard=action_guard,
     )
 
     with serving(server):
         with testlib.suppress_stderr():
-            testlib.assert_http_error(
-                500,
-                lambda: urllib.request.urlopen(
-                    action_request(
-                        server,
-                        token='first-token'
-                    )
-                ),
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                    token='first-token',
+                )
+            )
+
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+            testlib.assert_true(
+                released.wait(1),
+                'Executor exception must release action claim',
             )
 
             response = urllib.request.urlopen(
                 action_request(
                     server,
-                    token='second-token'
+                    token='second-token',
                 )
             )
 
             testlib.assert_same(
-                200,
+                202,
                 response.status,
             )
+
+@runner.test('successful executor marks action result succeeded')
+def successful_executor_marks_action_result_succeeded():
+    registry = registered_capability_registry(
+        trusted_discovery,
+    )
+
+    action_results = trusted_discovery.ActionResultRegistry(
+        lambda: 100,
+    )
+
+    _, execute = recording_action_executor(
+        True
+    )
+
+    server = create_test_server(
+        trusted_discovery,
+        action_executor=execute,
+        registry=registry,
+        action_result_registry=action_results,
+    )
+
+    with serving(server):
+        with testlib.suppress_stderr():
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
+            )
+
+            body = json.loads(
+                response.read().decode('utf-8')
+            )
+
+            deadline = time.time() + 1
+
+            while (
+                    action_results.get(
+                        body['request_id']
+                    ) == {
+                        'status': 'pending',
+                    }
+                    and time.time() < deadline
+            ):
+                time.sleep(0.01)
+
+    testlib.assert_same(
+        {
+            'status': 'succeeded',
+        },
+        action_results.get(
+            body['request_id'],
+        ),
+    )
+
+@runner.test('failed executor marks action result failed')
+def failed_executor_marks_action_result_failed():
+    registry = registered_capability_registry(
+        trusted_discovery,
+    )
+
+    action_results = trusted_discovery.ActionResultRegistry(
+        lambda: 100,
+    )
+
+    _, execute = recording_action_executor(
+        False
+    )
+
+    server = create_test_server(
+        trusted_discovery,
+        action_executor=execute,
+        registry=registry,
+        action_result_registry=action_results,
+    )
+
+    with serving(server):
+        with testlib.suppress_stderr():
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
+            )
+
+            body = json.loads(
+                response.read().decode('utf-8')
+            )
+
+            deadline = time.time() + 1
+
+            while (
+                    action_results.get(
+                        body['request_id']
+                    ) == {
+                        'status': 'pending',
+                    }
+                    and time.time() < deadline
+            ):
+                time.sleep(0.01)
+
+    testlib.assert_same(
+        {
+            'status': 'failed',
+        },
+        action_results.get(
+            body['request_id'],
+        ),
+    )
+
+@runner.test('executor exception marks action result failed')
+def executor_exception_marks_action_result_failed():
+    registry = registered_capability_registry(
+        trusted_discovery,
+    )
+
+    action_results = trusted_discovery.ActionResultRegistry(
+        lambda: 100,
+    )
+
+    def execute(_):
+        raise RuntimeError(
+            'boom'
+        )
+
+    server = create_test_server(
+        trusted_discovery,
+        action_executor=execute,
+        registry=registry,
+        action_result_registry=action_results,
+    )
+
+    with serving(server):
+        with testlib.suppress_stderr():
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                )
+            )
+
+            body = json.loads(
+                response.read().decode('utf-8')
+            )
+
+            deadline = time.time() + 1
+
+            while (
+                    action_results.get(
+                        body['request_id']
+                    ) == {
+                        'status': 'pending',
+                    }
+                    and time.time() < deadline
+            ):
+                time.sleep(0.01)
+
+    testlib.assert_same(
+        {
+            'status': 'failed',
+        },
+        action_results.get(
+            body['request_id'],
+        ),
+    )
 
 @runner.test('action endpoint aborts when resolution hook fails')
 def action_endpoint_aborts_when_resolution_hook_fails():
@@ -589,7 +829,7 @@ def action_endpoint_executes_after_resolution_hook_succeeds():
             )
 
     testlib.assert_same(
-        200,
+        202,
         response.status,
     )
 
@@ -702,5 +942,59 @@ def action_endpoint_aborts_when_configured_rpi_hook_is_unavailable():
         ),
         'Action guard should be released after hook failure',
     )
+
+@runner.test('action response arrives before executor completion')
+def action_response_arrives_before_executor_completion():
+
+    executor_started = threading.Event()
+    allow_executor_to_finish = threading.Event()
+    response_received = threading.Event()
+
+    registry = registered_capability_registry(
+        trusted_discovery,
+    )
+
+    def execute(_):
+        executor_started.set()
+        allow_executor_to_finish.wait()
+        return True
+
+    server = create_test_server(
+        trusted_discovery,
+        action_executor=execute,
+        registry=registry,
+    )
+
+    def request_action():
+        with testlib.suppress_stderr():
+            urllib.request.urlopen(
+                action_request(
+                    server,
+                )
+            )
+
+        response_received.set()
+
+    with serving(server):
+        request_thread = threading.Thread(
+            target=request_action,
+        )
+        request_thread.start()
+
+        testlib.assert_true(
+            executor_started.wait(1),
+            'Executor must start',
+        )
+
+        response_arrived = response_received.wait(1)
+
+        allow_executor_to_finish.set()
+        request_thread.join()
+
+        testlib.assert_true(
+            response_arrived,
+            'Response must arrive before executor completion',
+        )
+
 
 runner.finish()

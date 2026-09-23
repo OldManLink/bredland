@@ -57,7 +57,7 @@ def posts_json_to_routeros_rest():
     class Response:
         status = 200
 
-    def open_request(request, context=None):
+    def open_request(request, context=None, timeout=None):
         calls.append(
             {
                 'url': request.full_url,
@@ -494,7 +494,7 @@ def gets_json_from_routeros_rest():
         def read(self):
             return b'{"installed-version":"7.23.1"}'
 
-    def open_request(request, context=None):
+    def open_request(request, context=None, timeout=None):
         calls.append(
             {
                 'url': request.full_url,
@@ -543,7 +543,7 @@ def preserves_routeros_rest_error_response():
         b'"error":400,"message":"Bad Request"}'
     )
 
-    def open_request(request, context=None):
+    def open_request(request, context=None, timeout=None):
         raise urllib.error.HTTPError(
             request.full_url,
             400,
@@ -572,6 +572,76 @@ def preserves_routeros_rest_error_response():
             '"error":400,"message":"Bad Request"}'
         ),
         operation,
+    )
+
+@runner.test('posts RouterOS REST request with timeout')
+def posts_routeros_rest_request_with_timeout():
+    calls = []
+
+    class Response:
+        status = 200
+
+    def open_request(
+            request,
+            context=None,
+            timeout=None,
+    ):
+        calls.append(
+            timeout
+        )
+
+        return Response()
+
+    routeros_rest.post_json(
+        'https://192.168.88.1/rest/system/script/run',
+        {
+            '.id': 'noc-trusted-action-test',
+        },
+        {
+            'Authorization': 'Basic test',
+        },
+        'test-context',
+        open_request,
+    )
+
+    testlib.assert_same(
+        [
+            30,
+        ],
+        calls,
+    )
+
+@runner.test('gets RouterOS REST request with timeout')
+def gets_routeros_rest_request_with_timeout():
+    calls = []
+
+    class Response:
+        def read(self):
+            return b'{}'
+
+    def open_request(
+            request,
+            context=None,
+            timeout=None,
+    ):
+        calls.append(
+            timeout
+        )
+
+        return Response()
+
+    routeros_rest.get_json(
+        'https://mikrotik.example/rest/system/package/update',
+        {},
+        'tls-context',
+        open_request,
+    )
+
+    testlib.assert_same(
+        [
+            5,
+        ],
+        calls,
     )
 
 runner.finish()

@@ -96,13 +96,23 @@ class CapabilityRegistry:
         self.lock = threading.Lock()
 
     def register(
-        self,
-        resolution,
-        token,
-        script_name,
-        expires_at,
+            self,
+            resolution,
+            token,
+            script_name,
+            expires_at,
     ):
         with self.lock:
+            expired = [
+                existing_token
+                for existing_token, capability
+                in self.capabilities.items()
+                if self.now() >= capability['expires_at']
+            ]
+
+            for existing_token in expired:
+                del self.capabilities[existing_token]
+
             self.capabilities[token] = {
                 'resolution': resolution,
                 'script_name': script_name,
@@ -130,6 +140,82 @@ class CapabilityRegistry:
             del self.capabilities[token]
 
             return capability['script_name']
+
+class ActionResultRegistry:
+    def __init__(self, now):
+        self.now = now
+        self.results = {}
+        self.lock = threading.Lock()
+
+    def create(
+            self,
+            request_id,
+            expires_at,
+    ):
+        with self.lock:
+            expired = [
+                key
+                for key, result in self.results.items()
+                if self.now() >= result['expires_at']
+            ]
+
+            for key in expired:
+                del self.results[key]
+
+            self.results[request_id] = {
+                'status': 'pending',
+                'expires_at': expires_at,
+            }
+
+    def get(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return None
+
+            if self.now() >= result['expires_at']:
+                del self.results[request_id]
+                return None
+
+            return {
+                'status': result['status'],
+            }
+
+    def succeed(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return False
+
+            result['status'] = 'succeeded'
+            return True
+
+    def fail(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return False
+
+            result['status'] = 'failed'
+            return True
 
 class ActionGuard:
     def __init__(self, now, cooldown):
@@ -507,6 +593,18 @@ def create_trusted_script_renderer(
 
     return render
 
+def prune_expired_assets(
+        assets,
+        now,
+):
+    expired = [
+        path
+        for path, asset in assets.items()
+        if now >= asset[2]
+    ]
+
+    for path in expired:
+        del assets[path]
 
 def main():
     server = create_configured_server(
@@ -538,6 +636,9 @@ def render_discovery_response(
 
 def create_asset_path():
     return '/' + secrets.token_hex(16)
+
+def create_request_id():
+    return secrets.token_hex(16)
 
 def routeros_script_for_resolution(resolution):
     action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
@@ -668,6 +769,10 @@ def create_configured_server(
             urllib.request.urlopen,
         )
 
+    action_result_registry = ActionResultRegistry(
+        time.time,
+    )
+
     server = create_server(
         host,
         port,
@@ -677,6 +782,7 @@ def create_configured_server(
         stylesheet_body,
         action_executor,
         capability_registry,
+        action_result_registry,
         trusted_script_renderer,
         action_validator,
         action_guard,
@@ -707,6 +813,7 @@ def create_server(
     stylesheet_body,
     action_executor,
     capability_registry,
+    action_result_registry,
     trusted_script_renderer,
     action_validator,
     action_guard,
@@ -722,7 +829,11 @@ def create_server(
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            asset = generated_assets.pop(self.path, None)
+            asset = generated_assets.pop(
+                self.path,
+                None,
+            )
+
             if asset is not None:
                 asset_type, resolutions, expires_at = asset
 
@@ -731,11 +842,18 @@ def create_server(
             else:
                 asset_type = None
 
-            if (asset_type == 'script'):
+            if asset_type == 'script':
                 rendered_script = script_body
+
                 if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(script_body, resolutions)
-                body = rendered_script.encode('utf-8')
+                    rendered_script = trusted_script_renderer(
+                        script_body,
+                        resolutions,
+                    )
+
+                body = rendered_script.encode(
+                    'utf-8'
+                )
 
                 self.send_response(200)
                 self.send_header(
@@ -746,9 +864,14 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                send_content_length(self, body)
+                send_content_length(
+                    self,
+                    body,
+                )
                 self.end_headers()
-                self.wfile.write(body)
+                self.wfile.write(
+                    body
+                )
                 return
 
             if asset_type == 'stylesheet':
@@ -766,33 +889,71 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                send_content_length(self, body)
+                send_content_length(
+                    self,
+                    body,
+                )
                 self.end_headers()
-                self.wfile.write(body)
+                self.wfile.write(
+                    body
+                )
                 return
 
-            if self.path != '/probe':
-                self.send_error(404)
-                return
+            if self.path.startswith('/action/'):
+                request_id = self.path[
+                    len('/action/'):]
+                result = (
+                    action_result_registry.get(
+                        request_id
+                    )
+                    if action_result_registry is not None
+                    else None
+                )
 
-            self.send_response(200)
-            self.send_header(
-                'Content-Type',
-                'application/json',
-            )
-            self.send_header(
-                'Cache-Control',
-                'no-store',
-            )
-            self.send_header(
-                'Access-Control-Allow-Origin',
-                allowed_origin,
-            )
+                if result is None:
+                    self.send_error(404)
+                    return
+
+                body = json.dumps(
+                    result,
+                    separators=(',', ':'),
+                ).encode('utf-8')
+
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'application/json',
+                )
+                self.send_header(
+                    'Cache-Control',
+                    'no-store',
+                )
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                send_content_length(
+                    self,
+                    body,
+                )
+                self.end_headers()
+                self.wfile.write(
+                    body
+                )
+                return
 
             if self.path == '/probe':
-                stylesheet_asset_path = asset_path_factory()
+                prune_expired_assets(
+                    generated_assets,
+                    asset_now(),
+                )
+
+                stylesheet_asset_path = (
+                    asset_path_factory()
+                )
 
                 resolutions = current_resolutions()
+
                 generated_assets[
                     stylesheet_asset_path
                 ] = (
@@ -804,7 +965,9 @@ def create_server(
                 script_asset_path = None
 
                 if resolutions:
-                    script_asset_path = asset_path_factory()
+                    script_asset_path = (
+                        asset_path_factory()
+                    )
 
                     generated_assets[
                         script_asset_path
@@ -814,18 +977,42 @@ def create_server(
                         asset_now() + 10,
                     )
 
-                response_body = render_discovery_response(
-                    base_url + stylesheet_asset_path,
+                body = render_discovery_response(
+                    base_url
+                    + stylesheet_asset_path,
                     (
-                        base_url + script_asset_path
-                        if script_asset_path is not None
+                        base_url
+                        + script_asset_path
+                        if script_asset_path
+                           is not None
                         else None
                     ),
                     ).encode('utf-8')
 
-            send_content_length(self, response_body)
-            self.end_headers()
-            self.wfile.write(response_body)
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'application/json',
+                )
+                self.send_header(
+                    'Cache-Control',
+                    'no-store',
+                )
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                send_content_length(
+                    self,
+                    body,
+                )
+                self.end_headers()
+                self.wfile.write(
+                    body
+                )
+                return
+
+            self.send_error(404)
 
         def do_POST(self):
             if self.path != '/action':
@@ -947,54 +1134,95 @@ def create_server(
                     self._send_action_response(500)
                     return
 
-            try:
-                succeeded = action_executor(script_name)
-            except Exception as error:
-                sys.stderr.write(
-                    'Trusted action executor failed: '
-                    'resolution={!r}, script={!r}, exception={}: {}\n'.format(
-                        resolution,
-                        script_name,
-                        type(error).__name__,
-                        str(error),
+            request_id = create_request_id()
+
+            if action_result_registry is not None:
+                action_result_registry.create(
+                    request_id,
+                    time.time() + 300,
                     )
-                )
 
-                action_guard.release(resolution)
+            def execute_action():
+                try:
+                    succeeded = action_executor(
+                        script_name
+                    )
+                except Exception as error:
+                    sys.stderr.write(
+                        'Trusted action executor failed: '
+                        'resolution={!r}, script={!r}, exception={}: {}\n'.format(
+                            resolution,
+                            script_name,
+                            type(error).__name__,
+                            str(error),
+                        )
+                    )
 
-                self._send_action_response(500)
-                return
+                    if action_result_registry is not None:
+                        action_result_registry.fail(
+                            request_id
+                        )
 
-            if not succeeded:
-                action_guard.release(
+                    action_guard.release(
+                        resolution
+                    )
+                    return
+
+                if not succeeded:
+                    if action_result_registry is not None:
+                        action_result_registry.fail(
+                            request_id
+                        )
+
+                    action_guard.release(
+                        resolution
+                    )
+                    return
+
+                action_guard.complete(
                     resolution
                 )
 
-                self._send_action_response(500)
-                return
+                if action_result_registry is not None:
+                    action_result_registry.succeed(
+                        request_id
+                    )
 
-            action_guard.complete(
-                resolution
-            )
-
-            sys.stderr.write(
-                'Trusted action executor succeeded: '
-                'resolution={!r}, script={!r}\n'.format(
-                    resolution,
-                    script_name,
+                sys.stderr.write(
+                    'Trusted action executor succeeded: '
+                    'resolution={!r}, script={!r}\n'.format(
+                        resolution,
+                        script_name,
+                    )
                 )
+
+            threading.Thread(
+                target=execute_action,
+            ).start()
+
+            self._send_action_response(
+                202,
+                json.dumps(
+                    {
+                        'request_id': request_id,
+                    },
+                    separators=(',', ':'),
+                ),
             )
 
-            self._send_action_response(200)
+        def _send_action_response(self, status, body=''):
+            body = body.encode('utf-8')
 
-        def _send_action_response(self, status):
             self.send_response(status)
             self.send_header(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
-            send_content_length(self, '')
+            send_content_length(self, body)
             self.end_headers()
+
+            if body:
+                self.wfile.write(body)
 
         def do_OPTIONS(self):
             if self.path != '/action':

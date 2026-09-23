@@ -2,6 +2,7 @@ import contextlib
 import io
 import os
 import tempfile
+import time
 import urllib.error
 
 from test_suite_runner import AssertionFailed
@@ -175,6 +176,14 @@ def assert_http_error(expected_status, operation, message=''):
         )
     )
 
+def wait_for_stderr(stderr, expected):
+    deadline = time.time() + 1
+
+    while (
+            expected not in stderr.getvalue()
+            and time.time() < deadline
+    ):
+        time.sleep(0.01)
 
 @contextlib.contextmanager
 def capture_stderr():
