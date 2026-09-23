@@ -30,7 +30,7 @@ def executes_routeros_script_through_rest():
 
     result = routeros_rest.execute_routeros_script(
         'https://192.168.88.1',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         post,
     )
 
@@ -43,7 +43,7 @@ def executes_routeros_script_through_rest():
             (
                 'https://192.168.88.1/rest/system/script/run',
                 {
-                    '.id': 'noc-trusted-action-test',
+                    '.id': 'noc-trusted-action-probe',
                 },
             ),
         ],
@@ -78,7 +78,7 @@ def posts_json_to_routeros_rest():
     result = routeros_rest.post_json(
         'https://192.168.88.1/rest/system/script/run',
         {
-            '.id': 'noc-trusted-action-test',
+            '.id': 'noc-trusted-action-probe',
         },
         {
             'Authorization': 'Basic test',
@@ -96,7 +96,7 @@ def posts_json_to_routeros_rest():
             {
                 'url': 'https://192.168.88.1/rest/system/script/run',
                 'method': 'POST',
-                'data': b'{".id":"noc-trusted-action-test"}',
+                'data': b'{".id":"noc-trusted-action-probe"}',
                 'authorization': 'Basic test',
                 'content_type': 'application/json',
                 'context': 'test-context',
@@ -213,7 +213,7 @@ def creates_authenticated_routeros_rest_poster():
     result = poster(
         'https://192.168.88.1/rest/system/script/run',
         {
-            '.id': 'noc-trusted-action-test',
+            '.id': 'noc-trusted-action-probe',
         },
     )
 
@@ -224,7 +224,7 @@ def creates_authenticated_routeros_rest_poster():
             (
                 'https://192.168.88.1/rest/system/script/run',
                 {
-                    '.id': 'noc-trusted-action-test',
+                    '.id': 'noc-trusted-action-probe',
                 },
                 {
                     'Authorization':
@@ -318,7 +318,7 @@ def creates_routeros_action_executor():
     )
 
     result = executor(
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
     )
 
     testlib.assert_true(result)
@@ -328,7 +328,7 @@ def creates_routeros_action_executor():
             (
                 'https://192.168.88.1/rest/system/script/run',
                 {
-                    '.id': 'noc-trusted-action-test',
+                    '.id': 'noc-trusted-action-probe',
                 },
             )
         ],
@@ -595,7 +595,7 @@ def posts_routeros_rest_request_with_timeout():
     routeros_rest.post_json(
         'https://192.168.88.1/rest/system/script/run',
         {
-            '.id': 'noc-trusted-action-test',
+            '.id': 'noc-trusted-action-probe',
         },
         {
             'Authorization': 'Basic test',

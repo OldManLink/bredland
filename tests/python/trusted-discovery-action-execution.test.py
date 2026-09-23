@@ -49,7 +49,7 @@ def action_endpoint_consumes_capability_before_execution():
 
         testlib.assert_same(
             [
-                'noc-trusted-action-test',
+                'noc-trusted-action-probe',
             ],
             calls,
         )
@@ -100,7 +100,7 @@ def action_endpoint_rejects_replayed_capability():
 
             testlib.assert_same(
                 [
-                    'noc-trusted-action-test'
+                    'noc-trusted-action-probe'
                 ],
                 calls,
             )
@@ -116,14 +116,14 @@ def action_endpoint_rejects_second_action_during_cooldown():
     registry.register(
         'install-routeros-update',
         'first-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
@@ -165,7 +165,7 @@ def action_endpoint_rejects_second_action_during_cooldown():
 
             testlib.assert_same(
                 [
-                    'noc-trusted-action-test'
+                    'noc-trusted-action-probe'
                 ],
                 calls,
             )
@@ -231,7 +231,7 @@ def action_endpoint_executes_valid_current_state():
 
         testlib.assert_same(
             [
-                'noc-trusted-action-test',
+                'noc-trusted-action-probe',
             ],
             calls,
         )
@@ -262,7 +262,7 @@ def action_endpoint_executes_valid_current_state():
                 response.status,
             )
 
-            expected = "Trusted action executor succeeded: resolution='install-routeros-update', script='noc-trusted-action-test'\n"
+            expected = "Trusted action executor succeeded: resolution='install-routeros-update', script='noc-trusted-action-probe'\n"
             testlib.wait_for_stderr(stderr, expected)
 
         testlib.assert_same(
@@ -303,7 +303,7 @@ def action_endpoint_logs_failed_execution():
             testlib.wait_for_stderr(stderr, exception_message)
 
     testlib.assert_same(
-        "Trusted action executor failed: resolution='install-routeros-update', script='noc-trusted-action-test', exception=RuntimeError: " + exception_message + "\n",
+        "Trusted action executor failed: resolution='install-routeros-update', script='noc-trusted-action-probe', exception=RuntimeError: " + exception_message + "\n",
         stderr.getvalue(),
     )
 
@@ -420,14 +420,14 @@ def action_endpoint_releases_claim_after_executor_failure():
     registry.register(
         'install-routeros-update',
         'first-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
@@ -504,14 +504,14 @@ def action_endpoint_releases_claim_after_executor_exception():
     registry.register(
         'install-routeros-update',
         'first-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
     registry.register(
         'install-routeros-update',
         'second-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         202,
     )
 
@@ -841,7 +841,7 @@ def action_endpoint_executes_after_resolution_hook_succeeds():
             ),
             (
                 'executor',
-                'noc-trusted-action-test',
+                'noc-trusted-action-probe',
             ),
         ],
         events,

@@ -49,12 +49,12 @@ def consumes_capability_only_once():
     registry.register(
         'install-routeros-update',
         'test-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         200,
     )
 
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         registry.consume(
             'install-routeros-update',
             'test-token',
@@ -122,7 +122,7 @@ def consumes_capability_atomically_across_threads():
     testlib.assert_same(2, len(results))
     testlib.assert_same(
         1,
-        results.count('noc-trusted-action-test'),
+        results.count('noc-trusted-action-probe'),
     )
     testlib.assert_same(
         1,
@@ -144,7 +144,7 @@ def registers_capability_under_registry_lock():
         registry.register(
             'install-routeros-update',
             'test-token',
-            'noc-trusted-action-test',
+            'noc-trusted-action-probe',
             200,
         )
 
@@ -176,7 +176,7 @@ def registers_capability_under_registry_lock():
     )
 
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         registry.consume(
             'install-routeros-update',
             'test-token',
@@ -192,7 +192,7 @@ def does_not_consume_capability_for_wrong_resolution():
     registry.register(
         'install-routeros-update',
         'test-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         200,
     )
 
@@ -205,7 +205,7 @@ def does_not_consume_capability_for_wrong_resolution():
     )
 
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         registry.consume(
             'install-routeros-update',
             'test-token',
@@ -221,12 +221,12 @@ def rejects_expired_capability():
     registry.register(
         'install-routeros-update',
         'test-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         110,
     )
 
     testlib.assert_same(
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         registry.consume(
             'install-routeros-update',
             'test-token',
@@ -236,7 +236,7 @@ def rejects_expired_capability():
     registry.register(
         'install-routeros-update',
         'expired-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         90,
     )
 
@@ -257,7 +257,7 @@ def removes_expired_capability_when_consumed():
     registry.register(
         'install-routeros-update',
         'expired-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         90,
     )
 
@@ -352,7 +352,7 @@ def registering_capability_prunes_expired_capabilities():
     registry.register(
         'install-routeros-update',
         'expired-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         150,
     )
 
@@ -361,7 +361,7 @@ def registering_capability_prunes_expired_capabilities():
     registry.register(
         'install-routeros-update',
         'current-token',
-        'noc-trusted-action-test',
+        'noc-trusted-action-probe',
         300,
     )
 

@@ -57,7 +57,7 @@ def action_endpoint_executes_supported_resolution():
 
         testlib.assert_same(
             [
-                'noc-trusted-action-test',
+                'noc-trusted-action-probe',
             ],
             calls,
         )

@@ -17,7 +17,7 @@ TEST_SCRIPT_BODY = 'window.TEST_TRUSTED_ASSET_LOADED = true;'
 TEST_STYLESHEET_BODY = 'html { outline: 1px solid; }'
 TEST_RESOLUTION = 'install-routeros-update'
 TEST_TOKEN = 'test-token'
-TEST_SCRIPT_NAME = 'noc-trusted-action-test'
+TEST_SCRIPT_NAME = 'noc-trusted-action-probe'
 TEST_NOW = 100
 TEST_CAPABILITY_EXPIRY = 200
 TEST_ACTION_COOLDOWN = 30

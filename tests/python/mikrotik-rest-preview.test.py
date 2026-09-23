@@ -51,7 +51,7 @@ def stop_server(process):
         process.stdout.close()
 
 def script_request(
-        script='noc-trusted-action-test',
+        script='noc-trusted-action-probe',
         path='/rest/system/script/run',
 ):
     return urllib.request.Request(
@@ -111,7 +111,7 @@ def rejects_wrong_path():
             404,
             lambda: urllib.request.urlopen(
                 script_request(
-                    script='noc-trusted-action-test',
+                    script='noc-trusted-action-probe',
                     path='/not-routeros',
                 ),
                 timeout=1,
@@ -128,7 +128,7 @@ def defaults_to_never_shutting_down():
     try:
         urllib.request.urlopen(
             script_request(
-                script='noc-trusted-action-test',
+                script='noc-trusted-action-probe',
             ),
             timeout=1,
         )
@@ -151,7 +151,7 @@ def shuts_down_after_configured_delay():
     try:
         response = urllib.request.urlopen(
             script_request(
-                script='noc-trusted-action-test',
+                script='noc-trusted-action-probe',
             ),
             timeout=1,
         )

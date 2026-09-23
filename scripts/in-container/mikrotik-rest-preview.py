@@ -44,7 +44,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if request not in (
                 {
-                    '.id': 'noc-trusted-action-test',
+                    '.id': 'noc-trusted-action-probe',
                 },
                 {
                     '.id': 'noc-install-routeros-update',

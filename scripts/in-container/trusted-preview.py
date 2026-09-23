@@ -151,6 +151,10 @@ def main():
             urllib.request.urlopen,
         )
 
+    action_result_registry = trusted_discovery.ActionResultRegistry(
+        time.time,
+    )
+
     server = trusted_discovery.create_server(
         '0.0.0.0',
         8081,
@@ -160,6 +164,7 @@ def main():
         stylesheet_body,
         execute_action,
         capability_registry,
+        action_result_registry,
         trusted_script_renderer,
         validate_action,
         action_guard,

@@ -25,8 +25,8 @@ bredland_address="192.168.88.5/32"
 
 rest_group="noc-rest"
 rest_user="noc-rest-bredland"
-test_script="noc-trusted-action-test"
-test_log_message="[NOC-TRUSTED-TEST] trusted action test invoked"
+probe_script="noc-trusted-action-probe"
+probe_log_message="[NOC-TRUSTED-PROBE] trusted action probe completed"
 
 tls_dir="/etc/bredland/mikrotik-rest"
 ca_cert="${tls_dir}/ca.pem"
@@ -196,12 +196,12 @@ run_step \
 
 before_count="$(
     ssh "$router" \
-        ":put [:len [/log find where message=\"${test_log_message}\"]]" \
+        ":put [:len [/log find where message=\"${probe_log_message}\"]]" \
         | tr -d '\r'
 )"
 
 run_step \
-    "Invoking trusted action test through restricted REST identity" \
+    "Invoking trusted action probe through restricted REST identity" \
     execute_remote_command \
     "$bredland_host" \
     "status=\$(sudo -u bredland-trusted sh -c '
@@ -213,7 +213,7 @@ run_step \
              --write-out \"%{http_code}\" \
              --request POST \
              --header \"Content-Type: application/json\" \
-             --data \"{\\\"number\\\":\\\"${test_script}\\\"}\" \
+             --data \"{\\\"number\\\":\\\"${probe_script}\\\"}\" \
              --cacert \"$ca_cert\" \
              --user \"\$MIKROTIK_REST_USER:\$MIKROTIK_REST_PASSWORD\" \
              \"https://${router_address}/rest/system/script/run\"
@@ -222,18 +222,18 @@ run_step \
 
 after_count="$(
     ssh "$router" \
-        ":put [:len [/log find where message=\"${test_log_message}\"]]" \
+        ":put [:len [/log find where message=\"${probe_log_message}\"]]" \
         | tr -d '\r'
 )"
 
 if [[ "$before_count" =~ ^[0-9]+$ ]] \
     && [[ "$after_count" =~ ^[0-9]+$ ]] \
     && (( after_count == before_count + 1 )); then
-    pass "Restricted REST identity executed trusted action test"
+    pass "Restricted REST identity executed trusted action probe"
 else
     echo "Matching log entries before: $before_count" >&2
     echo "Matching log entries after:  $after_count" >&2
-    fail "Verifying trusted action test execution"
+    fail "Verifying trusted action probe execution"
 fi
 
 echo "→ Verifying restricted REST identity cannot perform generic writes"
@@ -249,7 +249,7 @@ write_status="$(
                  --write-out \"%{http_code}\" \
                  --request PATCH \
                  --header \"Content-Type: application/json\" \
-                 --data \"{\\\"comment\\\":\\\"NOC REST write test\\\"}\" \
+                 --data \"{\\\"comment\\\":\\\"NOC REST write probe\\\"}\" \
                  --cacert \"$ca_cert\" \
                  --user \"\$MIKROTIK_REST_USER:\$MIKROTIK_REST_PASSWORD\" \
                  \"https://${router_address}/rest/user\"

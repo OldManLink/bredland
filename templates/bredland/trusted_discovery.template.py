@@ -29,6 +29,7 @@ MIKROTIK_REST_BASE_URL = '__MIKROTIK_REST_BASE_URL__'
 MIKROTIK_REST_CREDENTIALS_FILE = '/etc/bredland/mikrotik-rest/credentials.env'
 MIKROTIK_REST_CA_FILE = '/etc/bredland/mikrotik-rest/ca.pem'
 RESOLUTIONS_FILE = '/etc/bredland/resolutions.json'
+ACTION_RESULT_TTL_SECONDS = 300
 TRUSTED_ACTION_DEFINITIONS = {
     'install-routeros-update': {
         'script': 'noc-install-routeros-update',
@@ -1139,7 +1140,7 @@ def create_server(
             if action_result_registry is not None:
                 action_result_registry.create(
                     request_id,
-                    time.time() + 300,
+                    time.time() + ACTION_RESULT_TTL_SECONDS,
                     )
 
             def execute_action():
