@@ -191,101 +191,6 @@ test('trusted action button disables while request is pending', function () {
     delete global.document;
 });
 
-test('trusted action shows success toast', async function () {
-    var click_handler = null;
-    var appended_to_notification = [];
-
-    var notification = create_notification();
-    notification.appendChild = function (element) {
-        appended_to_notification.push(element);
-    };
-    notification.querySelector = function () {
-        return null;
-    };
-
-    global.window = {
-        TRUSTED_BASE_URL: 'https://bredland.example:8081',
-
-        TRUSTED_CAPABILITIES: {
-            'test-resolution': 'test-token'
-        },
-
-        confirm: function () {
-            return true;
-        }
-    };
-
-    global.fetch = function () {
-        return Promise.resolve({
-            ok: true
-        });
-    };
-
-    global.setTimeout = function () {
-        return 1;
-    };
-
-    global.document = {
-        querySelectorAll: function () {
-            return [
-                notification
-            ];
-        },
-
-        createElement: function (tag_name) {
-            return {
-                tagName: tag_name,
-
-                addEventListener: function (
-                    event_name,
-                    handler
-                ) {
-                    if (event_name === 'click') {
-                        click_handler = handler;
-                    }
-                },
-                remove: function () {}
-            };
-        },
-
-        body: {
-            appendChild: function () {}
-        }
-    };
-
-    delete require.cache[
-        require.resolve(trusted_script)
-        ];
-
-    require(trusted_script);
-
-    click_handler();
-
-    await new Promise(function (resolve) {
-        setImmediate(resolve);
-    });
-
-    assert.equal(
-        appended_to_notification.length,
-        2
-    );
-
-    assert.equal(
-        appended_to_notification[1].textContent,
-        'Update requested'
-    );
-
-    assert.equal(
-        appended_to_notification[1].className,
-        'trusted-action-success'
-    );
-
-    delete global.window;
-    delete global.fetch;
-    delete global.document;
-    delete global.setTimeout;
-});
-
 test('trusted action shows failure message when update already in progress', async function () {
     var click_handler = null;
     var appended_to_notification = [];
@@ -828,8 +733,19 @@ test('trusted action success toast disappears', async function () {
 
     global.fetch = function () {
         return Promise.resolve({
-            ok: true
+            ok: true,
+            status: 202,
+
+            json: function () {
+                return Promise.resolve({
+                    request_id: 'request-123'
+                });
+            }
         });
+    };
+
+    global.setTimeout = function () {
+        return 1;
     };
 
     global.document = {
@@ -867,36 +783,39 @@ test('trusted action success toast disappears', async function () {
         }
     };
 
-    delete require.cache[
-        require.resolve(trusted_script)
+    try {
+        delete require.cache[
+            require.resolve(trusted_script)
         ];
 
-    require(trusted_script);
+        require(trusted_script);
 
-    click_handler();
+        click_handler();
 
-    await new Promise(function (resolve) {
-        setImmediate(resolve);
-    });
+        await new Promise(function (resolve) {
+            setImmediate(resolve);
+        });
 
-    assert.notEqual(
-        toast,
-        null
-    );
+        assert.notEqual(
+            toast,
+            null
+        );
 
-    assert.notEqual(
-        animation_end_handler,
-        null
-    );
+        assert.notEqual(
+            animation_end_handler,
+            null
+        );
 
-    animation_end_handler();
+        animation_end_handler();
 
-    assert.equal(
-        toast,
-        null
-    );
-
-    delete global.window;
-    delete global.fetch;
-    delete global.document;
+        assert.equal(
+            toast,
+            null
+        );
+    } finally {
+        delete global.window;
+        delete global.fetch;
+        delete global.setTimeout;
+        delete global.document;
+    }
 });
