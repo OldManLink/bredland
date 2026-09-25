@@ -1,0 +1,20 @@
+# BRD-036: Provision RouterOS staged-state predicate
+
+:local scriptName "noc-routeros-staged"
+:local source ":local update [/system package update print as-value]\r\n:local status (\$update->\"status\")\r\n:return (\$status = \"Downloaded, please reboot router to upgrade it\")"
+:local scriptId [/system script find name=$scriptName]
+
+:if ([:len $scriptId] > 0) do={
+    /system script set $scriptId \
+        comment="Report whether RouterOS update is staged" \
+        policy=read,test \
+        dont-require-permissions=yes \
+        source=$source
+} else={
+    /system script add \
+        name=$scriptName \
+        comment="Report whether RouterOS update is staged" \
+        policy=read,test \
+        dont-require-permissions=yes \
+        source=$source
+}
