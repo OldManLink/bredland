@@ -35,6 +35,9 @@
   "latest_version": {
     "value_type": "string"
   },
+  "routeros_staged": {
+    "value_type": "boolean"
+  },
   "current_firmware": {
     "value_type": "string"
   },
