@@ -145,6 +145,8 @@ def defines_routeros_trusted_action():
             'script': 'noc-install-routeros-update',
             'button_text': 'Update',
             'confirmation': 'Install the downloaded RouterOS update and reboot?',
+            'accepted_message': 'Update requested',
+            'success_message': 'Router rebooting',
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
             'install-routeros-update'
@@ -158,6 +160,9 @@ def defines_routerboot_trusted_action():
             'script': 'noc-install-routerboot-update',
             'button_text': 'Update',
             'confirmation': 'Install the available RouterBOOT firmware update?',
+            'accepted_message': 'Update requested',
+            'success_message': 'Router rebooting',
+
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
             'install-routerboot-update'

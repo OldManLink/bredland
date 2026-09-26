@@ -192,6 +192,8 @@ def trusted_script_renders_action_placeholder():
                     'script': 'test-script',
                     'button_text': 'Test',
                     'confirmation': 'Perform the test action?',
+                    'accepted_message': 'Test action requested',
+                    'success_message': 'Test action complete',
                 },
             },
     ):
@@ -214,7 +216,9 @@ def trusted_script_renders_action_placeholder():
         "render_trusted_action(\n"
         "    'test-resolution',\n"
         "    'Test',\n"
-        "    'Perform the test action?'\n"
+        "    'Perform the test action?',\n"
+        "    'Test action requested',\n"
+        "    'Test action complete'\n"
         ");",
         script,
     )
@@ -300,6 +304,16 @@ def unstaged_routeros_update_presents_download_action():
         action['confirmation'],
     )
 
+    testlib.assert_same(
+        'Download requested',
+        action['accepted_message'],
+    )
+
+    testlib.assert_same(
+        'Download complete',
+        action['success_message'],
+    )
+
 @runner.test('staged RouterOS update presents install action')
 def staged_routeros_update_presents_install_action():
     action = trusted_discovery.trusted_action_for_resolution(
@@ -317,6 +331,16 @@ def staged_routeros_update_presents_install_action():
     testlib.assert_same(
         'Install the downloaded RouterOS update and reboot?',
         action['confirmation'],
+    )
+
+    testlib.assert_same(
+        'Update requested',
+        action['accepted_message'],
+    )
+
+    testlib.assert_same(
+        'Router rebooting',
+        action['success_message'],
     )
 
 @runner.test('trusted script renders selected RouterOS action presentation')
@@ -344,7 +368,9 @@ def trusted_script_renders_selected_routeros_action_presentation():
         "render_trusted_action(\n"
         "    'install-routeros-update',\n"
         "    'Download',\n"
-        "    'Download the available RouterOS update?'\n"
+        "    'Download the available RouterOS update?',\n"
+        "    'Download requested',\n"
+        "    'Download complete'\n"
         ");",
         script,
     )
@@ -382,11 +408,15 @@ def trusted_script_renders_multiple_actions_in_order():
                     'script': 'first-script',
                     'button_text': 'First',
                     'confirmation': 'Perform the first action?',
+                    'accepted_message': 'First action requested',
+                    'success_message': 'First action complete',
                 },
                 'second-resolution': {
                     'script': 'second-script',
                     'button_text': 'Second',
                     'confirmation': 'Perform the second action?',
+                    'accepted_message': 'Second action requested',
+                    'success_message': 'Second action complete',
                 },
             },
     ):
@@ -410,12 +440,16 @@ def trusted_script_renders_multiple_actions_in_order():
         "render_trusted_action(\n"
         "    'first-resolution',\n"
         "    'First',\n"
-        "    'Perform the first action?'\n"
+        "    'Perform the first action?',\n"
+        "    'First action requested',\n"
+        "    'First action complete'\n"
         ");\n\n"
         "render_trusted_action(\n"
         "    'second-resolution',\n"
         "    'Second',\n"
-        "    'Perform the second action?'\n"
+        "    'Perform the second action?',\n"
+        "    'Second action requested',\n"
+        "    'Second action complete'\n"
         ");"
     )
 

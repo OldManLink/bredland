@@ -99,7 +99,9 @@ function heartbeat_confirmation_message(message) {
 function render_trusted_action(
     resolution,
     button_text,
-    confirmation_message
+    confirmation_message,
+    accepted_message,
+    success_message
 ) {
     document
         .querySelectorAll(
@@ -216,7 +218,7 @@ function render_trusted_action(
                             var accepted_at = Date.now();
 
                             showSuccess(
-                                'Update requested'
+                                accepted_message
                             );
 
                             return response.json().then(function (result) {
@@ -279,7 +281,7 @@ function render_trusted_action(
 
                                                         if (poll_result.status === 'succeeded') {
                                                             showSuccess(
-                                                                'Download complete'
+                                                                success_message
                                                             );
                                                         }
 
@@ -319,7 +321,7 @@ function render_trusted_action(
                         }
 
                         showSuccess(
-                            'Update requested'
+                            accepted_message
                         );
                     }).catch(function () {
                         showFailure(

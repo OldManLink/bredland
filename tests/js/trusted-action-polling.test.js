@@ -683,7 +683,7 @@ test('trusted action shows requested toast when accepted', async function () {
 
         assert.equal(
             appended[1].textContent,
-            'Update requested'
+            'Test action requested'
         );
 
         assert.equal(
@@ -813,7 +813,7 @@ test('trusted action shows completion toast after successful poll', async functi
 
         assert.equal(
             appended[2].textContent,
-            'Download complete'
+            'Test action complete'
         );
 
         assert.equal(

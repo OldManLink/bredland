@@ -35,12 +35,16 @@ TRUSTED_ACTION_DEFINITIONS = {
         'script': 'noc-install-routeros-update',
         'button_text': 'Update',
         'confirmation': 'Install the downloaded RouterOS update and reboot?',
+        'accepted_message': 'Update requested',
+        'success_message': 'Router rebooting',
     },
 
     'install-routerboot-update': {
         'script': 'noc-install-routerboot-update',
         'button_text': 'Update',
         'confirmation': 'Install the available RouterBOOT firmware update?',
+        'accepted_message': 'Update requested',
+        'success_message': 'Router rebooting',
     },
 }
 
@@ -484,11 +488,15 @@ def render_trusted_script(
             "render_trusted_action(\n"
             "    {!r},\n"
             "    {!r},\n"
+            "    {!r},\n"
+            "    {!r},\n"
             "    {!r}\n"
             ");".format(
                 resolution,
                 action['button_text'],
                 action['confirmation'],
+                action['accepted_message'],
+                action['success_message'],
             )
         )
 
@@ -678,6 +686,8 @@ def trusted_action_for_resolution(
             'script': 'noc-download-routeros-update',
             'button_text': 'Download',
             'confirmation': 'Download the available RouterOS update?',
+            'accepted_message': 'Download requested',
+            'success_message': 'Download complete',
         }
 
     return action

@@ -23,7 +23,9 @@ var trusted_source = fs
             'render_trusted_action(',
             "    'test-resolution',",
             "    'Test action',",
-            "    'Perform the test action?'",
+            "    'Perform the test action?',",
+            "    'Test action requested',",
+            "    'Test action complete'",
             ');'
         ].join('\n')
     );
