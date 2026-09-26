@@ -98,6 +98,7 @@ function heartbeat_confirmation_message(message) {
 
 function render_trusted_action(
     resolution,
+    button_text,
     confirmation_message
 ) {
     document
@@ -125,7 +126,7 @@ function render_trusted_action(
             );
 
             button.type = 'button';
-            button.textContent = 'Update';
+            button.textContent = button_text;
             button.className = 'trusted-action-button';
 
             button.addEventListener(

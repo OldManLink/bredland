@@ -386,6 +386,67 @@ def configured_server_wires_trusted_action_availability():
         )
     )
 
+    testlib.assert_true(
+        callable(
+            wired['state_reader']
+        )
+    )
+
+@runner.test('configured server reads current RouterOS staged state')
+def configured_server_reads_current_routeros_staged_state():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_same(
+        {
+            'routeros_staged': False,
+        },
+        wired['state_reader'](),
+    )
+
+@runner.test('configured server reads staged RouterOS state')
+def configured_server_reads_staged_routeros_state():
+    with configured_server_wiring(
+            trusted_discovery,
+            routeros_update={
+                'installed-version': '7.23.1',
+                'latest-version': '7.24.1',
+                'status': 'Downloaded, please reboot router to upgrade it',
+            },
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_same(
+        {
+            'routeros_staged': True,
+        },
+        wired['state_reader'](),
+    )
+
 @runner.test('configured server checks current supported resolutions')
 def configured_server_checks_current_supported_resolutions():
     calls = []

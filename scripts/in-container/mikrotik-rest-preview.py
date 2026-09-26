@@ -52,6 +52,9 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     '.id': 'noc-install-routerboot-update',
                 },
+                {
+                    '.id': 'noc-download-routeros-update',
+                },
         ):
             self.send_error(400)
             return

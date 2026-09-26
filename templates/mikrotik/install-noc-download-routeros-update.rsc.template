@@ -1,0 +1,20 @@
+# BRD-036: Provision trusted RouterOS update download action
+
+:local scriptName "noc-download-routeros-update"
+:local source "/system package update download"
+:local scriptId [/system script find name=$scriptName]
+
+:if ([:len $scriptId] > 0) do={
+    /system script set $scriptId \
+        comment="Download available RouterOS update from trusted NOC action" \
+        policy=read,write,policy \
+        dont-require-permissions=yes \
+        source=$source
+} else={
+    /system script add \
+        name=$scriptName \
+        comment="Download available RouterOS update from trusted NOC action" \
+        policy=read,write,policy \
+        dont-require-permissions=yes \
+        source=$source
+}

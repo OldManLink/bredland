@@ -94,7 +94,9 @@ def main():
     )
 
     def current_state():
-        return {}
+        return {
+            'routeros_staged': False,
+        }
 
     def preview_post(url, body):
         return trusted_discovery.post_json(

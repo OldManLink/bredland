@@ -33,11 +33,13 @@ ACTION_RESULT_TTL_SECONDS = 300
 TRUSTED_ACTION_DEFINITIONS = {
     'install-routeros-update': {
         'script': 'noc-install-routeros-update',
-        'confirmation': 'Install the available RouterOS update?',
+        'button_text': 'Update',
+        'confirmation': 'Install the downloaded RouterOS update and reboot?',
     },
 
     'install-routerboot-update': {
         'script': 'noc-install-routerboot-update',
+        'button_text': 'Update',
         'confirmation': 'Install the available RouterBOOT firmware update?',
     },
 }
@@ -420,6 +422,7 @@ def execute_configured_resolution_hook(
 
 def issue_capabilities(
         resolutions,
+        state,
         token_generator,
         registry,
         expires_at,
@@ -428,9 +431,10 @@ def issue_capabilities(
 
     for resolution in resolutions:
         token = token_generator()
-        script_name = routeros_script_for_resolution(
-            resolution
-        )
+        script_name = trusted_action_for_resolution(
+            resolution,
+            state,
+        )['script']
 
         registry.register(
             resolution,
@@ -446,6 +450,7 @@ def issue_capabilities(
 def render_trusted_script(
         script_body,
         resolutions,
+        state,
         base_url,
         token_generator,
         registry,
@@ -454,6 +459,7 @@ def render_trusted_script(
 ):
     capabilities = issue_capabilities(
         resolutions,
+        state,
         token_generator,
         registry,
         expires_at,
@@ -470,13 +476,19 @@ def render_trusted_script(
     actions = []
 
     for resolution in resolutions:
+        action = trusted_action_for_resolution(
+            resolution,
+            state,
+        )
         actions.append(
             "render_trusted_action(\n"
+            "    {!r},\n"
             "    {!r},\n"
             "    {!r}\n"
             ");".format(
                 resolution,
-                confirmation_for_resolution(resolution),
+                action['button_text'],
+                action['confirmation'],
             )
         )
 
@@ -585,6 +597,7 @@ def create_trusted_script_renderer(
         return render_trusted_script(
             script_body,
             resolutions,
+            state,
             base_url,
             token_generator,
             registry,
@@ -648,6 +661,26 @@ def routeros_script_for_resolution(resolution):
         return None
 
     return action['script']
+
+def trusted_action_for_resolution(
+        resolution,
+        state,
+):
+    action = TRUSTED_ACTION_DEFINITIONS.get(
+        resolution
+    )
+
+    if (
+            resolution == 'install-routeros-update'
+            and not state['routeros_staged']
+    ):
+        action = {
+            'script': 'noc-download-routeros-update',
+            'button_text': 'Download',
+            'confirmation': 'Download the available RouterOS update?',
+        }
+
+    return action
 
 def confirmation_for_resolution(resolution):
     action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
@@ -713,7 +746,17 @@ def create_configured_server(
     )
 
     def current_state():
-        return {}
+        update = routeros_getter(
+            MIKROTIK_REST_BASE_URL
+            + '/rest/system/package/update'
+        )
+
+        return {
+            'routeros_staged': (
+                    update.get('status')
+                    == 'Downloaded, please reboot router to upgrade it'
+            ),
+        }
 
     credentials = load_routeros_rest_credentials(
         MIKROTIK_REST_CREDENTIALS_FILE,

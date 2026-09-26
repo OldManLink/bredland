@@ -544,9 +544,17 @@ def temporary_resolutions_file(resolutions):
 @contextlib.contextmanager
 def configured_server_wiring(
         trusted_discovery,
+        routeros_update=None,
 ):
     wired = {}
     hook_calls = []
+
+    if routeros_update is None:
+        routeros_update = {
+            'installed-version': '7.23.1',
+            'latest-version': '7.24.1',
+            'status': 'New version is available',
+        }
 
     class FakeServer:
         tls_context = None
@@ -648,11 +656,7 @@ def configured_server_wiring(
                 'create_routeros_rest_getter',
                 lambda credentials, context, open_request,
                        get_json_function:
-                lambda url: {
-                    'installed-version': '7.23.1',
-                    'latest-version': '7.24.1',
-                    'status': 'New version is available',
-                },
+                lambda url: routeros_update,
             )
         )
 

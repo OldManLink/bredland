@@ -12,7 +12,7 @@ sys.path.insert(
 )
 
 import testlib
-from builtins import (iter)
+from builtins import (iter, next)
 from test_suite_runner import TestSuiteRunner
 from trusted_discovery_testlib import (create_test_server, load_trusted_discovery, probe, fixture_loader, serving, server_url)
 
@@ -32,6 +32,9 @@ def trusted_script_includes_capability_for_rendered_resolution():
         [
             'install-routeros-update',
         ],
+        {
+            'routeros_staged': True,
+        },
         'https://bredland.example:8081',
         lambda: 'test-token',
         registry,
@@ -64,6 +67,7 @@ def trusted_script_preserves_static_banner_first():
         '\n'
         'console.log("trusted");',
         ['install-routeros-update'],
+        {'routeros_staged': True},
         'https://bredland.example:8081',
         lambda: 'test-token',
         registry,
@@ -104,6 +108,7 @@ def trusted_script_get_renders_current_capabilities():
         return trusted_discovery.render_trusted_script(
             script_body,
             resolutions,
+            state,
             'https://bredland.example:8081',
             lambda: 'test-token',
             registry,
@@ -155,7 +160,9 @@ def creates_trusted_script_renderer():
     script = renderer(
         'window.TEST_TRUSTED_ASSET_LOADED = true;',
         ['install-routeros-update'],
-        {},
+        {
+            'routeros_staged': True,
+        }
     )
 
     testlib.assert_string_contains('"install-routeros-update": "test-token"', script)
@@ -183,6 +190,7 @@ def trusted_script_renders_action_placeholder():
             {
                 'test-resolution': {
                     'script': 'test-script',
+                    'button_text': 'Test',
                     'confirmation': 'Perform the test action?',
                 },
             },
@@ -192,6 +200,9 @@ def trusted_script_renders_action_placeholder():
             [
                 'test-resolution',
             ],
+            {
+                'routeros_staged': True,
+            },
             'https://bredland.example:8081',
             lambda: 'test-token',
             registry,
@@ -202,6 +213,7 @@ def trusted_script_renders_action_placeholder():
     testlib.assert_string_contains(
         "render_trusted_action(\n"
         "    'test-resolution',\n"
+        "    'Test',\n"
         "    'Perform the test action?'\n"
         ");",
         script,
@@ -209,6 +221,131 @@ def trusted_script_renders_action_placeholder():
 
     testlib.assert_string_not_contains(
         '__TRUSTED_ACTIONS__',
+        script,
+    )
+
+@runner.test('unstaged RouterOS update selects download action')
+def unstaged_routeros_update_selects_download_action():
+    action = trusted_discovery.trusted_action_for_resolution(
+        'install-routeros-update',
+        {
+            'routeros_staged': False,
+        },
+    )
+
+    testlib.assert_same(
+        'noc-download-routeros-update',
+        action['script'],
+    )
+
+@runner.test('staged RouterOS update selects install action')
+def staged_routeros_update_selects_install_action():
+    action = trusted_discovery.trusted_action_for_resolution(
+        'install-routeros-update',
+        {
+            'routeros_staged': True,
+        },
+    )
+
+    testlib.assert_same(
+        'noc-install-routeros-update',
+        action['script'],
+    )
+
+@runner.test('unstaged RouterOS capability binds download script')
+def unstaged_routeros_capability_binds_download_script():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    trusted_discovery.render_trusted_script(
+        'window.TEST_TRUSTED_ASSET_LOADED = true;',
+        [
+            'install-routeros-update',
+        ],
+        {
+            'routeros_staged': False,
+        },
+        'https://bredland.example:8081',
+        lambda: 'test-token',
+        registry,
+        200,
+        lambda: 1788345803.417,
+    )
+
+    testlib.assert_same(
+        'noc-download-routeros-update',
+        registry.consume(
+            'install-routeros-update',
+            'test-token',
+        ),
+    )
+
+@runner.test('unstaged RouterOS update presents download action')
+def unstaged_routeros_update_presents_download_action():
+    action = trusted_discovery.trusted_action_for_resolution(
+        'install-routeros-update',
+        {
+            'routeros_staged': False,
+        },
+    )
+
+    testlib.assert_same(
+        'Download',
+        action['button_text'],
+    )
+
+    testlib.assert_same(
+        'Download the available RouterOS update?',
+        action['confirmation'],
+    )
+
+@runner.test('staged RouterOS update presents install action')
+def staged_routeros_update_presents_install_action():
+    action = trusted_discovery.trusted_action_for_resolution(
+        'install-routeros-update',
+        {
+            'routeros_staged': True,
+        },
+    )
+
+    testlib.assert_same(
+        'Update',
+        action['button_text'],
+    )
+
+    testlib.assert_same(
+        'Install the downloaded RouterOS update and reboot?',
+        action['confirmation'],
+    )
+
+@runner.test('trusted script renders selected RouterOS action presentation')
+def trusted_script_renders_selected_routeros_action_presentation():
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    script = trusted_discovery.render_trusted_script(
+        '__TRUSTED_ACTIONS__',
+        [
+            'install-routeros-update',
+        ],
+        {
+            'routeros_staged': False,
+        },
+        'https://bredland.example:8081',
+        lambda: 'test-token',
+        registry,
+        200,
+        lambda: 1788345803.417,
+    )
+
+    testlib.assert_string_contains(
+        "render_trusted_action(\n"
+        "    'install-routeros-update',\n"
+        "    'Download',\n"
+        "    'Download the available RouterOS update?'\n"
+        ");",
         script,
     )
 
@@ -243,10 +380,12 @@ def trusted_script_renders_multiple_actions_in_order():
             {
                 'first-resolution': {
                     'script': 'first-script',
+                    'button_text': 'First',
                     'confirmation': 'Perform the first action?',
                 },
                 'second-resolution': {
                     'script': 'second-script',
+                    'button_text': 'Second',
                     'confirmation': 'Perform the second action?',
                 },
             },
@@ -257,6 +396,9 @@ def trusted_script_renders_multiple_actions_in_order():
                 'first-resolution',
                 'second-resolution',
             ],
+            {
+                'routeros_staged': True,
+            },
             'https://bredland.example:8081',
             lambda: 'test-token',
             registry,
@@ -267,10 +409,12 @@ def trusted_script_renders_multiple_actions_in_order():
     expected = (
         "render_trusted_action(\n"
         "    'first-resolution',\n"
+        "    'First',\n"
         "    'Perform the first action?'\n"
         ");\n\n"
         "render_trusted_action(\n"
         "    'second-resolution',\n"
+        "    'Second',\n"
         "    'Perform the second action?'\n"
         ");"
     )

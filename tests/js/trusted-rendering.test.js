@@ -97,7 +97,7 @@ test('trusted action button is added to notification', function () {
 
     assert.equal(
         appended[0].textContent,
-        'Update'
+        'Test action'
     );
 
     assert.equal(

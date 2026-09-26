@@ -28,6 +28,7 @@ def issues_capability_for_supported_rendered_resolution():
 
     capabilities = trusted_discovery.issue_capabilities(
         ['install-routeros-update'],
+        {'routeros_staged': True},
         lambda: 'test-token',
         registry,
         200,
@@ -321,6 +322,7 @@ def registers_issued_capability():
 
     capabilities = trusted_discovery.issue_capabilities(
         ['install-routeros-update'],
+        {'routeros_staged': True},
         lambda: 'test-token',
         registry,
         200,

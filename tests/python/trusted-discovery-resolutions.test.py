@@ -143,7 +143,8 @@ def defines_routeros_trusted_action():
     testlib.assert_same(
         {
             'script': 'noc-install-routeros-update',
-            'confirmation': 'Install the available RouterOS update?',
+            'button_text': 'Update',
+            'confirmation': 'Install the downloaded RouterOS update and reboot?',
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
             'install-routeros-update'
@@ -155,6 +156,7 @@ def defines_routerboot_trusted_action():
     testlib.assert_same(
         {
             'script': 'noc-install-routerboot-update',
+            'button_text': 'Update',
             'confirmation': 'Install the available RouterBOOT firmware update?',
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
