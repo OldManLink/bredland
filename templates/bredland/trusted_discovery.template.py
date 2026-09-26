@@ -581,7 +581,7 @@ def create_trusted_script_renderer(
     expires_at,
     server_time,
 ):
-    def render(script_body, resolutions):
+    def render(script_body, resolutions, state):
         return render_trusted_script(
             script_body,
             resolutions,
@@ -712,6 +712,9 @@ def create_configured_server(
         time.time,
     )
 
+    def current_state():
+        return {}
+
     credentials = load_routeros_rest_credentials(
         MIKROTIK_REST_CREDENTIALS_FILE,
     )
@@ -785,6 +788,7 @@ def create_configured_server(
         capability_registry,
         action_result_registry,
         trusted_script_renderer,
+        current_state,
         action_validator,
         action_guard,
         create_asset_path,
@@ -816,6 +820,7 @@ def create_server(
     capability_registry,
     action_result_registry,
     trusted_script_renderer,
+    state_reader,
     action_validator,
     action_guard,
     asset_path_factory,
@@ -844,13 +849,11 @@ def create_server(
                 asset_type = None
 
             if asset_type == 'script':
-                rendered_script = script_body
-
-                if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(
-                        script_body,
-                        resolutions,
-                    )
+                rendered_script = trusted_script_renderer(
+                    script_body,
+                    resolutions,
+                    state_reader(),
+                )
 
                 body = rendered_script.encode(
                     'utf-8'
@@ -903,12 +906,8 @@ def create_server(
             if self.path.startswith('/action/'):
                 request_id = self.path[
                     len('/action/'):]
-                result = (
-                    action_result_registry.get(
-                        request_id
-                    )
-                    if action_result_registry is not None
-                    else None
+                result = action_result_registry.get(
+                    request_id
                 )
 
                 if result is None:
@@ -1137,11 +1136,10 @@ def create_server(
 
             request_id = create_request_id()
 
-            if action_result_registry is not None:
-                action_result_registry.create(
-                    request_id,
-                    time.time() + ACTION_RESULT_TTL_SECONDS,
-                    )
+            action_result_registry.create(
+                request_id,
+                time.time() + ACTION_RESULT_TTL_SECONDS,
+            )
 
             def execute_action():
                 try:
@@ -1159,10 +1157,9 @@ def create_server(
                         )
                     )
 
-                    if action_result_registry is not None:
-                        action_result_registry.fail(
-                            request_id
-                        )
+                    action_result_registry.fail(
+                        request_id
+                    )
 
                     action_guard.release(
                         resolution
@@ -1170,10 +1167,9 @@ def create_server(
                     return
 
                 if not succeeded:
-                    if action_result_registry is not None:
-                        action_result_registry.fail(
-                            request_id
-                        )
+                    action_result_registry.fail(
+                        request_id
+                    )
 
                     action_guard.release(
                         resolution
@@ -1184,10 +1180,9 @@ def create_server(
                     resolution
                 )
 
-                if action_result_registry is not None:
-                    action_result_registry.succeed(
-                        request_id
-                    )
+                action_result_registry.succeed(
+                    request_id
+                )
 
                 sys.stderr.write(
                     'Trusted action executor succeeded: '

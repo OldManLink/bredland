@@ -93,6 +93,9 @@ def main():
         )
     )
 
+    def current_state():
+        return {}
+
     def preview_post(url, body):
         return trusted_discovery.post_json(
             url,
@@ -166,6 +169,7 @@ def main():
         capability_registry,
         action_result_registry,
         trusted_script_renderer,
+        current_state,
         validate_action,
         action_guard,
         trusted_discovery.create_asset_path,

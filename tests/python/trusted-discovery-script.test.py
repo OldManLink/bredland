@@ -94,7 +94,13 @@ def trusted_script_get_renders_current_capabilities():
     def render(
             script_body,
             resolutions,
+            state,
     ):
+        testlib.assert_same(
+            {'routeros_staged': True},
+            state,
+        )
+
         return trusted_discovery.render_trusted_script(
             script_body,
             resolutions,
@@ -110,6 +116,7 @@ def trusted_script_get_renders_current_capabilities():
         registry=registry,
         script_renderer=render,
         asset_path_factory=lambda: next(paths),
+        state_reader=lambda: {'routeros_staged': True},
     )
 
     with serving(server):
@@ -148,6 +155,7 @@ def creates_trusted_script_renderer():
     script = renderer(
         'window.TEST_TRUSTED_ASSET_LOADED = true;',
         ['install-routeros-update'],
+        {},
     )
 
     testlib.assert_string_contains('"install-routeros-update": "test-token"', script)

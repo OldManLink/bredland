@@ -688,7 +688,7 @@ EOF
         'host=mikrotik' \
         'token=mikrotik.v1.test-token' \
         'ttl=5' \
-        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,current_firmware,upgrade_firmware,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining' \
+        'fields=version,update_channel,model,cpu_load,free_memory,total_memory,latest_version,routeros_staged,current_firmware,upgrade_firmware,wan_address,wan_gateway,wan_gateway_mac,wan_lease_remaining' \
         'version=7.24.1' \
         'update_channel=stable' \
         'model=RB4011iGS+' \
@@ -696,6 +696,7 @@ EOF
         'free_memory=879124480' \
         'total_memory=1073741824' \
         'latest_version=7.24.2' \
+        'routeros_staged=true' \
         'current_firmware=7.23.1' \
         'upgrade_firmware=7.24.2' \
         'wan_address=91.128.129.171/20' \

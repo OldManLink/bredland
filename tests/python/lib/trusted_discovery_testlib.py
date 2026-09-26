@@ -187,6 +187,7 @@ def create_test_server(
         registry=None,
         action_result_registry=None,
         script_renderer=None,
+        state_reader=None,
         action_validator=_DEFAULT,
         action_guard=_DEFAULT,
         action_hook=None,
@@ -222,6 +223,19 @@ def create_test_server(
                 asset_number[0]
             )
 
+    if script_renderer is None:
+        script_renderer = lambda script_body, resolutions, state: script_body
+
+    if state_reader is None:
+        state_reader = lambda: {}
+
+    if action_result_registry is None:
+        action_result_registry = (
+            trusted_discovery.ActionResultRegistry(
+                lambda: TEST_NOW,
+            )
+        )
+
     return trusted_discovery.create_server(
         host,
         port,
@@ -233,6 +247,7 @@ def create_test_server(
         registry,
         action_result_registry,
         script_renderer,
+        state_reader,
         action_validator,
         action_guard,
         asset_path_factory,
@@ -547,6 +562,7 @@ def configured_server_wiring(
             capability_registry,
             action_result_registry,
             trusted_script_renderer,
+            state_reader,
             action_validator,
             action_guard,
             asset_path_factory,
@@ -558,6 +574,7 @@ def configured_server_wiring(
         wired['action_hook'] = action_hook
         wired['current_resolutions'] = current_resolutions
         wired['action_result_registry'] = action_result_registry
+        wired['state_reader'] = state_reader
 
         return FakeServer()
 
