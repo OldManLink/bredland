@@ -170,6 +170,74 @@ def action_endpoint_rejects_second_action_during_cooldown():
                 calls,
             )
 
+@runner.test('action endpoint allows different action during cooldown')
+def action_endpoint_allows_different_action_during_cooldown():
+    calls, execute = recording_action_executor()
+
+    registry = trusted_discovery.CapabilityRegistry(
+        lambda: 100,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'download-token',
+        'noc-download-routeros-update',
+        202,
+    )
+
+    registry.register(
+        'install-routeros-update',
+        'install-token',
+        'noc-install-routeros-update',
+        202,
+    )
+
+    guard = trusted_discovery.ActionGuard(
+        lambda: 100,
+        30,
+    )
+
+    server = create_test_server(
+        trusted_discovery,
+        action_executor=execute,
+        registry=registry,
+        action_guard=guard,
+    )
+
+    with serving(server):
+        with testlib.suppress_stderr():
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                    token='download-token',
+                )
+            )
+
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+            response = urllib.request.urlopen(
+                action_request(
+                    server,
+                    token='install-token',
+                )
+            )
+
+            testlib.assert_same(
+                202,
+                response.status,
+            )
+
+    testlib.assert_same(
+        [
+            'noc-download-routeros-update',
+            'noc-install-routeros-update',
+        ],
+        calls,
+    )
+
 @runner.test('action endpoint rejects action when current state is invalid')
 def action_endpoint_rejects_invalid_current_state():
     calls, execute = recording_action_executor()

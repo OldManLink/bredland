@@ -7,18 +7,32 @@ import time
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-def shutdown_after_delay(
-        server,
-        delay_ms,
-):
-    time.sleep(
-        delay_ms / 1000.0
-    )
-
-    server.shutdown()
-
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
+        if self.path == '/rest/execute':
+            body = json.dumps(
+                {
+                    'ret': (
+                        'true'
+                        if self.server.routeros_staged
+                        else 'false'
+                    ),
+                }
+            ).encode('utf-8')
+
+            self.send_response(200)
+            self.send_header(
+                'Content-Type',
+                'application/json',
+            )
+            self.send_header(
+                'Content-Length',
+                str(len(body)),
+            )
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if self.path != '/rest/system/script/run':
             self.send_error(404)
             return
@@ -59,6 +73,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(400)
             return
 
+        if request['.id'] == 'noc-download-routeros-update':
+            time.sleep(
+                self.server.download_delay_ms / 1000.0
+            )
+            self.server.routeros_staged = True
+
         print(
             'Mock MikroTik ran script: {}'.format(
                 request['.id'],
@@ -69,13 +89,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
-        if self.server.shutdown_delay_ms is not None:
+        if request['.id'] in (
+                'noc-install-routeros-update',
+                'noc-install-routerboot-update',
+        ):
             thread = threading.Thread(
-                target=shutdown_after_delay,
-                args=(
-                    self.server,
-                    self.server.shutdown_delay_ms,
-                ),
+                target=self.server.shutdown,
             )
 
             thread.daemon = True
@@ -119,10 +138,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    shutdown_delay_ms = None
+    download_delay_ms = 0
 
     if len(sys.argv) > 1:
-        shutdown_delay_ms = int(
+        download_delay_ms = int(
             sys.argv[1]
         )
 
@@ -131,7 +150,8 @@ def main():
         Handler
     )
 
-    server.shutdown_delay_ms = shutdown_delay_ms
+    server.download_delay_ms = download_delay_ms
+    server.routeros_staged = False
 
     server.serve_forever(
         poll_interval=0.01

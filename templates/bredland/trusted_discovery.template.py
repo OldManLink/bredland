@@ -9,13 +9,13 @@ import threading
 import urllib.error
 import urllib.request
 
-from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, isinstance)
+from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, Exception, int, isinstance, len, open, OSError, str, type, ValueError)
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
-from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_tls_context,
-                           load_routeros_rest_credentials, post_json, create_routeros_rest_getter, routeros_update_available,
-                           routerboot_update_available, get_json)
+from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_result_poster,
+                           create_routeros_rest_tls_context, load_routeros_rest_credentials, post_json, post_json_result,
+                           create_routeros_rest_getter, routeros_update_staged, routerboot_update_available, get_json)
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -271,7 +271,7 @@ def supported_rendered_resolutions(resolutions):
     return [
         resolution
         for resolution in resolutions
-        if routeros_script_for_resolution(resolution) is not None
+        if resolution in TRUSTED_ACTION_DEFINITIONS
     ]
 
 def current_supported_resolutions(
@@ -662,14 +662,6 @@ def create_asset_path():
 def create_request_id():
     return secrets.token_hex(16)
 
-def routeros_script_for_resolution(resolution):
-    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
-
-    if action is None:
-        return None
-
-    return action['script']
-
 def trusted_action_for_resolution(
         resolution,
         state,
@@ -756,15 +748,10 @@ def create_configured_server(
     )
 
     def current_state():
-        update = routeros_getter(
-            MIKROTIK_REST_BASE_URL
-            + '/rest/system/package/update'
-        )
-
         return {
-            'routeros_staged': (
-                    update.get('status')
-                    == 'Downloaded, please reboot router to upgrade it'
+            'routeros_staged': routeros_update_staged(
+                MIKROTIK_REST_BASE_URL,
+                routeros_result_poster,
             ),
         }
 
@@ -785,6 +772,13 @@ def create_configured_server(
         post_json,
     )
 
+    routeros_result_poster = create_routeros_rest_result_poster(
+        credentials,
+        routeros_tls_context,
+        urllib.request.urlopen,
+        post_json_result,
+    )
+
     routeros_getter = create_routeros_rest_getter(
         credentials,
         routeros_tls_context,
@@ -792,17 +786,19 @@ def create_configured_server(
         get_json,
     )
 
-    def action_validator(resolution):
-        if resolution == 'install-routeros-update':
-            return routeros_update_available(
-                MIKROTIK_REST_BASE_URL,
-                routeros_getter,
-            )
+    def action_validator(script_name):
+        if script_name == 'noc-download-routeros-update':
+            return True
 
-        if resolution == 'install-routerboot-update':
+        if script_name == 'noc-install-routerboot-update':
             return routerboot_update_available(
                 MIKROTIK_REST_BASE_URL,
                 routeros_getter,
+            )
+        if script_name == 'noc-install-routeros-update':
+            return routeros_update_staged(
+                MIKROTIK_REST_BASE_URL,
+                routeros_result_poster,
             )
 
         return False
@@ -1131,7 +1127,7 @@ def create_server(
 
             try:
                 valid = action_validator(
-                    resolution
+                    script_name
                 )
             except Exception as error:
                 sys.stderr.write(
@@ -1154,7 +1150,7 @@ def create_server(
                 self._send_action_response(500)
                 return
 
-            if not action_guard.claim(resolution):
+            if not action_guard.claim(script_name):
                 self._send_action_response(423)
                 return
 
@@ -1173,7 +1169,7 @@ def create_server(
                     )
 
                     action_guard.release(
-                        resolution
+                        script_name
                     )
 
                     self._send_action_response(500)
@@ -1181,7 +1177,7 @@ def create_server(
 
                 if not hook_succeeded:
                     action_guard.release(
-                        resolution
+                        script_name
                     )
 
                     self._send_action_response(500)
@@ -1215,7 +1211,7 @@ def create_server(
                     )
 
                     action_guard.release(
-                        resolution
+                        script_name
                     )
                     return
 
@@ -1225,12 +1221,12 @@ def create_server(
                     )
 
                     action_guard.release(
-                        resolution
+                        script_name
                     )
                     return
 
                 action_guard.complete(
-                    resolution
+                    script_name
                 )
 
                 action_result_registry.succeed(

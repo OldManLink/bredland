@@ -105,6 +105,73 @@ def posts_json_to_routeros_rest():
         calls,
     )
 
+@runner.test('posts JSON and returns decoded JSON response')
+def posts_json_and_returns_decoded_json_response():
+    calls = []
+
+    class Response:
+        status = 200
+
+        def read(self):
+            return b'{"ret":"true"}'
+
+    def open_request(request, context=None, timeout=None):
+        calls.append(
+            {
+                'url': request.full_url,
+                'method': request.get_method(),
+                'authorization': request.get_header(
+                    'Authorization'
+                ),
+                'content_type': request.get_header(
+                    'Content-type'
+                ),
+                'body': request.data.decode('utf-8'),
+                'context': context,
+                'timeout': timeout,
+            }
+        )
+
+        return Response()
+
+    result = routeros_rest.post_json_result(
+        'https://mikrotik.example/rest/execute',
+        {
+            'script': ':put [/system script run noc-routeros-staged]',
+            'as-string': '',
+        },
+        {
+            'Authorization': 'Basic test',
+        },
+        'tls-context',
+        open_request,
+    )
+
+    testlib.assert_same(
+        {
+            'ret': 'true',
+        },
+        result,
+    )
+
+    testlib.assert_same(
+        [
+            {
+                'url': 'https://mikrotik.example/rest/execute',
+                'method': 'POST',
+                'authorization': 'Basic test',
+                'content_type': 'application/json',
+                'body': (
+                    '{"script":":put [/system script run '
+                    'noc-routeros-staged]","as-string":""}'
+                ),
+                'context': 'tls-context',
+                'timeout': routeros_rest.ROUTEROS_REST_POST_TIMEOUT,
+            },
+        ],
+        calls,
+    )
+
 @runner.test('loads RouterOS REST credentials')
 def loads_routeros_rest_credentials():
     with testlib.temporary_text_file(
@@ -335,89 +402,56 @@ def creates_routeros_action_executor():
         calls,
     )
 
-@runner.test('reports RouterOS update available')
-def reports_routeros_update_available():
-    def get(url):
-        testlib.assert_same(
-            'https://mikrotik.example/rest/system/package/update',
-            url,
+@runner.test('reports RouterOS update staged')
+def reports_routeros_update_staged():
+    calls = []
+
+    def execute(url, body):
+        calls.append(
+            (
+                url,
+                body,
+            )
         )
 
         return {
-            'installed-version': '7.23.1',
-            'latest-version': '7.24.1',
-            'status': 'New version is available',
+            'ret': 'true',
         }
 
     testlib.assert_true(
-        routeros_rest.routeros_update_available(
+        routeros_rest.routeros_update_staged(
             'https://mikrotik.example',
-            get,
-        )
+            execute,
+        ),
+        'staged predicate should return true',
     )
 
-@runner.test('reports no RouterOS update when versions match')
-def reports_no_routeros_update_when_versions_match():
-    def get(_):
+    testlib.assert_same(
+        [
+            (
+                'https://mikrotik.example/rest/execute',
+                {
+                    'script': ':put [/system script run noc-routeros-staged]',
+                    'as-string': '',
+                },
+            ),
+        ],
+        calls,
+    )
+
+@runner.test('reports RouterOS update not staged')
+def reports_routeros_update_not_staged():
+    def execute(url, body):
         return {
-            'installed-version': '7.24.1',
-            'latest-version': '7.24.1',
-            'status': 'System is already up to date',
+            'ret': 'false',
         }
 
     testlib.assert_false(
-        routeros_rest.routeros_update_available(
+        routeros_rest.routeros_update_staged(
             'https://mikrotik.example',
-            get,
-        )
-    )
-
-@runner.test('reports no RouterOS update for unexpected status')
-def reports_no_routeros_update_for_unexpected_status():
-    def get(_):
-        return {
-            'installed-version': '7.23.1',
-            'latest-version': '7.24.1',
-            'status': 'Something else',
-        }
-
-    testlib.assert_false(
-        routeros_rest.routeros_update_available(
-            'https://mikrotik.example',
-            get,
-        )
-    )
-
-
-@runner.test('reports no RouterOS update when installed version is missing')
-def reports_no_routeros_update_without_installed_version():
-    def get(_):
-        return {
-            'latest-version': '7.24.1',
-            'status': 'New version is available',
-        }
-
-    testlib.assert_false(
-        routeros_rest.routeros_update_available(
-            'https://mikrotik.example',
-            get,
-        )
-    )
-
-
-@runner.test('reports no RouterOS update when latest version is missing')
-def reports_no_routeros_update_without_latest_version():
-    def get(_):
-        return {
-            'installed-version': '7.23.1',
-            'status': 'New version is available',
-        }
-
-    testlib.assert_false(
-        routeros_rest.routeros_update_available(
-            'https://mikrotik.example',
-            get,
-        )
+            execute,
+        ),
+        'unstaged predicate should return false',
     )
 
 @runner.test('reports RouterBOOT update available')
@@ -439,7 +473,6 @@ def reports_routerboot_update_available():
             get,
         )
     )
-
 
 @runner.test('reports no RouterBOOT update when versions match')
 def reports_no_routerboot_update_when_versions_match():

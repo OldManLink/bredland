@@ -20,25 +20,25 @@ trusted_discovery = load_trusted_discovery()
 def supported_resolution_maps_to_routeros_script():
     testlib.assert_same(
         'noc-install-routeros-update',
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'install-routeros-update',
-        ),
+        )['script'],
     )
 
 @runner.test('maps supported resolution to RouterBoot script')
 def supported_resolution_maps_to_routerboot_script():
     testlib.assert_same(
         'noc-install-routerboot-update',
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'install-routerboot-update',
-        ),
+        )['script'],
     )
 
 @runner.test('maps unsupported resolution to nothing')
 def unsupported_resolution_maps_to_nothing():
     testlib.assert_same(
         None,
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'launch-missiles',
         ),
     )

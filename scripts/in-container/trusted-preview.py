@@ -95,11 +95,25 @@ def main():
 
     def current_state():
         return {
-            'routeros_staged': False,
+            'routeros_staged': trusted_discovery.routeros_update_staged(
+                trusted_discovery.MIKROTIK_REST_BASE_URL,
+                preview_post_result,
+            ),
         }
 
     def preview_post(url, body):
         return trusted_discovery.post_json(
+            url,
+            body,
+            {
+                'Content-Type': 'application/json',
+            },
+            None,
+            urllib.request.urlopen,
+        )
+
+    def preview_post_result(url, body):
+        return trusted_discovery.post_json_result(
             url,
             body,
             {
@@ -122,14 +136,17 @@ def main():
         preview_post,
     )
 
-    def validate_action(resolution):
-        if resolution == 'install-routeros-update':
-            return trusted_discovery.routeros_update_available(
+    def validate_action(script_name):
+        if script_name == 'noc-download-routeros-update':
+            return True
+
+        if script_name == 'noc-install-routeros-update':
+            return trusted_discovery.routeros_update_staged(
                 trusted_discovery.MIKROTIK_REST_BASE_URL,
-                preview_get,
+                preview_post_result,
             )
 
-        if resolution == 'install-routerboot-update':
+        if script_name == 'noc-install-routerboot-update':
             return trusted_discovery.routerboot_update_available(
                 trusted_discovery.MIKROTIK_REST_BASE_URL,
                 preview_get,

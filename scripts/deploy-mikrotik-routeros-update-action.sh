@@ -61,7 +61,7 @@ verify_routeros \
     "RouterOS update-action script has expected source" \
     ":local id [/system script find name=\"${script_name}\"]; \
      :local source [/system script get \$id source]; \
-     :local expected \"/system package update install\"; \
+     :local expected \"/system reboot\"; \
      :if (\$source = \$expected) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \

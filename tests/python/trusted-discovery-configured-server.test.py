@@ -307,8 +307,9 @@ def configured_server_wires_routeros_action_validator():
 
     testlib.assert_true(
         wired['validator'](
-            'install-routeros-update'
-        )
+            'noc-download-routeros-update'
+        ),
+        'download action should be valid',
     )
 
     testlib.assert_false(
@@ -392,10 +393,11 @@ def configured_server_wires_trusted_action_availability():
         )
     )
 
-@runner.test('configured server reads current RouterOS staged state')
-def configured_server_reads_current_routeros_staged_state():
+@runner.test('configured server accepts staged RouterOS install action')
+def configured_server_accepts_staged_routeros_install_action():
     with configured_server_wiring(
             trusted_discovery,
+            routeros_staged=True,
     ) as wiring:
         wired, hook_calls = wiring
 
@@ -410,22 +412,18 @@ def configured_server_reads_current_routeros_staged_state():
                     8081,
                 )
 
-    testlib.assert_same(
-        {
-            'routeros_staged': False,
-        },
-        wired['state_reader'](),
+    testlib.assert_true(
+        wired['validator'](
+            'noc-install-routeros-update'
+        ),
+        'staged RouterOS update action should be valid',
     )
 
-@runner.test('configured server reads staged RouterOS state')
-def configured_server_reads_staged_routeros_state():
+@runner.test('configured server rejects unstaged RouterOS install action')
+def configured_server_rejects_unstaged_routeros_install_action():
     with configured_server_wiring(
             trusted_discovery,
-            routeros_update={
-                'installed-version': '7.23.1',
-                'latest-version': '7.24.1',
-                'status': 'Downloaded, please reboot router to upgrade it',
-            },
+            routeros_staged=False,
     ) as wiring:
         wired, hook_calls = wiring
 
@@ -440,11 +438,11 @@ def configured_server_reads_staged_routeros_state():
                     8081,
                 )
 
-    testlib.assert_same(
-        {
-            'routeros_staged': True,
-        },
-        wired['state_reader'](),
+    testlib.assert_false(
+        wired['validator'](
+            'noc-install-routeros-update'
+        ),
+        'unstaged RouterOS update action should be rejected',
     )
 
 @runner.test('configured server checks current supported resolutions')

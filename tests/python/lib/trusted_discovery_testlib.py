@@ -105,6 +105,8 @@ def stub_routeros_action_dependencies(
             trusted_discovery.create_routeros_rest_poster,
         'create_executor':
             trusted_discovery.create_routeros_action_executor,
+        'create_result_poster':
+            trusted_discovery.create_routeros_rest_result_poster,
     }
 
     trusted_discovery.load_routeros_rest_credentials = (
@@ -120,7 +122,17 @@ def stub_routeros_action_dependencies(
 
     trusted_discovery.create_routeros_rest_poster = (
         lambda credentials, context, open_request, post_json_function:
-        'test-routeros-poster'
+        lambda url, body: {
+            'ret': 'false',
+        }
+    )
+
+    trusted_discovery.create_routeros_rest_result_poster = (
+        lambda credentials, context, open_request,
+               post_json_result_function:
+        lambda url, body: {
+            'ret': 'false',
+        }
     )
 
     trusted_discovery.create_routeros_action_executor = (
@@ -150,6 +162,10 @@ def restore_routeros_action_dependencies(
 
     trusted_discovery.create_routeros_action_executor = (
         originals['create_executor']
+    )
+
+    trusted_discovery.create_routeros_rest_result_poster = (
+        originals['create_result_poster']
     )
 
 
@@ -544,17 +560,10 @@ def temporary_resolutions_file(resolutions):
 @contextlib.contextmanager
 def configured_server_wiring(
         trusted_discovery,
-        routeros_update=None,
+        routeros_staged=False,
 ):
     wired = {}
     hook_calls = []
-
-    if routeros_update is None:
-        routeros_update = {
-            'installed-version': '7.23.1',
-            'latest-version': '7.24.1',
-            'status': 'New version is available',
-        }
 
     class FakeServer:
         tls_context = None
@@ -637,7 +646,21 @@ def configured_server_wiring(
                 'create_routeros_rest_poster',
                 lambda credentials, context, open_request,
                        post_json_function:
-                'routeros-poster',
+                lambda url, body: {
+                    'ret': 'true' if routeros_staged else 'false',
+                },
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_rest_result_poster',
+                lambda credentials, context, open_request,
+                       post_json_result_function:
+                lambda url, body: {
+                    'ret': 'true' if routeros_staged else 'false',
+                },
             )
         )
 
@@ -656,7 +679,10 @@ def configured_server_wiring(
                 'create_routeros_rest_getter',
                 lambda credentials, context, open_request,
                        get_json_function:
-                lambda url: routeros_update,
+                lambda url: {
+                    'current-firmware': '7.24.2',
+                    'upgrade-firmware': '7.24.4',
+                },
             )
         )
 
