@@ -19,12 +19,12 @@ cleanup() {
         >/dev/null 2>&1 || true
 }
 
-template="templates/mikrotik/install-noc-trusted-action-test.rsc.template"
-rendered="${tmpdir}/install-noc-trusted-action-test.rsc"
-remote_file="install-noc-trusted-action-test.rsc"
+template="templates/mikrotik/install-noc-trusted-action-probe.rsc.template"
+rendered="${tmpdir}/install-noc-trusted-action-probe.rsc"
+remote_file="install-noc-trusted-action-probe.rsc"
 
-script_name="noc-trusted-action-test"
-log_message="[NOC-TRUSTED-TEST] trusted action test invoked"
+script_name="noc-trusted-action-probe"
+log_message="[NOC-TRUSTED-PROBE] trusted action probe completed"
 
 router_user="${MIKROTIK_SSH_USER:?Missing MIKROTIK_SSH_USER}"
 router_host="${MIKROTIK_SSH_HOST:?Missing MIKROTIK_SSH_HOST}"
@@ -33,39 +33,39 @@ router="${router_user}@${router_host}"
 trap cleanup EXIT
 
 run_step \
-    "Render MikroTik trusted action test installer" \
+    "Render MikroTik trusted action probe installer" \
     scripts/render-template.sh \
     "$template" \
     "$rendered"
 
 run_step \
-    "Upload MikroTik trusted action test installer" \
+    "Upload MikroTik trusted action probe installer" \
     scp \
     "$rendered" \
     "${router}:${remote_file}"
 
 run_step \
-    "Import MikroTik trusted action test installer" \
+    "Import MikroTik trusted action probe installer" \
     ssh \
     "$router" \
     "/import file-name=${remote_file}"
 
 verify_routeros \
     "$router" \
-    "Trusted action test script found" \
+    "Trusted action probe script found" \
     ":if ([:len [/system script find name=\"${script_name}\"]] > 0) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
-    "Trusted action test script bypasses caller permissions" \
+    "Trusted action probe script bypasses caller permissions" \
     ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id dont-require-permissions] = true) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
-    "Trusted action test script has expected log marker" \
-    ":local id [/system script find name=\"${script_name}\"]; :local source [/system script get \$id source]; :if ([:find \$source \"NOC-TRUSTED-TEST\"] != nil) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
+    "Trusted action probe script has expected log marker" \
+    ":local id [/system script find name=\"${script_name}\"]; :local source [/system script get \$id source]; :if ([:find \$source \"NOC-TRUSTED-PROBE\"] != nil) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
-echo "Executing trusted action test script..."
+echo "Executing trusted action probe script..."
 before_count="$(
     ssh "$router" \
         ":put [:len [/log find where message=\"${log_message}\"]]" \
@@ -84,18 +84,18 @@ after_count="$(
 if [[ "$before_count" =~ ^[0-9]+$ ]] \
     && [[ "$after_count" =~ ^[0-9]+$ ]] \
     && (( after_count == before_count + 1 )); then
-    pass "Trusted action test produced expected log entry"
+    pass "Trusted action probe produced expected log entry"
 else
     echo "Matching log entries before: $before_count" >&2
     echo "Matching log entries after:  $after_count" >&2
-    fail "Verifying trusted action test log entry"
+    fail "Verifying trusted action probe log entry"
 fi
 
 run_step \
-    "Remove uploaded MikroTik trusted action test installer" \
+    "Remove uploaded MikroTik trusted action probe installer" \
     ssh \
     "$router" \
     "/file remove ${remote_file}"
 
 echo
-echo "✅ MikroTik trusted action test deployed."
+echo "✅ MikroTik trusted action probe deployed."

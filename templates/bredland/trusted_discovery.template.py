@@ -9,13 +9,13 @@ import threading
 import urllib.error
 import urllib.request
 
-from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, isinstance)
+from builtins import (bool, BrokenPipeError, ConnectionResetError, dict, Exception, int, isinstance, len, open, OSError, str, type, ValueError)
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
-from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_tls_context,
-                           load_routeros_rest_credentials, post_json, create_routeros_rest_getter, routeros_update_available,
-                           routerboot_update_available, get_json)
+from routeros_rest import (create_routeros_action_executor, create_routeros_rest_poster, create_routeros_rest_result_poster,
+                           create_routeros_rest_tls_context, load_routeros_rest_credentials, post_json, post_json_result,
+                           create_routeros_rest_getter, routeros_update_staged, routerboot_update_available, get_json)
 
 TRUSTED_BASE_URL = '__BREDLAND_TRUSTED_BASE_URL__'
 TRUSTED_ALLOWED_ORIGIN = '__BREDLAND_TRUSTED_ALLOWED_ORIGIN__'
@@ -29,15 +29,22 @@ MIKROTIK_REST_BASE_URL = '__MIKROTIK_REST_BASE_URL__'
 MIKROTIK_REST_CREDENTIALS_FILE = '/etc/bredland/mikrotik-rest/credentials.env'
 MIKROTIK_REST_CA_FILE = '/etc/bredland/mikrotik-rest/ca.pem'
 RESOLUTIONS_FILE = '/etc/bredland/resolutions.json'
+ACTION_RESULT_TTL_SECONDS = 300
 TRUSTED_ACTION_DEFINITIONS = {
     'install-routeros-update': {
         'script': 'noc-install-routeros-update',
-        'confirmation': 'Install the available RouterOS update?',
+        'button_text': 'Update',
+        'confirmation': 'Install the downloaded RouterOS update and reboot?',
+        'accepted_message': 'Update requested',
+        'success_message': 'Router rebooting',
     },
 
     'install-routerboot-update': {
         'script': 'noc-install-routerboot-update',
+        'button_text': 'Update',
         'confirmation': 'Install the available RouterBOOT firmware update?',
+        'accepted_message': 'Update requested',
+        'success_message': 'Router rebooting',
     },
 }
 
@@ -96,13 +103,23 @@ class CapabilityRegistry:
         self.lock = threading.Lock()
 
     def register(
-        self,
-        resolution,
-        token,
-        script_name,
-        expires_at,
+            self,
+            resolution,
+            token,
+            script_name,
+            expires_at,
     ):
         with self.lock:
+            expired = [
+                existing_token
+                for existing_token, capability
+                in self.capabilities.items()
+                if self.now() >= capability['expires_at']
+            ]
+
+            for existing_token in expired:
+                del self.capabilities[existing_token]
+
             self.capabilities[token] = {
                 'resolution': resolution,
                 'script_name': script_name,
@@ -130,6 +147,82 @@ class CapabilityRegistry:
             del self.capabilities[token]
 
             return capability['script_name']
+
+class ActionResultRegistry:
+    def __init__(self, now):
+        self.now = now
+        self.results = {}
+        self.lock = threading.Lock()
+
+    def create(
+            self,
+            request_id,
+            expires_at,
+    ):
+        with self.lock:
+            expired = [
+                key
+                for key, result in self.results.items()
+                if self.now() >= result['expires_at']
+            ]
+
+            for key in expired:
+                del self.results[key]
+
+            self.results[request_id] = {
+                'status': 'pending',
+                'expires_at': expires_at,
+            }
+
+    def get(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return None
+
+            if self.now() >= result['expires_at']:
+                del self.results[request_id]
+                return None
+
+            return {
+                'status': result['status'],
+            }
+
+    def succeed(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return False
+
+            result['status'] = 'succeeded'
+            return True
+
+    def fail(
+            self,
+            request_id,
+    ):
+        with self.lock:
+            result = self.results.get(
+                request_id
+            )
+
+            if result is None:
+                return False
+
+            result['status'] = 'failed'
+            return True
 
 class ActionGuard:
     def __init__(self, now, cooldown):
@@ -178,7 +271,7 @@ def supported_rendered_resolutions(resolutions):
     return [
         resolution
         for resolution in resolutions
-        if routeros_script_for_resolution(resolution) is not None
+        if resolution in TRUSTED_ACTION_DEFINITIONS
     ]
 
 def current_supported_resolutions(
@@ -333,6 +426,7 @@ def execute_configured_resolution_hook(
 
 def issue_capabilities(
         resolutions,
+        state,
         token_generator,
         registry,
         expires_at,
@@ -341,9 +435,10 @@ def issue_capabilities(
 
     for resolution in resolutions:
         token = token_generator()
-        script_name = routeros_script_for_resolution(
-            resolution
-        )
+        script_name = trusted_action_for_resolution(
+            resolution,
+            state,
+        )['script']
 
         registry.register(
             resolution,
@@ -359,6 +454,7 @@ def issue_capabilities(
 def render_trusted_script(
         script_body,
         resolutions,
+        state,
         base_url,
         token_generator,
         registry,
@@ -367,6 +463,7 @@ def render_trusted_script(
 ):
     capabilities = issue_capabilities(
         resolutions,
+        state,
         token_generator,
         registry,
         expires_at,
@@ -383,13 +480,23 @@ def render_trusted_script(
     actions = []
 
     for resolution in resolutions:
+        action = trusted_action_for_resolution(
+            resolution,
+            state,
+        )
         actions.append(
             "render_trusted_action(\n"
+            "    {!r},\n"
+            "    {!r},\n"
+            "    {!r},\n"
             "    {!r},\n"
             "    {!r}\n"
             ");".format(
                 resolution,
-                confirmation_for_resolution(resolution),
+                action['button_text'],
+                action['confirmation'],
+                action['accepted_message'],
+                action['success_message'],
             )
         )
 
@@ -494,10 +601,11 @@ def create_trusted_script_renderer(
     expires_at,
     server_time,
 ):
-    def render(script_body, resolutions):
+    def render(script_body, resolutions, state):
         return render_trusted_script(
             script_body,
             resolutions,
+            state,
             base_url,
             token_generator,
             registry,
@@ -507,6 +615,18 @@ def create_trusted_script_renderer(
 
     return render
 
+def prune_expired_assets(
+        assets,
+        now,
+):
+    expired = [
+        path
+        for path, asset in assets.items()
+        if now >= asset[2]
+    ]
+
+    for path in expired:
+        del assets[path]
 
 def main():
     server = create_configured_server(
@@ -539,13 +659,30 @@ def render_discovery_response(
 def create_asset_path():
     return '/' + secrets.token_hex(16)
 
-def routeros_script_for_resolution(resolution):
-    action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
+def create_request_id():
+    return secrets.token_hex(16)
 
-    if action is None:
-        return None
+def trusted_action_for_resolution(
+        resolution,
+        state,
+):
+    action = TRUSTED_ACTION_DEFINITIONS.get(
+        resolution
+    )
 
-    return action['script']
+    if (
+            resolution == 'install-routeros-update'
+            and not state['routeros_staged']
+    ):
+        action = {
+            'script': 'noc-download-routeros-update',
+            'button_text': 'Download',
+            'confirmation': 'Download the available RouterOS update?',
+            'accepted_message': 'Download requested',
+            'success_message': 'Download complete',
+        }
+
+    return action
 
 def confirmation_for_resolution(resolution):
     action = TRUSTED_ACTION_DEFINITIONS.get(resolution)
@@ -610,6 +747,14 @@ def create_configured_server(
         time.time,
     )
 
+    def current_state():
+        return {
+            'routeros_staged': routeros_update_staged(
+                MIKROTIK_REST_BASE_URL,
+                routeros_result_poster,
+            ),
+        }
+
     credentials = load_routeros_rest_credentials(
         MIKROTIK_REST_CREDENTIALS_FILE,
     )
@@ -627,6 +772,13 @@ def create_configured_server(
         post_json,
     )
 
+    routeros_result_poster = create_routeros_rest_result_poster(
+        credentials,
+        routeros_tls_context,
+        urllib.request.urlopen,
+        post_json_result,
+    )
+
     routeros_getter = create_routeros_rest_getter(
         credentials,
         routeros_tls_context,
@@ -634,17 +786,19 @@ def create_configured_server(
         get_json,
     )
 
-    def action_validator(resolution):
-        if resolution == 'install-routeros-update':
-            return routeros_update_available(
-                MIKROTIK_REST_BASE_URL,
-                routeros_getter,
-            )
+    def action_validator(script_name):
+        if script_name == 'noc-download-routeros-update':
+            return True
 
-        if resolution == 'install-routerboot-update':
+        if script_name == 'noc-install-routerboot-update':
             return routerboot_update_available(
                 MIKROTIK_REST_BASE_URL,
                 routeros_getter,
+            )
+        if script_name == 'noc-install-routeros-update':
+            return routeros_update_staged(
+                MIKROTIK_REST_BASE_URL,
+                routeros_result_poster,
             )
 
         return False
@@ -668,6 +822,10 @@ def create_configured_server(
             urllib.request.urlopen,
         )
 
+    action_result_registry = ActionResultRegistry(
+        time.time,
+    )
+
     server = create_server(
         host,
         port,
@@ -677,7 +835,9 @@ def create_configured_server(
         stylesheet_body,
         action_executor,
         capability_registry,
+        action_result_registry,
         trusted_script_renderer,
+        current_state,
         action_validator,
         action_guard,
         create_asset_path,
@@ -707,7 +867,9 @@ def create_server(
     stylesheet_body,
     action_executor,
     capability_registry,
+    action_result_registry,
     trusted_script_renderer,
+    state_reader,
     action_validator,
     action_guard,
     asset_path_factory,
@@ -722,7 +884,11 @@ def create_server(
 
     class DiscoveryHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            asset = generated_assets.pop(self.path, None)
+            asset = generated_assets.pop(
+                self.path,
+                None,
+            )
+
             if asset is not None:
                 asset_type, resolutions, expires_at = asset
 
@@ -731,11 +897,16 @@ def create_server(
             else:
                 asset_type = None
 
-            if (asset_type == 'script'):
-                rendered_script = script_body
-                if trusted_script_renderer is not None:
-                    rendered_script = trusted_script_renderer(script_body, resolutions)
-                body = rendered_script.encode('utf-8')
+            if asset_type == 'script':
+                rendered_script = trusted_script_renderer(
+                    script_body,
+                    resolutions,
+                    state_reader(),
+                )
+
+                body = rendered_script.encode(
+                    'utf-8'
+                )
 
                 self.send_response(200)
                 self.send_header(
@@ -746,9 +917,14 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                send_content_length(self, body)
+                send_content_length(
+                    self,
+                    body,
+                )
                 self.end_headers()
-                self.wfile.write(body)
+                self.wfile.write(
+                    body
+                )
                 return
 
             if asset_type == 'stylesheet':
@@ -766,33 +942,67 @@ def create_server(
                     'Cache-Control',
                     'no-store',
                 )
-                send_content_length(self, body)
+                send_content_length(
+                    self,
+                    body,
+                )
                 self.end_headers()
-                self.wfile.write(body)
+                self.wfile.write(
+                    body
+                )
                 return
 
-            if self.path != '/probe':
-                self.send_error(404)
-                return
+            if self.path.startswith('/action/'):
+                request_id = self.path[
+                    len('/action/'):]
+                result = action_result_registry.get(
+                    request_id
+                )
 
-            self.send_response(200)
-            self.send_header(
-                'Content-Type',
-                'application/json',
-            )
-            self.send_header(
-                'Cache-Control',
-                'no-store',
-            )
-            self.send_header(
-                'Access-Control-Allow-Origin',
-                allowed_origin,
-            )
+                if result is None:
+                    self.send_error(404)
+                    return
+
+                body = json.dumps(
+                    result,
+                    separators=(',', ':'),
+                ).encode('utf-8')
+
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'application/json',
+                )
+                self.send_header(
+                    'Cache-Control',
+                    'no-store',
+                )
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                send_content_length(
+                    self,
+                    body,
+                )
+                self.end_headers()
+                self.wfile.write(
+                    body
+                )
+                return
 
             if self.path == '/probe':
-                stylesheet_asset_path = asset_path_factory()
+                prune_expired_assets(
+                    generated_assets,
+                    asset_now(),
+                )
+
+                stylesheet_asset_path = (
+                    asset_path_factory()
+                )
 
                 resolutions = current_resolutions()
+
                 generated_assets[
                     stylesheet_asset_path
                 ] = (
@@ -804,7 +1014,9 @@ def create_server(
                 script_asset_path = None
 
                 if resolutions:
-                    script_asset_path = asset_path_factory()
+                    script_asset_path = (
+                        asset_path_factory()
+                    )
 
                     generated_assets[
                         script_asset_path
@@ -814,18 +1026,42 @@ def create_server(
                         asset_now() + 10,
                     )
 
-                response_body = render_discovery_response(
-                    base_url + stylesheet_asset_path,
+                body = render_discovery_response(
+                    base_url
+                    + stylesheet_asset_path,
                     (
-                        base_url + script_asset_path
-                        if script_asset_path is not None
+                        base_url
+                        + script_asset_path
+                        if script_asset_path
+                           is not None
                         else None
                     ),
                     ).encode('utf-8')
 
-            send_content_length(self, response_body)
-            self.end_headers()
-            self.wfile.write(response_body)
+                self.send_response(200)
+                self.send_header(
+                    'Content-Type',
+                    'application/json',
+                )
+                self.send_header(
+                    'Cache-Control',
+                    'no-store',
+                )
+                self.send_header(
+                    'Access-Control-Allow-Origin',
+                    allowed_origin,
+                )
+                send_content_length(
+                    self,
+                    body,
+                )
+                self.end_headers()
+                self.wfile.write(
+                    body
+                )
+                return
+
+            self.send_error(404)
 
         def do_POST(self):
             if self.path != '/action':
@@ -891,7 +1127,7 @@ def create_server(
 
             try:
                 valid = action_validator(
-                    resolution
+                    script_name
                 )
             except Exception as error:
                 sys.stderr.write(
@@ -914,7 +1150,7 @@ def create_server(
                 self._send_action_response(500)
                 return
 
-            if not action_guard.claim(resolution):
+            if not action_guard.claim(script_name):
                 self._send_action_response(423)
                 return
 
@@ -933,7 +1169,7 @@ def create_server(
                     )
 
                     action_guard.release(
-                        resolution
+                        script_name
                     )
 
                     self._send_action_response(500)
@@ -941,60 +1177,97 @@ def create_server(
 
                 if not hook_succeeded:
                     action_guard.release(
-                        resolution
+                        script_name
                     )
 
                     self._send_action_response(500)
                     return
 
-            try:
-                succeeded = action_executor(script_name)
-            except Exception as error:
+            request_id = create_request_id()
+
+            action_result_registry.create(
+                request_id,
+                time.time() + ACTION_RESULT_TTL_SECONDS,
+            )
+
+            def execute_action():
+                try:
+                    succeeded = action_executor(
+                        script_name
+                    )
+                except Exception as error:
+                    sys.stderr.write(
+                        'Trusted action executor failed: '
+                        'resolution={!r}, script={!r}, exception={}: {}\n'.format(
+                            resolution,
+                            script_name,
+                            type(error).__name__,
+                            str(error),
+                        )
+                    )
+
+                    action_result_registry.fail(
+                        request_id
+                    )
+
+                    action_guard.release(
+                        script_name
+                    )
+                    return
+
+                if not succeeded:
+                    action_result_registry.fail(
+                        request_id
+                    )
+
+                    action_guard.release(
+                        script_name
+                    )
+                    return
+
+                action_guard.complete(
+                    script_name
+                )
+
+                action_result_registry.succeed(
+                    request_id
+                )
+
                 sys.stderr.write(
-                    'Trusted action executor failed: '
-                    'resolution={!r}, script={!r}, exception={}: {}\n'.format(
+                    'Trusted action executor succeeded: '
+                    'resolution={!r}, script={!r}\n'.format(
                         resolution,
                         script_name,
-                        type(error).__name__,
-                        str(error),
                     )
                 )
 
-                action_guard.release(resolution)
+            threading.Thread(
+                target=execute_action,
+            ).start()
 
-                self._send_action_response(500)
-                return
-
-            if not succeeded:
-                action_guard.release(
-                    resolution
-                )
-
-                self._send_action_response(500)
-                return
-
-            action_guard.complete(
-                resolution
+            self._send_action_response(
+                202,
+                json.dumps(
+                    {
+                        'request_id': request_id,
+                    },
+                    separators=(',', ':'),
+                ),
             )
 
-            sys.stderr.write(
-                'Trusted action executor succeeded: '
-                'resolution={!r}, script={!r}\n'.format(
-                    resolution,
-                    script_name,
-                )
-            )
+        def _send_action_response(self, status, body=''):
+            body = body.encode('utf-8')
 
-            self._send_action_response(200)
-
-        def _send_action_response(self, status):
             self.send_response(status)
             self.send_header(
                 'Access-Control-Allow-Origin',
                 allowed_origin,
             )
-            send_content_length(self, '')
+            send_content_length(self, body)
             self.end_headers()
+
+            if body:
+                self.wfile.write(body)
 
         def do_OPTIONS(self):
             if self.path != '/action':

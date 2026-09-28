@@ -448,4 +448,38 @@ def generated_stylesheet_reuses_resolutions_from_discovery():
         len(calls),
     )
 
+@runner.test('prunes expired generated assets')
+def prunes_expired_generated_assets():
+    assets = {
+        '/expired-style': (
+            'stylesheet',
+            [],
+            110,
+        ),
+        '/expired-script': (
+            'script',
+            [],
+            120,
+        ),
+        '/current-style': (
+            'stylesheet',
+            [],
+            300,
+        ),
+    }
+
+    trusted_discovery.prune_expired_assets(
+        assets,
+        200,
+    )
+
+    testlib.assert_same(
+        [
+            '/current-style',
+        ],
+        sorted(
+            assets.keys()
+        ),
+    )
+
 runner.finish()

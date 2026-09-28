@@ -20,25 +20,25 @@ trusted_discovery = load_trusted_discovery()
 def supported_resolution_maps_to_routeros_script():
     testlib.assert_same(
         'noc-install-routeros-update',
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'install-routeros-update',
-        ),
+        )['script'],
     )
 
 @runner.test('maps supported resolution to RouterBoot script')
 def supported_resolution_maps_to_routerboot_script():
     testlib.assert_same(
         'noc-install-routerboot-update',
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'install-routerboot-update',
-        ),
+        )['script'],
     )
 
 @runner.test('maps unsupported resolution to nothing')
 def unsupported_resolution_maps_to_nothing():
     testlib.assert_same(
         None,
-        trusted_discovery.routeros_script_for_resolution(
+        trusted_discovery.TRUSTED_ACTION_DEFINITIONS.get(
             'launch-missiles',
         ),
     )
@@ -143,7 +143,10 @@ def defines_routeros_trusted_action():
     testlib.assert_same(
         {
             'script': 'noc-install-routeros-update',
-            'confirmation': 'Install the available RouterOS update?',
+            'button_text': 'Update',
+            'confirmation': 'Install the downloaded RouterOS update and reboot?',
+            'accepted_message': 'Update requested',
+            'success_message': 'Router rebooting',
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
             'install-routeros-update'
@@ -155,7 +158,11 @@ def defines_routerboot_trusted_action():
     testlib.assert_same(
         {
             'script': 'noc-install-routerboot-update',
+            'button_text': 'Update',
             'confirmation': 'Install the available RouterBOOT firmware update?',
+            'accepted_message': 'Update requested',
+            'success_message': 'Router rebooting',
+
         },
         trusted_discovery.TRUSTED_ACTION_DEFINITIONS[
             'install-routerboot-update'

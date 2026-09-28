@@ -17,7 +17,7 @@ TEST_SCRIPT_BODY = 'window.TEST_TRUSTED_ASSET_LOADED = true;'
 TEST_STYLESHEET_BODY = 'html { outline: 1px solid; }'
 TEST_RESOLUTION = 'install-routeros-update'
 TEST_TOKEN = 'test-token'
-TEST_SCRIPT_NAME = 'noc-trusted-action-test'
+TEST_SCRIPT_NAME = 'noc-trusted-action-probe'
 TEST_NOW = 100
 TEST_CAPABILITY_EXPIRY = 200
 TEST_ACTION_COOLDOWN = 30
@@ -105,6 +105,8 @@ def stub_routeros_action_dependencies(
             trusted_discovery.create_routeros_rest_poster,
         'create_executor':
             trusted_discovery.create_routeros_action_executor,
+        'create_result_poster':
+            trusted_discovery.create_routeros_rest_result_poster,
     }
 
     trusted_discovery.load_routeros_rest_credentials = (
@@ -120,7 +122,17 @@ def stub_routeros_action_dependencies(
 
     trusted_discovery.create_routeros_rest_poster = (
         lambda credentials, context, open_request, post_json_function:
-        'test-routeros-poster'
+        lambda url, body: {
+            'ret': 'false',
+        }
+    )
+
+    trusted_discovery.create_routeros_rest_result_poster = (
+        lambda credentials, context, open_request,
+               post_json_result_function:
+        lambda url, body: {
+            'ret': 'false',
+        }
     )
 
     trusted_discovery.create_routeros_action_executor = (
@@ -150,6 +162,10 @@ def restore_routeros_action_dependencies(
 
     trusted_discovery.create_routeros_action_executor = (
         originals['create_executor']
+    )
+
+    trusted_discovery.create_routeros_rest_result_poster = (
+        originals['create_result_poster']
     )
 
 
@@ -185,7 +201,9 @@ def create_test_server(
         trusted_discovery,
         action_executor=None,
         registry=None,
+        action_result_registry=None,
         script_renderer=None,
+        state_reader=None,
         action_validator=_DEFAULT,
         action_guard=_DEFAULT,
         action_hook=None,
@@ -221,6 +239,19 @@ def create_test_server(
                 asset_number[0]
             )
 
+    if script_renderer is None:
+        script_renderer = lambda script_body, resolutions, state: script_body
+
+    if state_reader is None:
+        state_reader = lambda: {}
+
+    if action_result_registry is None:
+        action_result_registry = (
+            trusted_discovery.ActionResultRegistry(
+                lambda: TEST_NOW,
+            )
+        )
+
     return trusted_discovery.create_server(
         host,
         port,
@@ -230,7 +261,9 @@ def create_test_server(
         stylesheet_body,
         action_executor,
         registry,
+        action_result_registry,
         script_renderer,
+        state_reader,
         action_validator,
         action_guard,
         asset_path_factory,
@@ -308,6 +341,21 @@ def action_request(
         data=data,
         headers=headers,
         method='POST',
+    )
+
+def action_status_request(
+        server,
+        request_id,
+):
+    return urllib.request.Request(
+        server_url(
+            server,
+            '/action/' + request_id,
+            ),
+        headers={
+            'Origin': TEST_ALLOWED_ORIGIN,
+        },
+        method='GET',
     )
 
 
@@ -512,6 +560,7 @@ def temporary_resolutions_file(resolutions):
 @contextlib.contextmanager
 def configured_server_wiring(
         trusted_discovery,
+        routeros_staged=False,
 ):
     wired = {}
     hook_calls = []
@@ -528,7 +577,9 @@ def configured_server_wiring(
             stylesheet_body,
             action_executor,
             capability_registry,
+            action_result_registry,
             trusted_script_renderer,
+            state_reader,
             action_validator,
             action_guard,
             asset_path_factory,
@@ -539,6 +590,8 @@ def configured_server_wiring(
         wired['validator'] = action_validator
         wired['action_hook'] = action_hook
         wired['current_resolutions'] = current_resolutions
+        wired['action_result_registry'] = action_result_registry
+        wired['state_reader'] = state_reader
 
         return FakeServer()
 
@@ -593,7 +646,21 @@ def configured_server_wiring(
                 'create_routeros_rest_poster',
                 lambda credentials, context, open_request,
                        post_json_function:
-                'routeros-poster',
+                lambda url, body: {
+                    'ret': 'true' if routeros_staged else 'false',
+                },
+            )
+        )
+
+        stack.enter_context(
+            testlib.patched_attribute(
+                trusted_discovery,
+                'create_routeros_rest_result_poster',
+                lambda credentials, context, open_request,
+                       post_json_result_function:
+                lambda url, body: {
+                    'ret': 'true' if routeros_staged else 'false',
+                },
             )
         )
 
@@ -613,9 +680,8 @@ def configured_server_wiring(
                 lambda credentials, context, open_request,
                        get_json_function:
                 lambda url: {
-                    'installed-version': '7.23.1',
-                    'latest-version': '7.24.1',
-                    'status': 'New version is available',
+                    'current-firmware': '7.24.2',
+                    'upgrade-firmware': '7.24.4',
                 },
             )
         )

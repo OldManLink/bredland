@@ -307,8 +307,9 @@ def configured_server_wires_routeros_action_validator():
 
     testlib.assert_true(
         wired['validator'](
-            'install-routeros-update'
-        )
+            'noc-download-routeros-update'
+        ),
+        'download action should be valid',
     )
 
     testlib.assert_false(
@@ -384,6 +385,64 @@ def configured_server_wires_trusted_action_availability():
         callable(
             wired['current_resolutions']
         )
+    )
+
+    testlib.assert_true(
+        callable(
+            wired['state_reader']
+        )
+    )
+
+@runner.test('configured server accepts staged RouterOS install action')
+def configured_server_accepts_staged_routeros_install_action():
+    with configured_server_wiring(
+            trusted_discovery,
+            routeros_staged=True,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_true(
+        wired['validator'](
+            'noc-install-routeros-update'
+        ),
+        'staged RouterOS update action should be valid',
+    )
+
+@runner.test('configured server rejects unstaged RouterOS install action')
+def configured_server_rejects_unstaged_routeros_install_action():
+    with configured_server_wiring(
+            trusted_discovery,
+            routeros_staged=False,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_false(
+        wired['validator'](
+            'noc-install-routeros-update'
+        ),
+        'unstaged RouterOS update action should be rejected',
     )
 
 @runner.test('configured server checks current supported resolutions')
@@ -513,6 +572,32 @@ def configured_discovery_omits_script_without_trusted_actions():
             ']}'
         ),
         body,
+    )
+
+@runner.test('configured server wires action result registry')
+def configured_server_wires_action_result_registry():
+    with configured_server_wiring(
+            trusted_discovery,
+    ) as wiring:
+        wired, hook_calls = wiring
+
+        with temporary_trusted_assets(
+                trusted_discovery,
+        ):
+            with passthrough_tls(
+                    trusted_discovery,
+            ):
+                trusted_discovery.create_configured_server(
+                    '127.0.0.1',
+                    8081,
+                )
+
+    testlib.assert_true(
+        isinstance(
+            wired['action_result_registry'],
+            trusted_discovery.ActionResultRegistry,
+        ),
+        'Expected configured server to wire ActionResultRegistry',
     )
 
 runner.finish()

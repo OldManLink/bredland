@@ -3,6 +3,9 @@ import json
 import ssl
 import urllib.request
 
+ROUTEROS_REST_GET_TIMEOUT = 5
+ROUTEROS_REST_POST_TIMEOUT = 30
+
 def execute_routeros_script(
         base_url,
         script_name,
@@ -39,6 +42,7 @@ def post_json(
         response = open_request(
             request,
             context=context,
+            timeout=ROUTEROS_REST_POST_TIMEOUT,
         )
     except urllib.error.HTTPError as error:
         response_body = error.read().decode(
@@ -54,6 +58,36 @@ def post_json(
         )
 
     return response.status == 200
+
+def post_json_result(
+        url,
+        body,
+        headers,
+        context,
+        open_request,
+):
+    request_headers = dict(headers)
+    request_headers['Content-Type'] = 'application/json'
+
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(
+            body,
+            separators=(',', ':'),
+        ).encode('utf-8'),
+        headers=request_headers,
+        method='POST',
+    )
+
+    response = open_request(
+        request,
+        context=context,
+        timeout=ROUTEROS_REST_POST_TIMEOUT,
+    )
+
+    return json.loads(
+        response.read().decode('utf-8')
+    )
 
 def load_routeros_rest_credentials(
         credentials_file,
@@ -130,6 +164,33 @@ def create_routeros_rest_poster(
 
     return post
 
+def create_routeros_rest_result_poster(
+        credentials,
+        context,
+        open_request,
+        post_json_result_function,
+):
+    authorization = routeros_rest_authorization(
+        credentials['username'],
+        credentials['password'],
+    )
+
+    def post(
+            url,
+            body,
+    ):
+        return post_json_result_function(
+            url,
+            body,
+            {
+                'Authorization': authorization,
+            },
+            context,
+            open_request,
+        )
+
+    return post
+
 def create_routeros_rest_getter(
         credentials,
         context,
@@ -166,32 +227,19 @@ def create_routeros_action_executor(
 
     return execute
 
-def routeros_update_available(
+def routeros_update_staged(
         base_url,
-        get,
+        execute,
 ):
-    update = get(
-        base_url + '/rest/system/package/update'
+    result = execute(
+        base_url + '/rest/execute',
+        {
+            'script': ':put [/system script run noc-routeros-staged]',
+            'as-string': '',
+        },
     )
 
-    installed_version = update.get(
-        'installed-version'
-    )
-    latest_version = update.get(
-        'latest-version'
-    )
-    status = update.get(
-        'status'
-    )
-
-    return (
-            isinstance(installed_version, str)
-            and installed_version != ''
-            and isinstance(latest_version, str)
-            and latest_version != ''
-            and installed_version != latest_version
-            and status == 'New version is available'
-    )
+    return result.get('ret') == 'true'
 
 def routerboot_update_available(
         base_url,
@@ -231,6 +279,7 @@ def get_json(
     response = open_request(
         request,
         context=context,
+        timeout=ROUTEROS_REST_GET_TIMEOUT,
     )
 
     return json.loads(

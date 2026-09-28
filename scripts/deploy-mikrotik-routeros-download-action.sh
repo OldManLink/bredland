@@ -12,11 +12,11 @@ load_bredland_secrets
 
 tmpdir="$(mktemp -d)"
 
-template="templates/mikrotik/install-noc-install-routeros-update.rsc.template"
-rendered="${tmpdir}/install-noc-install-routeros-update.rsc"
-remote_file="install-noc-install-routeros-update.rsc"
+template="templates/mikrotik/install-noc-download-routeros-update.rsc.template"
+rendered="${tmpdir}/install-noc-download-routeros-update.rsc"
+remote_file="install-noc-download-routeros-update.rsc"
 
-script_name="noc-install-routeros-update"
+script_name="noc-download-routeros-update"
 
 router_user="${MIKROTIK_SSH_USER:?Missing MIKROTIK_SSH_USER}"
 router_host="${MIKROTIK_SSH_HOST:?Missing MIKROTIK_SSH_HOST}"
@@ -34,51 +34,51 @@ cleanup()
 trap cleanup EXIT
 
 run_step \
-    "Render MikroTik RouterOS update-action installer" \
+    "Render MikroTik RouterOS download-action installer" \
     scripts/render-template.sh \
     "$template" \
     "$rendered"
 
 run_step \
-    "Upload MikroTik RouterOS update-action installer" \
+    "Upload MikroTik RouterOS download-action installer" \
     scp \
     "$rendered" \
     "${router}:${remote_file}"
 
 run_step \
-    "Import MikroTik RouterOS update-action installer" \
+    "Import MikroTik RouterOS download-action installer" \
     ssh \
     "$router" \
     "/import file-name=${remote_file}"
 
 verify_routeros \
     "$router" \
-    "RouterOS update-action script found" \
+    "RouterOS download-action script found" \
     ":if ([:len [/system script find name=\"${script_name}\"]] > 0) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
-    "RouterOS update-action script has expected source" \
+    "RouterOS download-action script has expected source" \
     ":local id [/system script find name=\"${script_name}\"]; \
      :local source [/system script get \$id source]; \
-     :local expected \"/system reboot\"; \
+     :local expected \"/system package update download\"; \
      :if (\$source = \$expected) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
-    "RouterOS update-action script has expected policy" \
-    ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id policy] = \"reboot;read;write;policy\") do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
+    "RouterOS download-action script has expected policy" \
+    ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id policy] = \"read;write;policy\") do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 verify_routeros \
     "$router" \
-    "RouterOS update-action script bypasses caller permissions" \
+    "RouterOS download-action script bypasses caller permissions" \
     ":local id [/system script find name=\"${script_name}\"]; :if ([/system script get \$id dont-require-permissions] = true) do={ :put \"VERIFY_OK\" } else={ :put \"VERIFY_FAILED\" }"
 
 run_step \
-    "Remove uploaded MikroTik RouterOS update-action installer" \
+    "Remove uploaded MikroTik RouterOS download-action installer" \
     ssh \
     "$router" \
     "/file remove ${remote_file}"
 
 echo
-echo "✅ MikroTik RouterOS update action deployed."
+echo "✅ MikroTik RouterOS download action deployed."

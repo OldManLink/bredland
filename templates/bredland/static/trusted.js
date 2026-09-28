@@ -98,7 +98,10 @@ function heartbeat_confirmation_message(message) {
 
 function render_trusted_action(
     resolution,
-    confirmation_message
+    button_text,
+    confirmation_message,
+    accepted_message,
+    success_message
 ) {
     document
         .querySelectorAll(
@@ -125,7 +128,7 @@ function render_trusted_action(
             );
 
             button.type = 'button';
-            button.textContent = 'Update';
+            button.textContent = button_text;
             button.className = 'trusted-action-button';
 
             button.addEventListener(
@@ -140,6 +143,26 @@ function render_trusted_action(
                     }
 
                     button.disabled = true;
+
+                    function showSuccess(message) {
+                        var toast = document.createElement(
+                            'div'
+                        );
+
+                        toast.textContent = message;
+                        toast.className = 'trusted-action-success';
+
+                        notification.appendChild(
+                            toast
+                        );
+
+                        toast.addEventListener(
+                            'animationend',
+                            function () {
+                                toast.remove();
+                            }
+                        );
+                    }
 
                     function showFailure(message) {
                         var failure = document.createElement(
@@ -191,22 +214,114 @@ function render_trusted_action(
                             return;
                         }
 
-                        var toast = document.createElement(
-                            'div'
-                        );
+                        if (response.status === 202) {
+                            var accepted_at = Date.now();
 
-                        toast.textContent = 'Update requested';
-                        toast.className = 'trusted-action-success';
+                            showSuccess(
+                                accepted_message
+                            );
 
-                        notification.appendChild(
-                            toast
-                        );
+                            return response.json().then(function (result) {
+                                var poll_times = [
+                                    1209,
+                                    4815,
+                                    10005,
+                                    15000
+                                ];
 
-                        toast.addEventListener(
-                            'animationend',
-                            function () {
-                                toast.remove();
-                            }
+                                function schedule_poll(index) {
+                                    var elapsed = Date.now() - accepted_at;
+                                    var delay = Math.max(
+                                        0,
+                                        poll_times[index] - elapsed
+                                    );
+
+                                    setTimeout(
+                                        function () {
+                                            fetch(
+                                                window.TRUSTED_BASE_URL +
+                                                '/action/' +
+                                                result.request_id
+                                            ).then(function (poll_response) {
+                                                if (!poll_response.ok) {
+                                                    showFailure(
+                                                        'Status check failed.'
+                                                    );
+
+                                                    return;
+                                                }
+
+                                                if (!poll_response.json) {
+                                                    showFailure(
+                                                        'Invalid status response.'
+                                                    );
+
+                                                    return;
+                                                }
+
+                                                return poll_response.json().then(
+                                                    function (poll_result) {
+                                                        if (
+                                                            poll_result.status === 'pending' &&
+                                                            index + 1 < poll_times.length
+                                                        ) {
+                                                            schedule_poll(
+                                                                index + 1
+                                                            );
+                                                        }
+
+                                                        if (
+                                                            poll_result.status === 'pending' &&
+                                                            index + 1 === poll_times.length
+                                                        ) {
+                                                            showFailure(
+                                                                'Download timed out.'
+                                                            );
+                                                        }
+
+                                                        if (poll_result.status === 'succeeded') {
+                                                            showSuccess(
+                                                                success_message
+                                                            );
+                                                        }
+
+                                                        if (poll_result.status === 'failed') {
+                                                            showFailure(
+                                                                'Download failed.'
+                                                            );
+                                                        }
+
+                                                        if (
+                                                            poll_result.status !== 'pending' &&
+                                                            poll_result.status !== 'succeeded' &&
+                                                            poll_result.status !== 'failed'
+                                                        ) {
+                                                            showFailure(
+                                                                'Invalid status response.'
+                                                            );
+                                                        }
+                                                    }
+                                                ).catch(function () {
+                                                    showFailure(
+                                                        'Invalid status response.'
+                                                    );
+                                                });
+                                            }).catch(function () {
+                                                showFailure(
+                                                    'Connection lost while checking status.'
+                                                );
+                                            });
+                                        },
+                                        delay
+                                    );
+                                }
+
+                                schedule_poll(0);
+                            });
+                        }
+
+                        showSuccess(
+                            accepted_message
                         );
                     }).catch(function () {
                         showFailure(
