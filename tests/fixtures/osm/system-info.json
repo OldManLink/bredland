@@ -1,0 +1,35 @@
+{
+  "identity": {
+    "hwModel": "NMMiner",
+    "hostName": "cyd2.8_9f1570",
+    "fwVersion": "v2.0.03",
+    "rssi": -67
+  },
+  "miner": {
+    "hashRate": 0.00104013,
+    "sAccepted": 151,
+    "sRejected": 0,
+    "uptimeSeconds": 727842,
+    "uptimeEver": 13871509,
+    "networkDiff": "132.8T",
+    "poolDiff": "1.0000 ",
+    "lastDiff": "5.2386 ",
+    "bestDiffSession": "59.170 ",
+    "bestDiffEver": "5.3061K",
+    "blkhits": 0,
+    "freeHeap": 54608,
+    "minFreeHeap": 26920
+  },
+  "stratum": {
+    "url": "solo.ckpool.org:3333",
+    "user": "bc1q0qrsneqy43l7jlhxr5df6hnn9k8c0dpet5lh2g"
+  },
+  "temps": {
+    "vcore": null,
+    "asic": null
+  },
+  "storage": {
+    "fsTotal": 344064,
+    "fsUsed": 221184
+  }
+}

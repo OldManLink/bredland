@@ -25,6 +25,12 @@ $runner->test('formats uptime values', function () {
     assertSame('1w6d11:48:47', display_duration(1165727));
 });
 
+$runner->test('formats hash rate values', function () {
+    assertSame('0.0 kH/s', display_hash_rate(0));
+    assertSame('1.0 kH/s', display_hash_rate(1000));
+    assertSame('1040.2 kH/s', display_hash_rate(1040183));
+});
+
 $runner->test('exports valid formatter definitions', function () {
     $exports = get_exports();
 

@@ -166,9 +166,10 @@ $runner->test('load() returns fully formed clients from production-shaped fixtur
             $fixture['data']
         );
 
-        assertSame(2, count($clients));
+        assertSame(3, count($clients));
         assertTrue($clients[0] instanceof Client);
         assertTrue($clients[1] instanceof Client);
+        assertTrue($clients[2] instanceof Client);
 
         $mikrotik_description = read_json_object(
             $fixture['clients'] . '/mikrotik.json'
@@ -176,11 +177,15 @@ $runner->test('load() returns fully formed clients from production-shaped fixtur
         $bredland_description = read_json_object(
             $fixture['clients'] . '/bredland.json'
         );
-        list($mikrotik, $bredland) = $clients;
+        $osm_description = read_json_object(
+            $fixture['clients'] . '/osm.json'
+        );
+        list($mikrotik, $bredland, $osm) = $clients;
 
         assertSame($mikrotik_description['order'], $mikrotik->get_order());
         assertSame($bredland_description['order'], $bredland->get_order());
-        assertSame(array('MikroTik', 'Bredland'), client_titles($clients));
+        assertSame($osm_description['order'], $osm->get_order());
+        assertSame(array('MikroTik', 'Bredland', 'OSM'), client_titles($clients));
 
         $mikrotik_heartbeat = read_json_object(
             $repoRoot . '/tests/fixtures/heartbeats/mikrotik.json'
@@ -243,7 +248,7 @@ $runner->test('load() skips a malformed client description', function () use ($r
             $fixture['data']
         );
 
-        assertSame(array('Bredland'), client_titles($clients));
+        assertSame(array('Bredland', 'OSM'), client_titles($clients));
     } finally {
         remove_tree($fixture['root']);
     }
@@ -261,7 +266,7 @@ $runner->test('load() skips a client with a missing schema', function () use ($r
             $fixture['data']
         );
 
-        assertSame(array('Bredland'), client_titles($clients));
+        assertSame(array('Bredland', 'OSM'), client_titles($clients));
     } finally {
         remove_tree($fixture['root']);
     }
@@ -282,7 +287,7 @@ $runner->test('load() skips a client with a malformed schema', function () use (
             $fixture['data']
         );
 
-        assertSame(array('Bredland'), client_titles($clients));
+        assertSame(array('Bredland', 'OSM'), client_titles($clients));
     } finally {
         remove_tree($fixture['root']);
     }
@@ -301,7 +306,7 @@ $runner->test('load() returns a critical unavailable client with a missing heart
         );
 
         assertSame(
-                array('MikroTik', 'Bredland'),
+                array('MikroTik', 'Bredland', 'OSM'),
                 client_titles($clients)
         );
 
@@ -341,7 +346,7 @@ $runner->test('load() returns a critical unavailable client with a malformed hea
         );
 
         assertSame(
-                array('MikroTik', 'Bredland'),
+                array('MikroTik', 'Bredland', 'OSM'),
                 client_titles($clients)
         );
 

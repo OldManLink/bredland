@@ -1,0 +1,8 @@
+[Unit]
+Description=One Shot Miner telemetry heartbeat
+
+[Service]
+Type=oneshot
+User=bredland-trusted
+Group=bredland-trusted
+ExecStart=__OSM_HEARTBEAT_SCRIPT_FILE__

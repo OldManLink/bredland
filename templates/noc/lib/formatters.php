@@ -49,6 +49,13 @@ function display_duration($seconds) {
     return sprintf('%ds', $seconds);
 }
 
+function display_hash_rate($hashRate) {
+    return sprintf(
+        '%.1f kH/s',
+        $hashRate / 1000
+    );
+}
+
 function get_exports() {
     return array(
         'formatters' => array(
@@ -56,6 +63,9 @@ function get_exports() {
                 'value_types' => array('integer' => true),
             ),
             'display_duration' => array(
+                'value_types' => array('integer' => true),
+            ),
+            'display_hash_rate' => array(
                 'value_types' => array('integer' => true),
             ),
         )
