@@ -22,6 +22,7 @@ command -v afplay >/dev/null
 hosts=(
     bredland
     mikrotik
+    osm
 )
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"

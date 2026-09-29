@@ -540,6 +540,27 @@ fi
 
 echo "✅ Local heartbeat history returned latest Bredland records"
 
+echo
+echo "Posting OSM heartbeat..."
+
+check_request \
+    200 \
+    "ok" \
+    1 \
+    'host=osm' \
+    'token=osm.v1.test-token' \
+    'ttl=600' \
+    'uptime=727990' \
+    'fields=hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits' \
+    'hash_rate=1040183' \
+    'version=v2.0.03' \
+    'rssi=-67' \
+    'free_heap=54608' \
+    'best_difficulty_ever=5306' \
+    'block_hits=0'
+
+echo "✅ Local NOC accepted OSM heartbeat"
+
 if [[ "${LOCAL_NOC_PREVIEW:-0}" == "1" ]]; then
     echo
     echo "Starting mock MikroTik REST service..."

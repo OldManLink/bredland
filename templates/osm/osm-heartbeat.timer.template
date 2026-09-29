@@ -1,0 +1,11 @@
+[Unit]
+Description=One Shot Miner telemetry heartbeat
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=__OSM_HEARTBEAT_INTERVAL__
+AccuracySec=1s
+Persistent=no
+
+[Install]
+WantedBy=timers.target

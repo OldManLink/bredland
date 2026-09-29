@@ -1,0 +1,38 @@
+{
+  "schema": {
+    "const": 1
+  },
+  "ts": {
+    "value_type": "string"
+  },
+  "host": {
+    "const": "osm"
+  },
+  "ttl": {
+    "value_type": "integer"
+  },
+  "uptime": {
+    "value_type": "integer"
+  },
+  "hash_rate": {
+    "value_type": "integer"
+  },
+  "version": {
+    "value_type": "string"
+  },
+  "rssi": {
+    "value_type": "integer"
+  },
+  "free_heap": {
+    "value_type": "integer"
+  },
+  "best_difficulty_ever": {
+    "value_type": "integer"
+  },
+  "block_hits": {
+    "value_type": "integer"
+  },
+  "remote_addr": {
+    "value_type": "string"
+  }
+}

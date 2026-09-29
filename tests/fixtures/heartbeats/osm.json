@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "ts": "2026-09-28T17:30:01Z",
+  "host": "osm",
+  "ttl": 600,
+  "uptime": 754001,
+  "hash_rate": 1013708,
+  "version": "v2.0.03",
+  "rssi": -78,
+  "free_heap": 54316,
+  "best_difficulty_ever": 5306,
+  "block_hits": 0,
+  "remote_addr": "91.128.133.179"
+}

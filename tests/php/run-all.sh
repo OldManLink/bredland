@@ -20,6 +20,8 @@ MIKROTIK_NOC_HOST=mikrotik-test
 MIKROTIK_NOC_TOKEN=mikrotik.v1.test-token
 BREDLAND_NOC_HOST=bredland-test
 BREDLAND_NOC_TOKEN=bredland.v1.test-token
+OSM_NOC_HOST=osm-test
+OSM_NOC_TOKEN=osm.v1.test-token
 # Oderland stuff
 NOC_DATA_DIR=/private/data/
 EOF

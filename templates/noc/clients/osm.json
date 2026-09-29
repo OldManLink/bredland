@@ -1,0 +1,22 @@
+{
+  "host": "osm",
+  "title": "OSM",
+  "fields": [
+    {
+      "label": "Uptime",
+      "value": {
+        "field": "uptime",
+        "formatter": "display_duration"
+      }
+    },
+    {
+      "label": "Hash rate",
+      "value": {
+        "field": "hash_rate",
+        "formatter": "display_hash_rate"
+      }
+    }
+  ],
+  "rules": [],
+  "order": 30
+}

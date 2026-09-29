@@ -40,6 +40,7 @@ timestamp_file="$fixture_root/last-fetched.timestamp"
 hosts=(
     mikrotik
     bredland
+    osm
 )
 
 fixtures_are_complete()

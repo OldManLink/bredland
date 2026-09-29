@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+host="__OSM_NOC_HOST__"
+token="__OSM_NOC_TOKEN__"
+endpoint="__TELEMETRY_ENDPOINT__"
+osm_base_url="__OSM_BASE_URL__"
+collector_script="__OSM_COLLECTOR_SCRIPT_FILE__"
+ttl=600
+
+system_info_file="$(mktemp)"
+probe_file="$(mktemp)"
+
+trap 'rm -f "$system_info_file" "$probe_file"' EXIT
+
+curl \
+    --silent \
+    --show-error \
+    --fail \
+    --max-time 5 \
+    "$osm_base_url/api/system/info" \
+    > "$system_info_file"
+
+curl \
+    --silent \
+    --show-error \
+    --fail \
+    --max-time 5 \
+    "$osm_base_url/probe" \
+    > "$probe_file"
+
+collector_output="$(
+    python3 \
+        "$collector_script" \
+        "$system_info_file" \
+        "$probe_file" \
+        "$ttl"
+)"
+
+while IFS='=' read -r key value; do
+    case "$key" in
+        uptime)
+            uptime="$value"
+            ;;
+        hash_rate)
+            hash_rate="$value"
+            ;;
+        version)
+            version="$value"
+            ;;
+        rssi)
+            rssi="$value"
+            ;;
+        free_heap)
+            free_heap="$value"
+            ;;
+        best_difficulty_ever)
+            best_difficulty_ever="$value"
+            ;;
+        block_hits)
+            block_hits="$value"
+            ;;
+    esac
+done <<< "$collector_output"
+
+fields="hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits"
+
+curl --silent --show-error --fail \
+  --data-urlencode "host=$host" \
+  --data-urlencode "token=$token" \
+  --data-urlencode "ttl=$ttl" \
+  --data-urlencode "uptime=$uptime" \
+  --data-urlencode "fields=$fields" \
+  --data-urlencode "hash_rate=$hash_rate" \
+  --data-urlencode "version=$version" \
+  --data-urlencode "rssi=$rssi" \
+  --data-urlencode "free_heap=$free_heap" \
+  --data-urlencode "best_difficulty_ever=$best_difficulty_ever" \
+  --data-urlencode "block_hits=$block_hits" \
+  "$endpoint"
