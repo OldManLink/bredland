@@ -551,13 +551,15 @@ check_request \
     'token=osm.v1.test-token' \
     'ttl=600' \
     'uptime=727990' \
-    'fields=hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits' \
+    'fields=hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits,shares_accepted,shares_rejected' \
     'hash_rate=1040183' \
     'version=v2.0.03' \
     'rssi=-67' \
     'free_heap=54608' \
     'best_difficulty_ever=5306' \
-    'block_hits=0'
+    'block_hits=0' \
+    'shares_accepted=150' \
+    'shares_rejected=0'
 
 echo "✅ Local NOC accepted OSM heartbeat"
 

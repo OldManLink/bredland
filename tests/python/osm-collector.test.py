@@ -98,7 +98,14 @@ def extracts_heartbeat_data_from_system_info():
         0,
         heartbeat['block_hits'],
     )
-
+    testlib.assert_same(
+        151,
+        heartbeat['shares_accepted'],
+    )
+    testlib.assert_same(
+        0,
+        heartbeat['shares_rejected'],
+    )
 
 @runner.test('extracts heartbeat data from probe')
 def extracts_heartbeat_data_from_probe():

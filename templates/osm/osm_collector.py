@@ -38,6 +38,8 @@ def collect_osm_system_info(system_info):
         'rssi': identity['rssi'],
         'free_heap': miner['freeHeap'],
         'block_hits': miner['blkhits'],
+        'shares_accepted': miner['sAccepted'],
+        'shares_rejected': miner['sRejected'],
     }
 
 
@@ -99,6 +101,8 @@ def main():
             'free_heap',
             'best_difficulty_ever',
             'block_hits',
+            'shares_accepted',
+            'shares_rejected',
     ):
         print('{}={}'.format(
             key,
