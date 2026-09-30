@@ -193,6 +193,8 @@ assert_curl_argument "rssi=-67"
 assert_curl_argument "free_heap=54608"
 assert_curl_argument "best_difficulty_ever=5306"
 assert_curl_argument "block_hits=0"
+assert_curl_argument "shares_accepted=151"
+assert_curl_argument "shares_rejected=0"
 
 assert_probe_curl_argument "--max-time"
 assert_probe_curl_argument "5"

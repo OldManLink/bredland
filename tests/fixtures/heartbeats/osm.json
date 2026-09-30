@@ -1,14 +1,16 @@
 {
   "schema": 1,
-  "ts": "2026-09-28T17:30:01Z",
+  "ts": "2026-09-30T21:24:58Z",
   "host": "osm",
   "ttl": 600,
-  "uptime": 754001,
-  "hash_rate": 1013708,
+  "uptime": 940899,
+  "hash_rate": 1039889,
   "version": "v2.0.03",
-  "rssi": -78,
-  "free_heap": 54316,
+  "rssi": -69,
+  "free_heap": 53024,
   "best_difficulty_ever": 5306,
   "block_hits": 0,
-  "remote_addr": "91.128.133.179"
+  "remote_addr": "83.254.49.118",
+  "shares_accepted": 213,
+  "shares_rejected": 2
 }

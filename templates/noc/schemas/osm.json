@@ -34,5 +34,11 @@
   },
   "remote_addr": {
     "value_type": "string"
+  },
+  "shares_accepted": {
+    "value_type": "integer"
+  },
+  "shares_rejected": {
+    "value_type": "integer"
   }
 }

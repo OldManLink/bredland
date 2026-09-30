@@ -61,10 +61,16 @@ while IFS='=' read -r key value; do
         block_hits)
             block_hits="$value"
             ;;
+        shares_accepted)
+            shares_accepted="$value"
+            ;;
+        shares_rejected)
+            shares_rejected="$value"
+            ;;
     esac
 done <<< "$collector_output"
 
-fields="hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits"
+fields="hash_rate,version,rssi,free_heap,best_difficulty_ever,block_hits,shares_accepted,shares_rejected"
 
 curl --silent --show-error --fail \
   --data-urlencode "host=$host" \
@@ -78,4 +84,6 @@ curl --silent --show-error --fail \
   --data-urlencode "free_heap=$free_heap" \
   --data-urlencode "best_difficulty_ever=$best_difficulty_ever" \
   --data-urlencode "block_hits=$block_hits" \
+  --data-urlencode "shares_accepted=$shares_accepted" \
+  --data-urlencode "shares_rejected=$shares_rejected" \
   "$endpoint"
