@@ -26,20 +26,20 @@ serial="$(extract_zone_serial "$zone_json")"
 line_indices="$(
     find_txt_line_indices \
         "$zone_json" \
-        "$record_name" \
-        "$validation"
+        "$record_name"
 )"
 
 assert_line_count \
     "$line_indices" \
-    1 \
-    "Expected exactly one matching TXT record"
+    0 \
+    "DNS challenge already exists"
 
-line_index="$line_indices"
+dname="${record_name%.}."
+
 response="$(
     execute_remote_command \
         "$remote" \
-        "uapi --output=json DNS mass_edit_zone zone=$zone serial=$serial remove=$line_index"
+        "uapi --output=json DNS mass_edit_zone zone=$zone serial=$serial add='{\"dname\":\"$dname\",\"ttl\":14400,\"record_type\":\"TXT\",\"data\":[\"$validation\"]}'"
 )"
 
 require_valid_zone_edit_response "$response"
