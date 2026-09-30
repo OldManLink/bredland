@@ -1,0 +1,44 @@
+{
+  "apiversion": 3,
+  "func": "parse_zone",
+  "module": "DNS",
+  "result": {
+    "data": [
+      {
+        "data_b64": [
+          "ZG5zMS5vZGVybGFuZC5jb20u",
+          "c2FsZXMub2RlcmxhbmQuc2Uu",
+          "MjAyNjA5MzAwMg==",
+          "ODY0MDA=",
+          "NzIwMA==",
+          "MzYwMDAwMA==",
+          "ODY0MDA="
+        ],
+        "dname_b64": "YXJjYW5lbC5zZS4=",
+        "dname_raw": "arcanel.se.",
+        "line_index": 4,
+        "record_type": "SOA",
+        "ttl": 7200,
+        "type": "record"
+      },
+      {
+        "data_b64": [
+          "YnJkLTAzOC10ZXN0"
+        ],
+        "dname_b64": "X2JyZC0wMzgtc3Bpa2U=",
+        "dname_raw": "_brd-038-spike",
+        "line_index": 469,
+        "record_type": "TXT",
+        "ttl": 14400,
+        "type": "record"
+      }
+    ],
+    "errors": null,
+    "messages": null,
+    "metadata": {
+      "transformed": 1
+    },
+    "status": 1,
+    "warnings": null
+  }
+}
