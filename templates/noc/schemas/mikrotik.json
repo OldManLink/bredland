@@ -56,6 +56,9 @@
   "wan_lease_remaining": {
     "value_type": "integer"
   },
+  "wan_dhcp_status": {
+    "value_type": "string"
+  },
   "remote_addr": {
     "value_type": "string"
   }
