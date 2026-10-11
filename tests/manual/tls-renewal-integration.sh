@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# Manual live integration test for BRD-038 DNS challenge flow.
+#
+# Exercises real Oderland DNS:
+#   publish challenge
+#   verify all authoritative nameservers
+#   verify public recursive visibility
+#   remove challenge
+#
+# Not run by the automated test suite.
+# Requires live network access and production DNS credentials.
+
 set -euo pipefail
 
 record_name="_brd-038-live-$(date +%s).arcanel.se"

@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_dir="${1:?Missing run directory}"
+fullchain="${run_dir}/fullchain.pem"
+validation_now="${TLS_VALIDATION_NOW:-$(date +%s)}"
+
+if [[ ! -f "$fullchain" ]]; then
+    echo "Missing certificate file: fullchain.pem" >&2
+    exit 1
+fi
+
+privkey="${run_dir}/privkey.pem"
+
+if [[ ! -f "$privkey" ]]; then
+    echo "Missing certificate file: privkey.pem" >&2
+    exit 1
+fi
+
+if ! openssl x509 \
+    -in "$fullchain" \
+    -noout \
+    >/dev/null 2>&1
+then
+    echo "Invalid certificate: fullchain.pem" >&2
+    exit 1
+fi
+
+if ! openssl pkey \
+    -in "$privkey" \
+    -noout \
+    >/dev/null 2>&1
+then
+    echo "Invalid private key: privkey.pem" >&2
+    exit 1
+fi
+
+cert_pubkey="$(
+    openssl x509 \
+        -in "$fullchain" \
+        -pubkey \
+        -noout \
+        2>/dev/null
+)"
+
+key_pubkey="$(
+    openssl pkey \
+        -in "$privkey" \
+        -pubout \
+        2>/dev/null
+)"
+
+if [[ "$cert_pubkey" != "$key_pubkey" ]]; then
+    echo "Certificate does not match private key" >&2
+    exit 1
+fi
+
+hostname="nocster-73.arcanel.se"
+
+if ! openssl x509 \
+    -in "$fullchain" \
+    -noout \
+    -checkhost "$hostname" \
+    2>/dev/null |
+    grep -Fqx -- "Hostname $hostname does match certificate"
+then
+    echo "Certificate does not cover $hostname" >&2
+    exit 1
+fi
+
+not_before="$(
+    openssl x509 \
+        -in "$fullchain" \
+        -noout \
+        -startdate |
+        cut -d= -f2-
+)"
+
+not_before_epoch="$(date -u -d "$not_before" +%s)"
+
+if [[ "$validation_now" -lt "$not_before_epoch" ]]; then
+    echo "Certificate is not yet valid" >&2
+    exit 1
+fi
+
+not_after="$(
+    openssl x509 \
+        -in "$fullchain" \
+        -noout \
+        -enddate |
+        cut -d= -f2-
+)"
+
+not_after_epoch="$(date -u -d "$not_after" +%s)"
+
+if [[ "$validation_now" -gt "$not_after_epoch" ]]; then
+    echo "Certificate has expired" >&2
+    exit 1
+fi
