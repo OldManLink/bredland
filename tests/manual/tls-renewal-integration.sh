@@ -11,12 +11,33 @@
 # Requires live network access and production DNS credentials.
 
 set -euo pipefail
+# shellcheck source=scripts/lib/bredland.sh
+source "$(dirname "$0")/../../scripts/lib/bredland.sh"
+# shellcheck source=scripts/lib/utils.sh
+source "$(dirname "$0")/../../scripts/lib/utils.sh"
 
-record_name="_brd-038-live-$(date +%s).arcanel.se"
-validation="brd-038-live-test"
+load_bredland_secrets
+
+bredland_host="${BREDLAND_SSH_HOST:?Missing BREDLAND_SSH_HOST}"
+
+remote_run_dir=""
+
+cleanup_remote_run_dir()
+{
+    if [[ -n "$remote_run_dir" ]]; then
+        execute_remote_command \
+            "$bredland_host" \
+            "rm -rf '$remote_run_dir'" \
+            >/dev/null 2>&1 || true
+    fi
+}
+
+trap cleanup_remote_run_dir EXIT
 
 echo
 echo "=== BRD-038 live DNS challenge integration test ==="
+record_name="_brd-038-live-$(date +%s).arcanel.se"
+validation="brd-038-live-test"
 echo "Record: $record_name"
 echo "Value:  $validation"
 echo
@@ -103,6 +124,53 @@ remove_elapsed=$((SECONDS - remove_started))
 
 echo "✅ DNS challenge removed (${remove_elapsed}s)"
 echo
+
+echo
+echo "=== BRD-038 issued certificate validation integration test ==="
+
+run_id="brd-038-validator-live-$(date +%s)"
+remote_run_dir="/tmp/$run_id"
+
+echo
+echo "→ Creating Bredland test run directory..."
+
+execute_remote_command \
+    "$bredland_host" \
+    "mkdir -p '$remote_run_dir'"
+
+echo "✅ Bredland test run directory created"
+
+echo
+echo "→ Uploading certificate fixtures..."
+
+execute_rsync \
+    tests/fixtures/tls/fullchain.pem \
+    "${bredland_host}:${remote_run_dir}/fullchain.pem"
+
+execute_rsync \
+    tests/fixtures/tls/privkey.pem \
+    "${bredland_host}:${remote_run_dir}/privkey.pem"
+
+echo "✅ Certificate fixtures uploaded"
+
+echo
+echo "→ Validating issued certificate through Mac wrapper..."
+
+scripts/tls/validate-issued-certificate.sh \
+    "$run_id"
+
+echo "✅ Issued certificate accepted through Mac → Bredland path"
+
+echo
+echo "→ Removing Bredland test run directory..."
+
+execute_remote_command \
+    "$bredland_host" \
+    "rm -rf '$remote_run_dir'"
+
+remote_run_dir=""
+
+echo "✅ Bredland test run directory removed"
 
 echo "=== Live integration test complete ==="
 

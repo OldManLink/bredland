@@ -97,3 +97,45 @@ if [[ "$validation_now" -gt "$not_after_epoch" ]]; then
     echo "Certificate has expired" >&2
     exit 1
 fi
+
+certificate_count="$(
+    grep -c -- '-----BEGIN CERTIFICATE-----' "$fullchain"
+)"
+
+if [[ "$certificate_count" -lt 2 ]]; then
+    echo "Certificate chain is incomplete" >&2
+    exit 1
+fi
+
+leaf_cert="$(mktemp)"
+chain_certs="$(mktemp)"
+
+trap 'rm -f "$leaf_cert" "$chain_certs"' EXIT
+
+awk \
+    -v leaf="$leaf_cert" \
+    -v chain="$chain_certs" '
+        /-----BEGIN CERTIFICATE-----/ {
+            certificate++
+        }
+
+        certificate == 1 {
+            print > leaf
+            next
+        }
+
+        certificate > 1 {
+            print > chain
+        }
+    ' \
+    "$fullchain"
+
+if ! openssl verify \
+    -partial_chain \
+    -CAfile "$chain_certs" \
+    "$leaf_cert" \
+    >/dev/null 2>&1
+then
+    echo "Certificate chain is invalid" >&2
+    exit 1
+fi

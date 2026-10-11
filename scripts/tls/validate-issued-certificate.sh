@@ -13,4 +13,4 @@ bredland_host="${BREDLAND_SSH_HOST:?Missing BREDLAND_SSH_HOST}"
 
 execute_remote_command \
     "$bredland_host" \
-    "/usr/local/bin/validate-issued-certificate $run_id"
+    "/usr/local/bin/validate-issued-certificate /tmp/$run_id"

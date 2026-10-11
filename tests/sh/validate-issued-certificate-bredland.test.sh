@@ -262,4 +262,65 @@ assert_stderr \
 
 echo "✅ accepts valid certificate"
 
+echo
+echo "→ rejects incomplete certificate chain"
+
+reset_run_dir
+cp tests/fixtures/tls/leaf-cert.pem "$run_dir/fullchain.pem"
+cp tests/fixtures/tls/privkey.pem "$run_dir/privkey.pem"
+
+if TLS_VALIDATION_NOW=1798761600 \
+    templates/bredland/validate-issued-certificate.sh.template \
+        "$run_dir" \
+        >"$stdout_file" \
+        2>"$stderr_file"
+then
+    echo "❌ Expected incomplete certificate chain to be rejected"
+    exit 1
+fi
+
+assert_stderr \
+    "Certificate chain is incomplete" \
+    "Expected explicit incomplete-certificate-chain error"
+
+echo "✅ rejects incomplete certificate chain"
+
+echo
+echo "→ rejects incoherent certificate chain"
+
+reset_run_dir
+
+cp tests/fixtures/tls/leaf-cert.pem "$run_dir/fullchain.pem"
+cp tests/fixtures/tls/privkey.pem "$run_dir/privkey.pem"
+
+openssl req \
+    -x509 \
+    -newkey rsa:2048 \
+    -nodes \
+    -sha256 \
+    -days 1 \
+    -subj '/CN=Wrong Test CA' \
+    -keyout "$run_dir/wrong-ca-key.pem" \
+    -out "$run_dir/wrong-ca-cert.pem" \
+    >/dev/null 2>&1
+
+cat "$run_dir/wrong-ca-cert.pem" >> "$run_dir/fullchain.pem"
+
+if TLS_VALIDATION_NOW=1798761600 \
+    templates/bredland/validate-issued-certificate.sh.template \
+        "$run_dir" \
+        >"$stdout_file" \
+        2>"$stderr_file"
+then
+    echo "❌ Expected invalid certificate chain to be rejected"
+    exit 1
+fi
+
+assert_stderr \
+    "Certificate chain is invalid" \
+    "Expected explicit invalid-certificate-chain error"
+
+
+echo "✅ rejects incoherent certificate chain"
+
 

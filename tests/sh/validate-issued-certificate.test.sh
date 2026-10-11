@@ -56,7 +56,7 @@ then
 fi
 
 expected_remote="bredland"
-expected_command="/usr/local/bin/validate-issued-certificate brd-038-test-run"
+expected_command="/usr/local/bin/validate-issued-certificate /tmp/brd-038-test-run"
 
 actual_remote="$(sed -n '1p' "$ssh_log")"
 actual_command="$(sed -n '2p' "$ssh_log")"
