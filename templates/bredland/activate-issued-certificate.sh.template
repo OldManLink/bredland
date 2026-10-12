@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! systemctl restart trusted-discovery.service; then
+    echo "Failed to restart trusted discovery service" >&2
+    exit 1
+fi
+
+if ! systemctl is-active --quiet trusted-discovery.service; then
+    echo "Trusted discovery service failed to become active" >&2
+    exit 1
+fi
