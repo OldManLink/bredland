@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_dir="${1:?Missing run directory}"
+tls_dir="${BREDLAND_TLS_DIR:-/etc/bredland/tls}"
+tls_owner="${BREDLAND_TLS_OWNER:-root}"
+tls_group="${BREDLAND_TLS_GROUP:-bredland-trusted}"
+
+run_id="$(basename "$run_dir")"
+backup_dir="$tls_dir/backups/$run_id"
+
+mkdir -p -m 750 "$backup_dir"
+
+chown \
+    "$tls_owner:$tls_group" \
+    "$backup_dir"
+
+cp \
+    "$tls_dir/fullchain.pem" \
+    "$backup_dir/fullchain.pem"
+
+cp \
+    "$tls_dir/privkey.pem" \
+    "$backup_dir/privkey.pem"
+
+new_fullchain="$tls_dir/.fullchain.pem.new"
+new_privkey="$tls_dir/.privkey.pem.new"
+
+cp \
+    "$run_dir/fullchain.pem" \
+    "$new_fullchain"
+
+cp \
+    "$run_dir/privkey.pem" \
+    "$new_privkey"
+
+chmod 640 \
+    "$new_fullchain" \
+    "$new_privkey"
+
+chown \
+    "$tls_owner:$tls_group" \
+    "$new_fullchain" \
+    "$new_privkey"
+
+rollback_fullchain="$tls_dir/.fullchain.pem.rollback"
+rollback_privkey="$tls_dir/.privkey.pem.rollback"
+
+if ! {
+    mv \
+        "$new_fullchain" \
+        "$tls_dir/fullchain.pem" &&
+
+    mv \
+        "$new_privkey" \
+        "$tls_dir/privkey.pem"
+}; then
+    if ! {
+        cp \
+            "$backup_dir/fullchain.pem" \
+            "$rollback_fullchain" &&
+
+        cp \
+            "$backup_dir/privkey.pem" \
+            "$rollback_privkey" &&
+
+        chmod 640 \
+            "$rollback_fullchain" \
+            "$rollback_privkey" &&
+
+        chown \
+            "$tls_owner:$tls_group" \
+            "$rollback_fullchain" \
+            "$rollback_privkey" &&
+
+        mv \
+            "$rollback_fullchain" \
+            "$tls_dir/fullchain.pem" &&
+
+        mv \
+            "$rollback_privkey" \
+            "$tls_dir/privkey.pem"
+    }; then
+        echo "Rollback failed; backup preserved at $backup_dir" >&2
+        exit 1
+    fi
+
+    rm -f \
+        "$new_fullchain" \
+        "$new_privkey" \
+        "$rollback_fullchain" \
+        "$rollback_privkey"
+
+    echo "Failed to provision certificate pair; restored previous certificate" >&2
+    exit 1
+fi
