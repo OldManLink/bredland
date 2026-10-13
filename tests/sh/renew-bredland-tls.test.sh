@@ -22,6 +22,7 @@ chmod +x "$fakebin/ssh"
 
 cat > "$secrets_file" <<'EOF'
 BREDLAND_SSH_HOST=bredland-test
+CERTBOT_EMAIL=test@example.com
 EOF
 
 export PATH="$fakebin:$PATH"
@@ -66,17 +67,21 @@ if [[ -n "${SSH_LOG:-}" ]]; then
 fi
 
 case "${2:-}" in
-    start-renewal\ *)
+    start-renewal\ *|CERTBOT_EMAIL=*\ start-renewal\ *)
         exit 0
         ;;
 
-    cat\ /run/brd-038/*/request)
+    cat\ /tmp/*/request)
         cat "$SSH_REQUEST_FILE"
         exit 0
         ;;
 
-    continue-renewal\ *)
+    cat\ /tmp/*/fullchain.pem)
+        printf '%s\n' "issued-fullchain"
         exit 0
+        ;;
+
+    continue-renewal\ *)        exit 0
         ;;
 
     wait-renewal\ *)
@@ -150,6 +155,14 @@ fi
 
 start_command="$(sed -n '1p' "$ssh_log")"
 
+if [[ "$start_command" != bredland-test\ CERTBOT_EMAIL=\'test@example.com\'\ start-renewal\ * ]]; then
+    echo "❌ Expected Certbot email to be passed to start-renewal"
+    echo
+    echo "Actual start command:"
+    echo "  $start_command"
+    exit 1
+fi
+
 run_id="${start_command##*start-renewal }"
 
 if [[ -z "$run_id" || "$run_id" == "$start_command" ]]; then
@@ -157,7 +170,7 @@ if [[ -z "$run_id" || "$run_id" == "$start_command" ]]; then
     exit 1
 fi
 
-expected_request_command="bredland-test cat /run/brd-038/$run_id/request"
+expected_request_command="bredland-test cat /tmp/$run_id/request"
 
 if ! grep -Fxq "$expected_request_command" "$ssh_log"; then
     echo "❌ Expected request to be read for run-id: $run_id"
@@ -515,8 +528,10 @@ fi
 start_command="$(grep ' start-renewal ' "$SSH_LOG")"
 run_id="${start_command##*start-renewal }"
 
-if ! grep -Fxq "$run_id" "$activate_log"; then
-    echo "❌ Expected issued certificate activation for run-id: $run_id"
+actual_activation="$(cat "$activate_log")"
+
+if [[ -n "$actual_activation" ]]; then
+    echo "❌ Expected issued certificate activation with no arguments"
     echo
     echo "Actual activation call:"
     sed 's/^/  /' "$activate_log"
@@ -537,6 +552,16 @@ prepare_happy_path
 cat > "$fakebin/verify-served-certificate" <<'EOF'
 #!/usr/bin/env bash
 
+if [[ ! -d "${1:-}" ]]; then
+    echo "Expected local verification directory" >&2
+    exit 1
+fi
+
+if [[ ! -f "$1/fullchain.pem" ]]; then
+    echo "Expected issued fullchain in verification directory" >&2
+    exit 1
+fi
+
 printf '%s\n' "$*" > "$VERIFY_LOG"
 EOF
 
@@ -553,11 +578,10 @@ if [[ ! -e "$verify_log" ]]; then
     exit 1
 fi
 
-start_command="$(grep ' start-renewal ' "$SSH_LOG")"
-run_id="${start_command##*start-renewal }"
+verify_dir="$(cat "$verify_log")"
 
-if ! grep -Fxq "$run_id" "$verify_log"; then
-    echo "❌ Expected served certificate verification for run-id: $run_id"
+if [[ "$verify_dir" != /tmp/*/issued ]]; then
+    echo "❌ Expected served certificate verifier to receive local issued directory"
     echo
     echo "Actual verification call:"
     sed 's/^/  /' "$verify_log"

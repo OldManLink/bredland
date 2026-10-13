@@ -20,18 +20,24 @@ remove_dns_challenge="${TLS_REMOVE_DNS_CHALLENGE:-scripts/tls/remove-dns-challen
 
 bredland_host="${BREDLAND_SSH_HOST:?Missing BREDLAND_SSH_HOST}"
 
+local_tmpdir="$(mktemp -d)"
+trap 'rm -rf "$local_tmpdir"' EXIT
+
+issued_expected_dir="$local_tmpdir/issued"
+mkdir -p "$issued_expected_dir"
+
 run_id="$(printf '%04x%04x%04x' "$RANDOM" "$RANDOM" "$RANDOM")"
 
 run_step \
     "Starting Bredland TLS renewal" \
     execute_remote_command \
     "$bredland_host" \
-    "start-renewal $run_id"
+    "CERTBOT_EMAIL='$CERTBOT_EMAIL' start-renewal $run_id"
 
 request="$(
     execute_remote_command \
         "$bredland_host" \
-        "cat /run/brd-038/$run_id/request"
+        "cat /tmp/$run_id/request"
 )"
 
 identifier="$(
@@ -100,13 +106,17 @@ run_step \
 
 run_step \
     "Activating issued certificate" \
-    "$activate_issued_certificate" \
-    "$run_id"
+    "$activate_issued_certificate"
+
+execute_remote_command \
+    "$bredland_host" \
+    "cat /tmp/$run_id/fullchain.pem" \
+    > "$issued_expected_dir/fullchain.pem"
 
 run_step \
     "Verifying served certificate" \
     "$verify_served_certificate" \
-    "$run_id"
+    "$issued_expected_dir"
 
 run_step \
     "Removing DNS challenge" \

@@ -26,6 +26,18 @@ export CERTBOT_LOG="$certbot_log"
 export CERTBOT_LIVE_DIR="$certbot_live_dir"
 export CERTBOT_EMAIL="test@example.com"
 
+sudo_log="$tmpdir/sudo-log"
+export SUDO_LOG="$sudo_log"
+
+cat > "$fakebin/sudo" <<'EOF'
+#!/usr/bin/env bash
+
+printf '%s\n' "$*" >> "$SUDO_LOG"
+"$@"
+EOF
+
+chmod +x "$fakebin/sudo"
+
 write_fake_certbot()
 {
     cat > "$fakebin/certbot"
@@ -174,7 +186,7 @@ fi
 echo "✅ marks renewal failed when certbot fails"
 
 echo
-echo "→ invokes certbot with domain and auth hook"
+echo "→ invokes production certbot with renewal arguments"
 
 write_fake_certbot <<'EOF'
 #!/usr/bin/env bash
@@ -186,6 +198,7 @@ EOF
 rm -f "$run_dir/status" "$run_dir/error"
 : > "$certbot_log"
 : > "$tmpdir/stderr"
+: > "$sudo_log"
 
 if ! bash templates/bredland/certbot-renewal-worker.sh.template \
     "$run_dir" \
@@ -197,33 +210,28 @@ then
     exit 1
 fi
 
+if ! grep -Fq "certbot certonly" "$sudo_log"; then
+    echo "❌ Expected production Certbot invocation through sudo"
+    echo
+    echo "Actual sudo call:"
+    sed 's/^/  /' "$sudo_log"
+    exit 1
+fi
+
 actual="$(cat "$certbot_log")"
+failed_before=$failed
 
-if [[ "$actual" != *"-d nocster-73.arcanel.se"* ]]; then
-    echo "❌ Expected certbot target domain"
-    echo
-    echo "Actual:"
-    echo "  $actual"
-    exit 1
+assert_contains "$actual" "-d nocster-73.arcanel.se"
+assert_contains "$actual" "--manual-auth-hook"
+assert_contains "$actual" "certbot-auth-hook"
+assert_contains "$actual" "--non-interactive"
+assert_contains "$actual" "--agree-tos"
+assert_contains "$actual" "--no-eff-email"
+assert_contains "$actual" "--email test@example.com"
+
+if (( failed == failed_before )); then
+    echo "✅ invokes production certbot with renewal arguments"
 fi
-
-if [[ "$actual" != *"--manual-auth-hook "* ]]; then
-    echo "❌ Expected certbot manual auth hook"
-    echo
-    echo "Actual:"
-    echo "  $actual"
-    exit 1
-fi
-
-if [[ "$actual" != *"certbot-auth-hook"* ]]; then
-    echo "❌ Expected Bredland certbot auth hook"
-    echo
-    echo "Actual:"
-    echo "  $actual"
-    exit 1
-fi
-
-echo "✅ invokes certbot with domain and auth hook"
 
 echo
 echo "→ invokes certbot test-cert mode with isolated state"
@@ -243,6 +251,7 @@ EOF
 rm -f "$run_dir/status" "$run_dir/error"
 : > "$certbot_log"
 : > "$tmpdir/stderr"
+: > "$sudo_log"
 
 if ! env -u CERTBOT_TEST_CERT_CONFIG_DIR \
     bash templates/bredland/certbot-renewal-worker.sh.template \
@@ -256,8 +265,15 @@ then
     exit 1
 fi
 
-actual="$(cat "$certbot_log")"
+if [[ -s "$sudo_log" ]]; then
+    echo "❌ Expected test-cert renewal to avoid sudo"
+    echo
+    echo "Actual sudo calls:"
+    sed 's/^/  /' "$sudo_log"
+    exit 1
+fi
 
+actual="$(cat "$certbot_log")"
 failed_before=$failed
 
 assert_contains "$actual" "--test-cert"
@@ -304,6 +320,42 @@ if ! bash templates/bredland/certbot-renewal-worker.sh.template \
 then
     echo "❌ Expected renewal worker to succeed"
     cat "$tmpdir/stderr"
+    exit 1
+fi
+
+if ! grep -Fq \
+    "cp $certbot_live_dir/fullchain.pem $run_dir/fullchain.pem" \
+    "$sudo_log"
+then
+    echo "❌ Expected production fullchain copy through sudo"
+    echo
+    echo "Actual sudo calls:"
+    sed 's/^/  /' "$sudo_log"
+    exit 1
+fi
+
+expected_owner="$(id -un):$(id -gn)"
+
+if ! grep -Fq \
+    "chown $expected_owner $run_dir/fullchain.pem $run_dir/privkey.pem" \
+    "$sudo_log"
+then
+    echo "❌ Expected production certificate handoff ownership through sudo"
+    echo
+    echo "Actual sudo calls:"
+    sed 's/^/  /' "$sudo_log"
+    exit 1
+fi
+
+fullchain_mode="$(stat -c '%a' "$run_dir/fullchain.pem")"
+privkey_mode="$(stat -c '%a' "$run_dir/privkey.pem")"
+
+if [[ "$fullchain_mode" != "600" || "$privkey_mode" != "600" ]]; then
+    echo "❌ Expected production certificate handoff files to be mode 600"
+    echo
+    echo "Actual modes:"
+    echo "  fullchain.pem: $fullchain_mode"
+    echo "  privkey.pem:   $privkey_mode"
     exit 1
 fi
 

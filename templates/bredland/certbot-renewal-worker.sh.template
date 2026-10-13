@@ -33,17 +33,22 @@ fail()
     exit 1
 }
 
+certbot_email="${CERTBOT_EMAIL:?Missing CERTBOT_EMAIL}"
+
 certbot_args=(
     certonly
     --manual
     --preferred-challenges dns
     --manual-auth-hook
     "/usr/local/bin/certbot-auth-hook $run_dir"
-    -d nocster-73.arcanel.se
+    -d "nocster-73.arcanel.se"
+    --non-interactive
+    --agree-tos
+    --no-eff-email
+    --email "$certbot_email"
 )
 
 if $test_cert; then
-    certbot_email="${CERTBOT_EMAIL:?Missing CERTBOT_EMAIL}"
     certbot_live_dir="$test_cert_config_dir/live/nocster-73.arcanel.se"
 
     certbot_args+=(
@@ -52,16 +57,20 @@ if $test_cert; then
         --work-dir "$run_dir/certbot-work"
         --logs-dir "$run_dir/certbot-logs"
         --cert-name "nocster-73.arcanel.se"
-        --non-interactive
-        --agree-tos
-        --no-eff-email
-        --email "$certbot_email"
     )
+fi
+
+certbot_command=(certbot)
+copy_command=(cp)
+
+if ! $test_cert; then
+    certbot_command=(sudo certbot)
+    copy_command=(sudo cp)
 fi
 
 write_status "running"
 
-if ! certbot "${certbot_args[@]}" \
+if ! "${certbot_command[@]}" "${certbot_args[@]}" \
     2> "$run_dir/.error.tmp"
 then
     mv "$run_dir/.error.tmp" "$run_dir/error"
@@ -71,18 +80,37 @@ fi
 
 rm -f "$run_dir/.error.tmp"
 
-if ! cp \
+if ! "${copy_command[@]}" \
     "$certbot_live_dir/fullchain.pem" \
     "$run_dir/fullchain.pem"
 then
     fail "Failed to copy issued fullchain"
 fi
 
-if ! cp \
+if ! "${copy_command[@]}" \
     "$certbot_live_dir/privkey.pem" \
     "$run_dir/privkey.pem"
 then
     fail "Failed to copy issued private key"
+fi
+
+if ! $test_cert; then
+    worker_user="$(id -un)"
+    worker_group="$(id -gn)"
+
+    if ! sudo chown "$worker_user:$worker_group" \
+        "$run_dir/fullchain.pem" \
+        "$run_dir/privkey.pem"
+    then
+        fail "Failed to hand off issued certificate ownership"
+    fi
+
+    if ! chmod 600 \
+        "$run_dir/fullchain.pem" \
+        "$run_dir/privkey.pem"
+    then
+        fail "Failed to secure issued certificate artifacts"
+    fi
 fi
 
 write_status "succeeded"
