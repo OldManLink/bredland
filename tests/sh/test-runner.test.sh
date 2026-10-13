@@ -2,6 +2,9 @@
 
 set -u
 
+# shellcheck source=tests/sh/lib/testlib.sh
+source "$(dirname "$0")/lib/testlib.sh"
+
 passed=0
 failed=0
 
@@ -16,32 +19,6 @@ cleanup()
 }
 
 trap cleanup EXIT
-
-assert_contains()
-{
-    local haystack="$1"
-    local needle="$2"
-
-    if [[ "$haystack" == *"$needle"* ]]; then
-        ((passed++))
-    else
-        echo "❌ Expected output to contain: $needle"
-        ((failed++))
-    fi
-}
-
-assert_not_contains()
-{
-    local haystack="$1"
-    local needle="$2"
-
-    if [[ "$haystack" != *"$needle"* ]]; then
-        ((passed++))
-    else
-        echo "❌ Expected output not to contain: $needle"
-        ((failed++))
-    fi
-}
 
 echo "Testing test runner ..."
 

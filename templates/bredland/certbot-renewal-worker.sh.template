@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+test_cert=false
+
+if [[ "${1:-}" == "--test-cert" ]]; then
+    test_cert=true
+    shift
+fi
+
+run_dir="${1:?Missing run directory}"
+test_cert_config_dir="${CERTBOT_TEST_CERT_CONFIG_DIR:-$run_dir/certbot-config}"
+certbot_live_dir="${CERTBOT_LIVE_DIR:-/etc/letsencrypt/live/nocster-73.arcanel.se}"
+
+write_status()
+{
+    local status="${1:?Missing status}"
+
+    printf '%s\n' "$status" > "$run_dir/.status.tmp"
+    mv "$run_dir/.status.tmp" "$run_dir/status"
+}
+
+fail()
+{
+    local message="${1:?Missing failure message}"
+
+    rm -f \
+        "$run_dir/fullchain.pem" \
+        "$run_dir/privkey.pem"
+
+    printf '%s\n' "$message" > "$run_dir/error"
+    write_status "failed"
+    exit 1
+}
+
+certbot_args=(
+    certonly
+    --manual
+    --preferred-challenges dns
+    --manual-auth-hook
+    "/usr/local/bin/certbot-auth-hook $run_dir"
+    -d nocster-73.arcanel.se
+)
+
+if $test_cert; then
+    certbot_email="${CERTBOT_EMAIL:?Missing CERTBOT_EMAIL}"
+    certbot_live_dir="$test_cert_config_dir/live/nocster-73.arcanel.se"
+
+    certbot_args+=(
+        --test-cert
+        --config-dir "$test_cert_config_dir"
+        --work-dir "$run_dir/certbot-work"
+        --logs-dir "$run_dir/certbot-logs"
+        --cert-name "nocster-73.arcanel.se"
+        --non-interactive
+        --agree-tos
+        --no-eff-email
+        --email "$certbot_email"
+    )
+fi
+
+write_status "running"
+
+if ! certbot "${certbot_args[@]}" \
+    2> "$run_dir/.error.tmp"
+then
+    mv "$run_dir/.error.tmp" "$run_dir/error"
+    write_status "failed"
+    exit 1
+fi
+
+rm -f "$run_dir/.error.tmp"
+
+if ! cp \
+    "$certbot_live_dir/fullchain.pem" \
+    "$run_dir/fullchain.pem"
+then
+    fail "Failed to copy issued fullchain"
+fi
+
+if ! cp \
+    "$certbot_live_dir/privkey.pem" \
+    "$run_dir/privkey.pem"
+then
+    fail "Failed to copy issued private key"
+fi
+
+write_status "succeeded"

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_dir="${1:?Missing run directory}"
+
+identifier="${CERTBOT_DOMAIN:?Missing CERTBOT_DOMAIN}"
+validation="${CERTBOT_VALIDATION:?Missing CERTBOT_VALIDATION}"
+record="_acme-challenge.$identifier"
+
+request_tmp="$run_dir/.request.tmp"
+request_file="$run_dir/request"
+ready_file="$run_dir/challenge-ready"
+continue_file="$run_dir/continue"
+
+cat > "$request_tmp" <<EOF
+identifier=$identifier
+record=$record
+validation=$validation
+EOF
+
+mv "$request_tmp" "$request_file"
+touch "$ready_file"
+
+cancel_file="$run_dir/cancel"
+
+while true; do
+    if [[ -f "$continue_file" ]]; then
+        exit 0
+    fi
+
+    if [[ -f "$cancel_file" ]]; then
+        echo "Renewal cancelled" >&2
+        exit 1
+    fi
+
+    sleep 0.1
+done

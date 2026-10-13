@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+test_cert=false
+
+if [[ "${1:-}" == "--test-cert" ]]; then
+    test_cert=true
+    shift
+fi
+
+run_id="${1:?Missing run id}"
+
+run_root="${BREDLAND_TLS_RUN_ROOT:-/tmp}"
+run_dir="$run_root/$run_id"
+
+mkdir -p "$run_dir"
+
+worker_args=(
+    "$run_dir"
+)
+
+if $test_cert; then
+    worker_args=(
+        --test-cert
+        "$run_dir"
+    )
+fi
+
+certbot-renewal-worker \
+    "${worker_args[@]}" \
+    >/dev/null \
+    2>&1 &
+
+worker_pid=$!
+
+while true; do
+    if [[ -f "$run_dir/challenge-ready" ]]; then
+        break
+    fi
+
+    if [[ -f "$run_dir/status" ]] &&
+       [[ "$(cat "$run_dir/status")" == "failed" ]]
+    then
+        if [[ -f "$run_dir/error" ]]; then
+            cat "$run_dir/error" >&2
+        else
+            echo "Renewal worker failed before challenge readiness" >&2
+        fi
+
+        exit 1
+    fi
+
+    if ! kill -0 "$worker_pid" 2>/dev/null; then
+        echo "Renewal worker exited before challenge readiness" >&2
+        exit 1
+    fi
+
+    sleep 0.1
+done

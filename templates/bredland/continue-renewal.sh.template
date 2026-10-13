@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_id="${1:?Missing run id}"
+
+run_root="${BREDLAND_TLS_RUN_ROOT:-/tmp}"
+run_dir="$run_root/$run_id"
+
+if [[ ! -f "$run_dir/challenge-ready" ]]; then
+    echo "Renewal is not waiting for DNS challenge" >&2
+    exit 1
+fi
+
+touch "$run_dir/continue"

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_id="${1:?Missing run id}"
+
+run_root="${BREDLAND_TLS_RUN_ROOT:-/tmp}"
+run_dir="$run_root/$run_id"
+
+while true; do
+    if [[ -f "$run_dir/status" ]]; then
+        status="$(cat "$run_dir/status")"
+
+        if [[ "$status" == "succeeded" ]]; then
+            if [[ ! -f "$run_dir/fullchain.pem" ]]; then
+                echo "Renewal succeeded without fullchain.pem" >&2
+                exit 1
+            fi
+
+            if [[ ! -f "$run_dir/privkey.pem" ]]; then
+                echo "Renewal succeeded without privkey.pem" >&2
+                exit 1
+            fi
+
+            exit 0
+        fi
+
+        if [[ "$status" == "failed" ]]; then
+            if [[ -f "$run_dir/error" ]]; then
+                cat "$run_dir/error" >&2
+            else
+                echo "Renewal failed" >&2
+            fi
+
+            exit 1
+        fi
+    fi
+
+    sleep 0.1
+done
